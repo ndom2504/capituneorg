@@ -1,0 +1,808 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum DocumentStatus {
+  A_FOURNIR
+  EN_REVUE
+  VALIDE
+}
+
+enum DossierStatus {
+  LOCAL
+  PREINSCRIPTION
+  EN_COURS
+  TERMINE
+}
+
+enum PreRegistrationStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum CommunicationLanguage {
+  FRANCAIS
+  ANGLAIS
+  AUTRE
+}
+
+enum ResidenceSituation {
+  PAYS_ORIGINE
+  ETRANGER_ETUDES_TRAVAIL
+  TEMPORAIRE
+}
+
+enum MainObjective {
+  ETUDIER
+  TRAVAILLER
+  ENTREPRENDRE
+  FAMILLE
+  EXPLORER
+}
+
+enum ProfessionalSituation {
+  ETUDIANT
+  SALARIE
+  ENTREPRENEUR
+  SANS_EMPLOI
+}
+
+enum MainDomain {
+  TECH
+  SANTE
+  COMMERCE_GESTION
+  INGENIERIE
+  TECHNIQUE
+  AUTRE
+}
+
+enum EducationLevel {
+  SECONDAIRE
+  BAC_LICENCE
+  MASTER
+  DOCTORAT
+  AUTRE
+}
+
+enum ExperienceRange {
+  ZERO_UN
+  DEUX_QUATRE
+  CINQ_PLUS
+}
+
+enum BudgetRange {
+  MOINS_3000
+  ENTRE_3000_7000
+  ENTRE_7000_15000
+  PLUS_15000
+  JE_NE_SAIS_PAS
+}
+
+enum UserMediaType {
+  NONE
+  IMAGE
+  VIDEO
+}
+
+enum AccountType {
+  USER
+  PROFESSIONAL
+  ADMIN
+}
+
+enum MarketplaceProfession {
+  IMMIGRATION_CONSULTANT
+  IMMIGRATION_LAWYER
+  ORIENTATION_COUNSELOR
+  ACADEMIC_COUNSELOR
+  EMPLOYMENT_COUNSELOR
+  CASE_MANAGER
+  CERTIFIED_TRANSLATOR
+  INTEGRATION_COACH
+  COMMUNITY_ORG
+}
+
+enum MarketplaceFormat {
+  VISIO
+  IN_PERSON
+  BOTH
+}
+
+enum MarketplaceProfileStatus {
+  DRAFT
+  PUBLISHED
+  SUSPENDED
+}
+
+enum MarketplacePricingMode {
+  FREE
+  PAID
+}
+
+enum MarketplaceResponseTime {
+  H24
+  H48
+  H72
+}
+
+enum MarketplaceRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  NEEDS_INFO
+}
+
+enum MarketplaceUrgency {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum MarketplaceNeedTopic {
+  ETUDES
+  TRAVAIL
+  ENTREPRENEUR
+  DOCUMENTS
+  BUDGET
+  INSTALLATION
+  ORIENTATION
+  IMMIGRATION
+  FAMILLE
+  INTEGRATION
+  FORMATION
+  AUTRE
+}
+
+enum MarketplaceMessageSenderRole {
+  REQUESTER
+  PROFESSIONAL
+  SYSTEM
+}
+
+enum MarketplaceMessageKind {
+  TEXT
+  STATUS_UPDATE
+  MEETING
+  FILE
+}
+
+enum PaymentOrderStatus {
+  DRAFT
+  PENDING_PAYMENT
+  PAID
+  CANCELED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  CREATED
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum PreRegistrationReviewStatus {
+  NEW
+  IN_REVIEW
+  ACCEPTED
+  REJECTED
+  NEEDS_INFO
+}
+
+enum ReviewFeasibility {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum MeetingType {
+  DISCOVERY_CALL
+  ORIENTATION
+  DOSSIER_FOLLOWUP
+  OTHER
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ProNetworkRole {
+  OWNER
+  MEMBER
+}
+
+enum EventType {
+  LIVE
+  WEBINAIRE
+  ATELIER
+  FORMATION
+}
+
+enum EventTheme {
+  ETUDES
+  TRAVAIL
+  ENTREPRENEUR
+  DOCUMENTS
+  BUDGET
+}
+
+enum EventLevel {
+  DEBUTANT
+  INTERMEDIAIRE
+  AVANCE
+}
+
+enum EventFormat {
+  LIVE
+  REPLAY
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  passwordHash String?
+  fullName  String
+  avatarUrl String?
+  coverUrl  String?
+  accountType AccountType @default(USER)
+  isCertified Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  dossiers  Dossier[]
+  preRegistration PreRegistration?
+  posts     UserPost[]
+  postComments UserPostComment[]
+  postLikes UserPostLike[]
+
+  following Follow[] @relation("FollowFollower")
+  followers Follow[] @relation("FollowFollowing")
+
+  contactSent ContactRequest[] @relation("ContactFrom")
+  contactReceived ContactRequest[] @relation("ContactTo")
+
+  partnershipSent PartnershipRequest[] @relation("PartnershipFrom")
+  partnershipReceived PartnershipRequest[] @relation("PartnershipTo")
+
+  proNetworksOwned ProfessionalNetwork[] @relation("ProNetworkOwner")
+  proNetworkMemberships ProfessionalNetworkMember[]
+
+  eventRegistrations EventRegistration[]
+  eventLikes EventLike[]
+
+  assignedPreRegistrationReviews PreRegistrationReview[]
+  meetingsAsClient Meeting[] @relation("MeetingClient")
+  meetingsAsPro Meeting[] @relation("MeetingPro")
+
+  marketplaceProfile MarketplaceProfile?
+  marketplaceRequestsSent MarketplaceRequest[] @relation("MarketplaceRequester")
+  marketplaceRequestsReceived MarketplaceRequest[] @relation("MarketplaceProfessional")
+
+  paymentServices PaymentService[]
+  paymentOrdersBought PaymentOrder[] @relation("PaymentOrderBuyer")
+  paymentOrdersProvided PaymentOrder[] @relation("PaymentOrderProvider")
+}
+
+model PreRegistration {
+  id        String @id @default(cuid())
+  userId    String @unique
+
+  status    PreRegistrationStatus @default(DRAFT)
+
+  firstName String?
+  lastName  String?
+  email     String?
+  phone     String?
+  language  CommunicationLanguage?
+
+  countryOfResidence String?
+  city              String?
+  nationality       String?
+  residenceSituation ResidenceSituation?
+
+  mainObjective MainObjective?
+  needsJson     Json?
+
+  professionalSituation ProfessionalSituation?
+  domain                MainDomain?
+  educationLevel        EducationLevel?
+  experienceRange       ExperienceRange?
+
+  budgetRange BudgetRange?
+  constraintsJson Json?
+  constraintsOther String?
+
+  message String?
+
+  disclaimerAccepted Boolean @default(false)
+  contactAccepted    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  review PreRegistrationReview?
+  meetings Meeting[]
+
+  @@index([userId])
+}
+
+model PreRegistrationReview {
+  id String @id @default(cuid())
+
+  preRegistrationId String @unique
+  preRegistration PreRegistration @relation(fields: [preRegistrationId], references: [id], onDelete: Cascade)
+
+  status PreRegistrationReviewStatus @default(NEW)
+  feasibility ReviewFeasibility?
+  recommendedTrack String?
+  internalNotes String?
+
+  assignedProId String?
+  assignedPro User? @relation(fields: [assignedProId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assignedProId])
+  @@index([status])
+}
+
+model Meeting {
+  id String @id @default(cuid())
+
+  clientId String
+  client User @relation("MeetingClient", fields: [clientId], references: [id], onDelete: Cascade)
+
+  proId String
+  pro User @relation("MeetingPro", fields: [proId], references: [id], onDelete: Cascade)
+
+  preRegistrationId String?
+  preRegistration PreRegistration? @relation(fields: [preRegistrationId], references: [id], onDelete: SetNull)
+
+  title String
+  type MeetingType @default(OTHER)
+  status MeetingStatus @default(SCHEDULED)
+
+  startsAt DateTime
+  durationMin Int @default(30)
+
+  locationUrl String?
+  notesInternal String?
+
+  marketplaceRequest MarketplaceRequest? @relation("MarketplaceRequestMeeting")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([proId])
+  @@index([startsAt])
+}
+
+model MarketplaceProfile {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status MarketplaceProfileStatus @default(DRAFT)
+  isVerified Boolean @default(false)
+
+  profession MarketplaceProfession
+  headline String?
+  organization String?
+
+  country String
+  city String
+
+  languagesJson Json?
+  themesJson Json?
+  specialtiesJson Json?
+  servicesJson Json?
+  targetAudiencesJson Json?
+  availabilityJson Json?
+
+  format MarketplaceFormat @default(VISIO)
+  responseTime MarketplaceResponseTime?
+
+  licenseNumber String?
+  licenseAuthority String?
+  proofUrl String?
+
+  bioShort String?
+  bioLong String?
+
+  employerDetails String?
+
+  pricingMode MarketplacePricingMode @default(FREE)
+  price30Min Int?
+  price60Min Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requests MarketplaceRequest[]
+
+  @@index([status])
+  @@index([profession])
+  @@index([country])
+  @@index([city])
+}
+
+model MarketplaceRequest {
+  id String @id @default(cuid())
+
+  requesterId String
+  requester User @relation("MarketplaceRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  professionalId String
+  professional User @relation("MarketplaceProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
+
+  profileId String?
+  profile MarketplaceProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  status MarketplaceRequestStatus @default(PENDING)
+  topic MarketplaceNeedTopic?
+  urgency MarketplaceUrgency?
+  preferredTimeframe String?
+  message String?
+
+  proNote String?
+
+  meetingId String? @unique
+  meeting Meeting? @relation("MarketplaceRequestMeeting", fields: [meetingId], references: [id], onDelete: SetNull)
+
+  requesterLastReadAt DateTime?
+  professionalLastReadAt DateTime?
+  lastActivityAt DateTime @default(now())
+
+  messages MarketplaceRequestMessage[]
+
+  paymentOrders PaymentOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([professionalId, status])
+  @@index([requesterId])
+  @@index([createdAt])
+  @@index([lastActivityAt])
+}
+
+model MarketplaceRequestMessage {
+  id String @id @default(cuid())
+
+  requestId String
+  request MarketplaceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  senderRole MarketplaceMessageSenderRole
+  kind MarketplaceMessageKind @default(TEXT)
+
+  body String?
+  fileUrl String?
+  fileName String?
+
+  createdAt DateTime @default(now())
+
+  @@index([requestId, createdAt])
+}
+
+model ProfessionalNetwork {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+
+  owner       User     @relation("ProNetworkOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     ProfessionalNetworkMember[]
+
+  @@index([ownerId])
+}
+
+model ProfessionalNetworkMember {
+  networkId String
+  userId    String
+  role      ProNetworkRole @default(MEMBER)
+  createdAt DateTime       @default(now())
+
+  network   ProfessionalNetwork @relation(fields: [networkId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([networkId, userId])
+  @@index([userId])
+}
+
+model Event {
+  id            String      @id @default(cuid())
+  title         String
+  description   String
+  objectives    String?
+  audience      String?
+  prerequisites String?
+  durationMin   Int?
+
+  type          EventType
+  theme         EventTheme
+  level         EventLevel
+  format        EventFormat
+  startsAt      DateTime?
+
+  liveUrl       String?
+  replayUrl     String?
+  isFeatured    Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  speakers      EventSpeaker[]
+  registrations EventRegistration[]
+  likes         EventLike[]
+}
+
+model Speaker {
+  id        String   @id @default(cuid())
+  fullName  String
+  title     String?
+  bio       String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  events    EventSpeaker[]
+}
+
+model EventSpeaker {
+  eventId   String
+  speakerId String
+
+  event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  speaker   Speaker @relation(fields: [speakerId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, speakerId])
+  @@index([speakerId])
+}
+
+model EventRegistration {
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  event     Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@index([userId])
+}
+
+model EventLike {
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  event     Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@index([userId])
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+model ContactRequest {
+  id        String        @id @default(cuid())
+  fromId    String
+  toId      String
+  status    RequestStatus @default(PENDING)
+  message   String?
+  createdAt DateTime      @default(now())
+
+  from      User @relation("ContactFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to        User @relation("ContactTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([fromId])
+  @@index([toId])
+  @@unique([fromId, toId])
+}
+
+model PartnershipRequest {
+  id        String        @id @default(cuid())
+  fromId    String
+  toId      String
+  status    RequestStatus @default(PENDING)
+  message   String?
+  createdAt DateTime      @default(now())
+
+  from      User @relation("PartnershipFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to        User @relation("PartnershipTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([fromId])
+  @@index([toId])
+  @@unique([fromId, toId])
+}
+
+model UserPost {
+  id        String        @id @default(cuid())
+  userId    String
+  content   String
+  mediaUrl  String?
+  mediaType UserMediaType @default(NONE)
+  likes     Int           @default(0)
+  shares    Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments  UserPostComment[]
+  likesRel  UserPostLike[]
+
+  @@index([userId])
+}
+
+model UserPostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  message   String
+  createdAt DateTime @default(now())
+
+  post      UserPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model UserPostLike {
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      UserPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId])
+}
+
+model AdminPost {
+  id        String         @id @default(cuid())
+  adminLabel String
+  content   String
+  likes     Int            @default(0)
+  shares    Int            @default(0)
+  createdAt DateTime       @default(now())
+
+  comments  AdminComment[]
+}
+
+model AdminComment {
+  id         String    @id @default(cuid())
+  postId     String
+  authorLabel String
+  message    String
+  createdAt  DateTime  @default(now())
+
+  post       AdminPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model Dossier {
+  id        String        @id @default(cuid())
+  userId    String
+  program   String
+  status    DossierStatus @default(LOCAL)
+  createdAt DateTime      @default(now())
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@index([userId])
+}
+
+model Document {
+  id        String         @id @default(cuid())
+  dossierId String
+  name      String
+  status    DocumentStatus @default(A_FOURNIR)
+  note      String?
+
+  dossier   Dossier        @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId])
+}
+
+model PaymentService {
+  id String @id @default(cuid())
+
+  providerUserId String?
+  providerUser User? @relation(fields: [providerUserId], references: [id], onDelete: SetNull)
+
+  title String
+  description String?
+  priceCents Int
+  currency String @default("cad")
+  durationMinutes Int?
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders PaymentOrder[]
+
+  @@index([providerUserId])
+  @@index([active])
+}
+
+model PaymentOrder {
+  id String @id @default(cuid())
+
+  marketplaceRequestId String?
+  marketplaceRequest MarketplaceRequest? @relation(fields: [marketplaceRequestId], references: [id], onDelete: SetNull)
+
+  buyerUserId String
+  buyerUser User @relation("PaymentOrderBuyer", fields: [buyerUserId], references: [id], onDelete: Cascade)
+
+  providerUserId String
+  providerUser User @relation("PaymentOrderProvider", fields: [providerUserId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service PaymentService @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  status PaymentOrderStatus @default(DRAFT)
+  amountCents Int
+  currency String @default("cad")
+
+  paidAt DateTime?
+  canceledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+
+  @@index([marketplaceRequestId])
+  @@index([buyerUserId])
+  @@index([providerUserId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Payment {
+  id String @id @default(cuid())
+
+  orderId String
+  order PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  stripeCheckoutSessionId String? @unique
+  stripePaymentIntentId String? @unique
+
+  status PaymentStatus @default(CREATED)
+  paidAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([status])
+}

@@ -1,0 +1,104 @@
+import { NextRequest, NextResponse } from "next/server";
+
+import { prisma } from "@/lib/db";
+import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
+import { createSessionToken, setSessionCookie } from "@/lib/auth/session";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type Payload = {
+  idToken?: string;
+  accountType?: "USER" | "PROFESSIONAL";
+};
+
+function splitName(displayName: string | null | undefined) {
+  const name = (displayName ?? "").trim();
+  if (!name) return { firstName: "", lastName: "" };
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return { firstName: parts[0]!, lastName: "" };
+  return { firstName: parts[0]!, lastName: parts.slice(1).join(" ") };
+}
+
+export async function POST(req: NextRequest) {
+  const body = (await req.json().catch(() => null)) as Payload | null;
+  if (!body?.idToken) {
+    return NextResponse.json({ error: "idToken requis." }, { status: 400 });
+  }
+
+  const desiredAccountType =
+    body.accountType === "PROFESSIONAL" || body.accountType === "USER" ? body.accountType : null;
+
+  let decoded: { email?: string; name?: string; picture?: string };
+  try {
+    const auth = getFirebaseAdminAuth();
+    decoded = await auth.verifyIdToken(body.idToken);
+  } catch {
+    return NextResponse.json({ error: "Token Google invalide." }, { status: 401 });
+  }
+
+  const email = (decoded.email ?? "").trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return NextResponse.json({ error: "Email Google indisponible." }, { status: 400 });
+  }
+
+  const { firstName, lastName } = splitName(decoded.name);
+  const fullName = `${firstName} ${lastName}`.trim() || "Utilisateur";
+
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, accountType: true },
+  });
+
+  const user = existing
+    ? await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          fullName,
+          avatarUrl: decoded.picture ?? undefined,
+          // passwordHash reste null: on force Google pour ce compte sauf ajout ultérieur
+          ...(desiredAccountType === "PROFESSIONAL" && existing.accountType === "USER"
+            ? { accountType: "PROFESSIONAL" as const }
+            : {}),
+        },
+        select: { id: true, accountType: true },
+      })
+    : await prisma.user.create({
+        data: {
+          email,
+          passwordHash: null,
+          fullName,
+          avatarUrl: decoded.picture ?? null,
+          coverUrl: null,
+          accountType: desiredAccountType ?? "USER",
+          isCertified: false,
+        },
+        select: { id: true, accountType: true },
+      });
+
+  // Préinscription uniquement pour les demandeurs
+  if (user.accountType === "USER") {
+    await prisma.preRegistration.upsert({
+      where: { userId: user.id },
+      update: {
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        email,
+        status: "DRAFT",
+      },
+      create: {
+        userId: user.id,
+        status: "DRAFT",
+        firstName: firstName || null,
+        lastName: lastName || null,
+        email,
+      },
+      select: { id: true },
+    });
+  }
+
+  const token = await createSessionToken(user.id);
+  const res = NextResponse.json({ ok: true, accountType: user.accountType });
+  setSessionCookie(res, token);
+  return res;
+}

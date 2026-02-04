@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --capitune-blue: #5fa8d3;
+  --capitune-green: #7cb342;
+  --capitune-navy: #1f3a4a;
+  /* LinkedIn-like surface: très clair, légèrement chaud */
+  --capitune-surface: #f3f2ef;
+  --capitune-text: #2e2e2e;
+
+  /* Bordure plus légère (moins "encadrée") */
+  --capitune-border: color-mix(in oklab, var(--capitune-navy) 12%, white);
+  --capitune-muted: color-mix(in oklab, var(--capitune-text) 65%, white);
+
+  --background: var(--capitune-surface);
+  --foreground: var(--capitune-navy);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-primary: var(--capitune-blue);
+  --color-success: var(--capitune-green);
+  --color-navy: var(--capitune-navy);
+  --color-surface: var(--capitune-surface);
+  --color-text: var(--capitune-text);
+  --color-muted: var(--capitune-muted);
+  --color-border: var(--capitune-border);
+
+  --radius-md: 12px;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--capitune-text);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  color-scheme: light;
+}
+
+/*
+  Compact mode (CAPITUNE): réduit les blancs verticaux/horizontaux
+  sans refactoriser toutes les pages une par une.
+*/
+.capitune-compact {
+  /* Supprime les arrondis des "fenêtres" (Card/Button/Input/...) basées sur var(--radius-md). */
+  --radius-md: 0px;
+}
+
+.capitune-compact .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem !important;
+}
+.capitune-compact .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.5rem !important;
+}
+.capitune-compact .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.5rem !important;
+}
+.capitune-compact .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.25rem !important;
+}
+.capitune-compact .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.25rem !important;
+}
+.capitune-compact .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.125rem !important;
+}
+
+.capitune-compact .gap-8 {
+  gap: 0.75rem !important;
+}
+.capitune-compact .gap-6 {
+  gap: 0.5rem !important;
+}
+.capitune-compact .gap-5 {
+  gap: 0.5rem !important;
+}
+.capitune-compact .gap-4 {
+  gap: 0.25rem !important;
+}
+.capitune-compact .gap-3 {
+  gap: 0.25rem !important;
+}
+.capitune-compact .gap-2 {
+  gap: 0.125rem !important;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
