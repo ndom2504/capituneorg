@@ -2,6 +2,21 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+## Base de données (PostgreSQL + Prisma)
+
+Le projet utilise Prisma. En production (Vercel), **SQLite n’est pas adapté** (filesystem éphémère). Le schéma est donc configuré pour **PostgreSQL**.
+
+### Variable d’environnement
+
+- `DATABASE_URL` : URL Postgres (runtime Prisma Client)
+- `DIRECT_URL` : URL Postgres non poolée (recommandée pour `prisma migrate deploy`)
+	- Exemple: `postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require`
+
+### Migrations
+
+- En dev/local: `npm run db:migrate`
+- En prod: `npm run db:deploy`
+
 ## Google Auth (Firebase)
 
 CAPITUNE supporte la connexion Google via Firebase Authentication.
@@ -13,7 +28,7 @@ CAPITUNE supporte la connexion Google via Firebase Authentication.
 
 ### 2) Variables d’environnement
 
-Configurer ces variables (ex: dans `.env`). Les variables `NEXT_PUBLIC_*` sont nécessaires côté navigateur.
+Configurer ces variables (ex: dans `.env.local` ou dans Vercel). Les variables `NEXT_PUBLIC_*` sont nécessaires côté navigateur.
 
 Client (public):
 

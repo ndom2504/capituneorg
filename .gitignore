@@ -35,6 +35,7 @@ devserver.log
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
 
 # firebase admin service account keys (NEVER commit)
 /Json/*.json
