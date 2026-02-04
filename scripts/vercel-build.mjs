@@ -21,9 +21,20 @@ if (isVercel) {
       "Missing DATABASE_URL on Vercel. Set it in Project Settings → Environment Variables.",
     );
   }
+
+  // Prisma schema expects DIRECT_URL; allow common alternative names.
+  if (!process.env.DIRECT_URL) {
+    const fallback =
+      process.env.DATABASE_URL_UNPOOLED ??
+      process.env.POSTGRES_URL_NON_POOLING ??
+      process.env.POSTGRES_URL_NON_POOLING_DIRECT ??
+      process.env.POSTGRES_URL_UNPOOLED;
+    if (fallback) process.env.DIRECT_URL = fallback;
+  }
+
   if (!process.env.DIRECT_URL) {
     throw new Error(
-      "Missing DIRECT_URL on Vercel. Prisma migrations need a non-pooled connection string (Neon unpooled).",
+      "Missing DIRECT_URL on Vercel. Set DIRECT_URL (Neon unpooled) or DATABASE_URL_UNPOOLED.",
     );
   }
 
