@@ -7,7 +7,7 @@
     "dev:port": "node scripts/dev-port.mjs",
     "dev:3001": "next dev --webpack -p 3001",
     "postinstall": "prisma generate",
-    "build": "next build",
+    "build": "node scripts/vercel-build.mjs",
     "vercel-build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
