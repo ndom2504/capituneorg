@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ProfileMediaUploader } from "@/components/profile/profile-media-uploader";
-import { ProfileInfoEditor } from "@/components/profile/profile-info-editor";
+import { ProfileNameEditor } from "@/components/profile/profile-name-editor";
 import { getAppViewer } from "@/lib/auth/viewer";
 import { prisma } from "@/lib/db";
 
