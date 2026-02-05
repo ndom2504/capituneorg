@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
 
 /**
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       where.status = status;
     }
 
-    const jobs = await db.jobPosting.findMany({
+    const jobs = await prisma.jobPosting.findMany({
       where,
       include: {
         poster: {
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const job = await db.jobPosting.create({
+    const job = await prisma.jobPosting.create({
       data: {
         posterId: user.id,
         title,

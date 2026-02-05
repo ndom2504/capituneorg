@@ -55,3 +55,20 @@ export async function getSessionUserId(): Promise<string | null> {
     return null;
   }
 }
+
+export async function getSessionUser() {
+  const userId = await getSessionUserId();
+  if (!userId) return null;
+  
+  const { prisma } = await import("@/lib/db");
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      accountType: true,
+      avatarUrl: true,
+    },
+  });
+}

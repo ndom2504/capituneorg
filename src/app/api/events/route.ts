@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const viewer = await getSessionUser();
   
-  const events = await db.event.findMany({
+  const events = await prisma.event.findMany({
     orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
     include: {
       speakers: {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
 
 /**
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if job exists and is published
-    const job = await db.jobPosting.findUnique({
+    const job = await prisma.jobPosting.findUnique({
       where: { id: jobId },
       include: {
         poster: {
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already applied
-    const existingApplication = await db.jobApplication.findUnique({
+    const existingApplication = await prisma.jobApplication.findUnique({
       where: {
         jobId_applicantId: {
           jobId,
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create MarketplaceRequest for communication
-    const request = await db.marketplaceRequest.create({
+    const request = await prisma.marketplaceRequest.create({
       data: {
         requesterId: user.id,
         professionalId: job.posterId,
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Create job application
-    const application = await db.jobApplication.create({
+    const application = await prisma.jobApplication.create({
       data: {
         jobId,
         applicantId: user.id,
