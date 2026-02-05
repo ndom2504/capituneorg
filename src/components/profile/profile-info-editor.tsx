@@ -77,7 +77,7 @@ export function ProfileInfoEditor({
 
   return (
     <div className="overflow-hidden rounded-(--radius-md) border border-border bg-white/60">
-      <div className="relative h-32">
+      <div className="relative h-40">
         {coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -88,11 +88,10 @@ export function ProfileInfoEditor({
         ) : (
           <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--capitune-navy),var(--capitune-blue))]" />
         )}
-      </div>
-
-      <div className="p-4 pt-14">
-        <div className="-mt-20 mb-4 flex items-start justify-between gap-3">
-          <div className="h-20 w-20 shrink-0 rounded-full border-2 border-white bg-white p-1 shadow-lg">
+        
+        {/* Avatar centré sur la bannière */}
+        <div className="absolute bottom-0 left-1/2 -mb-12 -translate-x-1/2">
+          <div className="h-24 w-24 rounded-full border-4 border-white bg-white p-1 shadow-lg">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -101,39 +100,49 @@ export function ProfileInfoEditor({
                 className="h-full w-full rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/15 text-base font-bold text-navy">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-navy">
                 {initialFullName.substring(0, 2).toUpperCase()}
               </div>
             )}
           </div>
-
-          <div className="flex shrink-0 gap-2 pt-16">
-            {isEditing ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancel}
-                  disabled={isPending}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-navy hover:bg-navy/90"
-                  onClick={handleSave}
-                  disabled={isPending}
-                >
-                  {isPending ? "Sauvegarde..." : "Enregistrer"}
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                Modifier
-              </Button>
-            )}
-          </div>
         </div>
+
+        {/* Boutons en haut à droite de la bannière */}
+        <div className="absolute right-4 top-4 flex gap-2">
+          {isEditing ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+                disabled={isPending}
+                className="bg-white/90 hover:bg-white"
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                className="bg-navy hover:bg-navy/90"
+                onClick={handleSave}
+                disabled={isPending}
+              >
+                {isPending ? "Sauvegarde..." : "Enregistrer"}
+              </Button>
+            </>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsEditing(true)}
+              className="bg-white/90 hover:bg-white"
+            >
+              Modifier
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4 pt-14">
 
         <div className="min-w-0">
           {isEditing ? (
