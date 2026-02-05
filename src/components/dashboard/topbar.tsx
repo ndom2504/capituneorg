@@ -48,8 +48,8 @@ export function Topbar({
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2">
-          <div className="hidden md:flex w-full max-w-xl flex-1 items-center gap-2 rounded-[var(--radius-md)] border border-border bg-white/70 px-3 py-2 text-sm text-muted lg:max-w-2xl">
+        <div className="flex flex-1 items-center justify-center gap-2">
+          <div className="hidden md:flex w-full max-w-xl items-center gap-2 rounded-[var(--radius-md)] border border-border bg-white/70 px-3 py-2 text-sm text-muted lg:max-w-2xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3.2-3.2" />

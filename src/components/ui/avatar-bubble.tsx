@@ -47,7 +47,7 @@ export function AvatarBubble({ name, url, size = "md", className }: Props) {
       aria-label={name}
       title={name}
     >
-      {url ? <img src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
+      {url ? <img src={url} alt={name} className="h-full w-full rounded-full object-cover" /> : initials(name)}
     </div>
   );
 }
