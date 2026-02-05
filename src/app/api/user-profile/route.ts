@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getAppViewer } from "@/lib/auth/viewer";
 import { prisma } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -12,47 +13,89 @@ function normalizeName(input: string) {
   return input.replace(/\s+/g, " ").trim();
 }
 
-export async function PATCH(req: Request) {
-  const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
+function normalizeEmail(input: string) {
+  return input.trim().toLowerCase();
+}
 
-  const viewer = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
+export async function PATCH(req: Request) {
+  const viewer = await getAppViewer();
 
   if (!viewer) {
     return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
+      { error: "Non authentifié." },
+      { status: 401 },
     );
   }
 
   const body = (await req.json().catch(() => null)) as
-    | { fullName?: unknown }
+    | { fullName?: unknown; email?: unknown }
     | null;
 
-  const raw = String(body?.fullName ?? "");
-  const fullName = normalizeName(raw);
+  const dataToUpdate: { fullName?: string; email?: string } = {};
 
-  if (fullName.length < MIN_LEN) {
-    return NextResponse.json(
-      { error: `Nom trop court (min ${MIN_LEN} caractères).` },
-      { status: 400 },
-    );
+  // Mise à jour du nom si fourni
+  if (body?.fullName !== undefined) {
+    const raw = String(body.fullName ?? "");
+    const fullName = normalizeName(raw);
+
+    if (fullName.length < MIN_LEN) {
+      return NextResponse.json(
+        { error: `Nom trop court (min ${MIN_LEN} caractères).` },
+        { status: 400 },
+      );
+    }
+
+    if (fullName.length > MAX_LEN) {
+      return NextResponse.json(
+        { error: `Nom trop long (max ${MAX_LEN} caractères).` },
+        { status: 400 },
+      );
+    }
+
+    dataToUpdate.fullName = fullName;
   }
 
-  if (fullName.length > MAX_LEN) {
+  // Mise à jour de l'email si fourni
+  if (body?.email !== undefined) {
+    const raw = String(body.email ?? "");
+    const email = normalizeEmail(raw);
+
+    if (!email.includes("@") || email.length < 5) {
+      return NextResponse.json(
+        { error: "Adresse email invalide." },
+        { status: 400 },
+      );
+    }
+
+    // Vérifier si l'email est déjà utilisé par un autre utilisateur
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existing && existing.id !== viewer.id) {
+      return NextResponse.json(
+        { error: "Cette adresse email est déjà utilisée." },
+        { status: 400 },
+      );
+    }
+
+    dataToUpdate.email = email;
+  }
+
+  // Si aucune donnée à mettre à jour
+  if (Object.keys(dataToUpdate).length === 0) {
     return NextResponse.json(
-      { error: `Nom trop long (max ${MAX_LEN} caractères).` },
+      { error: "Aucune modification fournie." },
       { status: 400 },
     );
   }
 
   const updated = await prisma.user.update({
     where: { id: viewer.id },
-    data: { fullName },
-    select: { fullName: true },
+    data: dataToUpdate,
+    select: { fullName: true, email: true },
   });
 
-  return NextResponse.json({ fullName: updated.fullName });
+  return NextResponse.json({ fullName: updated.fullName, email: updated.email });
 }
