@@ -9,7 +9,7 @@ export function MessagingWidget() {
   const [activeTab, setActiveTab] = React.useState<WidgetTab>("conversations");
 
   return (
-    <div className="fixed bottom-0 left-4 z-50 flex flex-col">
+    <div className="fixed bottom-0 right-4 z-50 flex flex-col">
       {/* Widget header (always visible) */}
       <button
         onClick={() => setIsOpen(!isOpen)}

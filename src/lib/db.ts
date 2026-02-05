@@ -11,3 +11,6 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+// Alias for consistency with other files
+export const db = prisma;

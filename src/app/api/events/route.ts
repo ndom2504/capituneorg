@@ -1,33 +1,25 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function getViewer() {
-  const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
-  return prisma.user.findUnique({ where: { email }, select: { id: true } });
-}
-
 export async function GET() {
-  const viewer = await getViewer();
-  if (!viewer) {
-    return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
-    );
-  }
-
-  const events = await prisma.event.findMany({
+  const viewer = await getSessionUser();
+  
+  const events = await db.event.findMany({
     orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
     include: {
       speakers: {
         include: { speaker: { select: { id: true, fullName: true, title: true, avatarUrl: true } } },
       },
       _count: { select: { likes: true, registrations: true } },
-      likes: { where: { userId: viewer.id }, select: { userId: true } },
-      registrations: { where: { userId: viewer.id }, select: { userId: true } },
+      ...(viewer ? {
+        likes: { where: { userId: viewer.id }, select: { userId: true } },
+        registrations: { where: { userId: viewer.id }, select: { userId: true } },
+      } : {}),
     },
   });
 
@@ -50,8 +42,8 @@ export async function GET() {
     createdAt: e.createdAt.toISOString(),
     likesCount: e._count.likes,
     registrationsCount: e._count.registrations,
-    likedByViewer: e.likes.length > 0,
-    registeredByViewer: e.registrations.length > 0,
+    likedByViewer: viewer && 'likes' in e ? e.likes.length > 0 : false,
+    registeredByViewer: viewer && 'registrations' in e ? e.registrations.length > 0 : false,
     speakers: e.speakers.map((s) => s.speaker),
   }));
 
