@@ -142,7 +142,7 @@ export function ProfileInfoEditor({
         </div>
       </div>
 
-      <div className="px-4 pb-3 pt-14">
+      <div className="px-4 pb-1 pt-14">
         {/* Disposition équidistante: Nom - Avatar - Email */}
         <div className="flex items-start justify-center gap-6">
           {/* Nom complet à gauche */}
