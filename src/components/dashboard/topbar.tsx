@@ -15,7 +15,7 @@ export function Topbar({
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-white/80 backdrop-blur">
-      <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <div className="relative flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -48,15 +48,19 @@ export function Topbar({
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-center gap-2">
-          <div className="hidden md:flex w-full max-w-xl items-center gap-2 rounded-[var(--radius-md)] border border-border bg-white/70 px-3 py-2 text-sm text-muted lg:max-w-2xl">
+        {/* Barre de recherche centrée */}
+        <div className="absolute left-1/2 hidden -translate-x-1/2 md:block">
+          <div className="flex w-[400px] items-center gap-2 rounded-[var(--radius-md)] border border-border bg-white/70 px-3 py-2 text-sm text-muted lg:w-[500px]">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3.2-3.2" />
             </svg>
             <span>Rechercher…</span>
           </div>
+        </div>
 
+        {/* Notifications et profil à droite */}
+        <div className="flex items-center gap-3">
           <NotificationsBell />
 
           <Link href="/profil">
