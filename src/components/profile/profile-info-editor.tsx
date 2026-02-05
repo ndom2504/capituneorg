@@ -143,52 +143,63 @@ export function ProfileInfoEditor({
       </div>
 
       <div className="p-4 pt-14">
-
-        <div className="min-w-0">
-          {isEditing ? (
-            <div className="space-y-3">
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted">
-                    Nom complet
-                  </label>
-                  <Input
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Votre nom"
-                    disabled={isPending}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted">
-                    Adresse email
-                  </label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="votre@email.com"
-                    disabled={isPending}
-                    className="w-full"
-                  />
-                </div>
+        {/* Disposition équidistante: Nom - Avatar - Email */}
+        <div className="flex items-start justify-center gap-6">
+          {/* Nom complet à gauche */}
+          <div className="flex-1 text-right">
+            {isEditing ? (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted">
+                  Nom complet
+                </label>
+                <Input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Votre nom"
+                  disabled={isPending}
+                  className="w-full"
+                />
               </div>
-              {error ? <div className="text-sm text-red-600">{error}</div> : null}
-            </div>
-          ) : (
-            <div className="grid gap-2 md:grid-cols-2">
+            ) : (
               <div>
                 <div className="text-xs font-medium text-muted">Nom complet</div>
                 <div className="text-sm font-semibold text-navy">{fullName}</div>
               </div>
+            )}
+          </div>
+
+          {/* Avatar centré (invisible mais prend l'espace) */}
+          <div className="h-24 w-24 shrink-0" />
+
+          {/* Email à droite */}
+          <div className="flex-1 text-left">
+            {isEditing ? (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted">
+                  Adresse email
+                </label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="votre@email.com"
+                  disabled={isPending}
+                  className="w-full"
+                />
+              </div>
+            ) : (
               <div>
                 <div className="text-xs font-medium text-muted">Adresse email</div>
                 <div className="text-sm font-semibold text-navy">{email}</div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        {/* Message d'erreur centré */}
+        {isEditing && error ? (
+          <div className="mt-3 text-center text-sm text-red-600">{error}</div>
+        ) : null}
       </div>
     </div>
   );
