@@ -81,6 +81,8 @@ type SignupState = {
 type AuthApiResponse = {
   ok?: boolean;
   accountType?: "USER" | "PROFESSIONAL" | "ADMIN";
+  isNewUser?: boolean;
+  hasMarketplaceProfile?: boolean;
   error?: string;
 };
 
@@ -156,9 +158,20 @@ export default function AuthPage() {
     }
 
     const resolvedAccountType = data.accountType ?? "USER";
-    const target = isProfessionalAccount(resolvedAccountType)
-      ? "/clients/preinscriptions"
-      : "/mon-parcours";
+    const isNewUser = data.isNewUser ?? false;
+    const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
+
+    // Déterminer la cible de redirection
+    let target: string;
+    if (isProfessionalAccount(resolvedAccountType)) {
+      // Professionnel : première connexion OU pas de profil marketplace → marketplace-profil
+      // Sinon → accueil
+      target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
+    } else {
+      // Demandeur : première connexion → mon-parcours, sinon → accueil
+      target = isNewUser ? "/mon-parcours" : "/accueil";
+    }
+
     window.location.assign(target);
   }, []);
 
@@ -176,9 +189,16 @@ export default function AuthPage() {
     }
 
     const resolvedAccountType = data.accountType ?? "USER";
-    const target = isProfessionalAccount(resolvedAccountType)
-      ? "/clients/preinscriptions"
-      : "/mon-parcours";
+    const isNewUser = data.isNewUser ?? false;
+    const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
+
+    let target: string;
+    if (isProfessionalAccount(resolvedAccountType)) {
+      target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
+    } else {
+      target = isNewUser ? "/mon-parcours" : "/accueil";
+    }
+
     window.location.assign(target);
   }, []);
 
@@ -196,9 +216,16 @@ export default function AuthPage() {
     }
 
     const resolvedAccountType = data.accountType ?? "USER";
-    const target = isProfessionalAccount(resolvedAccountType)
-      ? "/clients/preinscriptions"
-      : "/mon-parcours";
+    const isNewUser = data.isNewUser ?? false;
+    const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
+
+    let target: string;
+    if (isProfessionalAccount(resolvedAccountType)) {
+      target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
+    } else {
+      target = isNewUser ? "/mon-parcours" : "/accueil";
+    }
+
     window.location.assign(target);
   }, []);
 
@@ -349,9 +376,19 @@ export default function AuthPage() {
       }
 
       const accountType = data.accountType ?? "USER";
-      window.location.assign(
-        isProfessionalAccount(accountType) ? "/clients/preinscriptions" : "/mon-parcours",
-      );
+      const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
+
+      // Déterminer la cible de redirection
+      let target: string;
+      if (isProfessionalAccount(accountType)) {
+        // Professionnel : pas de profil marketplace → marketplace-profil, sinon → accueil
+        target = !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
+      } else {
+        // Demandeur : toujours vers mon-parcours au login (pas de distinction première/autres fois)
+        target = "/mon-parcours";
+      }
+
+      window.location.assign(target);
     } finally {
       setLoading(false);
     }
@@ -407,8 +444,9 @@ export default function AuthPage() {
       }
 
       const accountType = data.accountType ?? signup.accountType;
+      // Signup = toujours première fois : professionnel → marketplace-profil, demandeur → mon-parcours
       window.location.assign(
-        isProfessionalAccount(accountType) ? "/clients/preinscriptions" : "/mon-parcours",
+        isProfessionalAccount(accountType) ? "/clients/marketplace-profil" : "/mon-parcours",
       );
     } finally {
       setLoading(false);

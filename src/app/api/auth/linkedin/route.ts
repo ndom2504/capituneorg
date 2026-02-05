@@ -50,6 +50,8 @@ export async function POST(req: NextRequest) {
     select: { id: true, accountType: true },
   });
 
+  const isNewUser = !existing;
+
   const user = existing
     ? await prisma.user.update({
         where: { id: existing.id },
@@ -97,10 +99,22 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Pour les professionnels, vérifier s'ils ont déjà un profil marketplace
+  let hasMarketplaceProfile = false;
+  if (user.accountType === "PROFESSIONAL" || user.accountType === "ADMIN") {
+    const profile = await prisma.marketplaceProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    hasMarketplaceProfile = !!profile;
+  }
+
   const token = await createSessionToken(user.id);
   const res = NextResponse.json({
     ok: true,
     accountType: user.accountType,
+    isNewUser,
+    hasMarketplaceProfile,
   });
   setSessionCookie(res, token);
   return res;

@@ -41,8 +41,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Identifiants invalides." }, { status: 401 });
   }
 
+  // Pour les professionnels, vérifier s'ils ont déjà un profil marketplace
+  let hasMarketplaceProfile = false;
+  if (user.accountType === "PROFESSIONAL" || user.accountType === "ADMIN") {
+    const profile = await prisma.marketplaceProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    hasMarketplaceProfile = !!profile;
+  }
+
   const token = await createSessionToken(user.id);
-  const res = NextResponse.json({ ok: true, accountType: user.accountType });
+  const res = NextResponse.json({ 
+    ok: true, 
+    accountType: user.accountType,
+    hasMarketplaceProfile,
+  });
   setSessionCookie(res, token);
   return res;
 }
