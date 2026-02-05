@@ -162,6 +162,20 @@ export const icons = {
       </svg>
     </IconWrap>
   ),
+  briefcase: ({ className }: { className?: string }) => (
+    <IconWrap className={className}>
+      <svg
+        className="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <rect x="2" y="7" width="20" height="14" rx="2" />
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+      </svg>
+    </IconWrap>
+  ),
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -202,6 +216,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Événements & formations",
     icon: icons.calendar,
   },
+  { href: "/emploi", label: "Emploi", icon: icons.briefcase },
   { href: "/mon-dossier", label: "Mon dossier", icon: icons.folder },
   { href: "/profil", label: "Profil", icon: icons.user },
 ];

@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { MessagingWidget } from "@/components/dashboard/messaging-widget";
 
 export function DashboardShell({
   children,
@@ -62,6 +63,9 @@ export function DashboardShell({
           </main>
         </div>
       </div>
+      
+      {/* Messaging widget */}
+      <MessagingWidget />
     </div>
   );
 }
