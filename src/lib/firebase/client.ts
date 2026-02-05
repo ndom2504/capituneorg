@@ -2,6 +2,7 @@ import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
   GoogleAuthProvider,
+  OAuthProvider,
   getRedirectResult,
   signInWithPopup,
   signInWithRedirect,
@@ -129,4 +130,73 @@ export function formatFirebaseAuthError(err: unknown): string {
     return "Domaine non autorisé côté Firebase Auth. Ajoutez ce domaine dans Authentication → Settings → Authorized domains.";
   }
   return err instanceof Error ? err.message : "Connexion Google impossible.";
+}
+
+// ============================================================================
+// Microsoft (Azure AD)
+// ============================================================================
+
+function getMicrosoftProvider() {
+  const provider = new OAuthProvider("microsoft.com");
+  provider.setCustomParameters({ prompt: "select_account" });
+  return provider;
+}
+
+export async function signInWithMicrosoftPopup(): Promise<{ idToken: string; user: User }> {
+  const auth = getFirebaseAuth();
+  const provider = getMicrosoftProvider();
+
+  const cred = await signInWithPopup(auth, provider);
+  const user = cred.user;
+  const idToken = await user.getIdToken();
+  return { idToken, user };
+}
+
+export async function startMicrosoftRedirect(): Promise<void> {
+  const auth = getFirebaseAuth();
+  const provider = getMicrosoftProvider();
+  await signInWithRedirect(auth, provider);
+}
+
+export async function consumeMicrosoftRedirectResult(): Promise<{ idToken: string; user: User } | null> {
+  const auth = getFirebaseAuth();
+  const result = await getRedirectResult(auth);
+  if (!result?.user) return null;
+  const user = result.user;
+  const idToken = await user.getIdToken();
+  return { idToken, user };
+}
+
+// ============================================================================
+// LinkedIn
+// ============================================================================
+
+function getLinkedInProvider() {
+  const provider = new OAuthProvider("oidc.linkedin");
+  return provider;
+}
+
+export async function signInWithLinkedInPopup(): Promise<{ idToken: string; user: User }> {
+  const auth = getFirebaseAuth();
+  const provider = getLinkedInProvider();
+
+  const cred = await signInWithPopup(auth, provider);
+  const user = cred.user;
+  const idToken = await user.getIdToken();
+  return { idToken, user };
+}
+
+export async function startLinkedInRedirect(): Promise<void> {
+  const auth = getFirebaseAuth();
+  const provider = getLinkedInProvider();
+  await signInWithRedirect(auth, provider);
+}
+
+export async function consumeLinkedInRedirectResult(): Promise<{ idToken: string; user: User } | null> {
+  const auth = getFirebaseAuth();
+  const result = await getRedirectResult(auth);
+  if (!result?.user) return null;
+  const user = result.user;
+  const idToken = await user.getIdToken();
+  return { idToken, user };
 }

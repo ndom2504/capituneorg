@@ -14,6 +14,12 @@ import {
   shouldFallbackToRedirect,
   signInWithGooglePopup,
   startGoogleRedirect,
+  signInWithMicrosoftPopup,
+  startMicrosoftRedirect,
+  consumeMicrosoftRedirectResult,
+  signInWithLinkedInPopup,
+  startLinkedInRedirect,
+  consumeLinkedInRedirectResult,
 } from "@/lib/firebase/client";
 
 type Mode = "login" | "signup";
@@ -156,6 +162,46 @@ export default function AuthPage() {
     window.location.assign(target);
   }, []);
 
+  const exchangeMicrosoftToken = useCallback(async (idToken: string, accountType?: "USER" | "PROFESSIONAL") => {
+    const res = await fetch("/api/auth/microsoft", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ idToken, accountType }),
+    });
+    const data = (await res.json().catch(() => ({}))) as AuthApiResponse;
+    if (!res.ok) {
+      setError(data.error ?? "Connexion Microsoft impossible.");
+      return;
+    }
+
+    const resolvedAccountType = data.accountType ?? "USER";
+    const target = isProfessionalAccount(resolvedAccountType)
+      ? "/clients/preinscriptions"
+      : "/mon-parcours";
+    window.location.assign(target);
+  }, []);
+
+  const exchangeLinkedInToken = useCallback(async (idToken: string, accountType?: "USER" | "PROFESSIONAL") => {
+    const res = await fetch("/api/auth/linkedin", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ idToken, accountType }),
+    });
+    const data = (await res.json().catch(() => ({}))) as AuthApiResponse;
+    if (!res.ok) {
+      setError(data.error ?? "Connexion LinkedIn impossible.");
+      return;
+    }
+
+    const resolvedAccountType = data.accountType ?? "USER";
+    const target = isProfessionalAccount(resolvedAccountType)
+      ? "/clients/preinscriptions"
+      : "/mon-parcours";
+    window.location.assign(target);
+  }, []);
+
   useEffect(() => {
     if (handledRedirectRef.current) return;
     handledRedirectRef.current = true;
@@ -179,6 +225,52 @@ export default function AuthPage() {
     })();
   }, [exchangeGoogleToken]);
 
+  useEffect(() => {
+    if (handledRedirectRef.current) return;
+    handledRedirectRef.current = true;
+
+    (async () => {
+      try {
+        const result = await consumeMicrosoftRedirectResult();
+        if (!result) return;
+        setError(null);
+        setLoading(true);
+
+        const desired = sessionStorage.getItem("capitune_microsoft_accountType") ?? "";
+        sessionStorage.removeItem("capitune_microsoft_accountType");
+        const accountType = desired === "PROFESSIONAL" || desired === "USER" ? desired : undefined;
+        await exchangeMicrosoftToken(result.idToken, accountType);
+      } catch (e) {
+        setError(formatFirebaseAuthError(e));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [exchangeMicrosoftToken]);
+
+  useEffect(() => {
+    if (handledRedirectRef.current) return;
+    handledRedirectRef.current = true;
+
+    (async () => {
+      try {
+        const result = await consumeLinkedInRedirectResult();
+        if (!result) return;
+        setError(null);
+        setLoading(true);
+
+        const desired = sessionStorage.getItem("capitune_linkedin_accountType") ?? "";
+        sessionStorage.removeItem("capitune_linkedin_accountType");
+        const accountType = desired === "PROFESSIONAL" || desired === "USER" ? desired : undefined;
+        await exchangeLinkedInToken(result.idToken, accountType);
+      } catch (e) {
+        setError(formatFirebaseAuthError(e));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [exchangeLinkedInToken]);
+
   async function onGoogle() {
     setError(null);
     setLoading(true);
@@ -191,6 +283,46 @@ export default function AuthPage() {
     } catch (e) {
       if (shouldFallbackToRedirect(e)) {
         await startGoogleRedirect();
+        return;
+      }
+      setError(formatFirebaseAuthError(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onMicrosoft() {
+    setError(null);
+    setLoading(true);
+    try {
+      const desiredAccountType = mode === "signup" ? signup.accountType : undefined;
+      sessionStorage.setItem("capitune_microsoft_accountType", desiredAccountType ?? "");
+
+      const { idToken } = await signInWithMicrosoftPopup();
+      await exchangeMicrosoftToken(idToken, desiredAccountType);
+    } catch (e) {
+      if (shouldFallbackToRedirect(e)) {
+        await startMicrosoftRedirect();
+        return;
+      }
+      setError(formatFirebaseAuthError(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onLinkedIn() {
+    setError(null);
+    setLoading(true);
+    try {
+      const desiredAccountType = mode === "signup" ? signup.accountType : undefined;
+      sessionStorage.setItem("capitune_linkedin_accountType", desiredAccountType ?? "");
+
+      const { idToken } = await signInWithLinkedInPopup();
+      await exchangeLinkedInToken(idToken, desiredAccountType);
+    } catch (e) {
+      if (shouldFallbackToRedirect(e)) {
+        await startLinkedInRedirect();
         return;
       }
       setError(formatFirebaseAuthError(e));
@@ -367,9 +499,15 @@ export default function AuthPage() {
               <Button variant="outline" className="w-full" onClick={onGoogle} disabled={loading}>
                 Continuer avec Google
               </Button>
+              <Button variant="outline" className="w-full" onClick={onMicrosoft} disabled={loading}>
+                Continuer avec Microsoft
+              </Button>
+              <Button variant="outline" className="w-full" onClick={onLinkedIn} disabled={loading}>
+                Continuer avec LinkedIn
+              </Button>
               {mode === "signup" && signup.accountType === "PROFESSIONAL" ? (
                 <div className="text-xs text-muted">
-                  Google est activé pour les demandeurs. Pour un compte professionnel, utilisez l’inscription par email
+                  L'authentification sociale est activée pour les demandeurs. Pour un compte professionnel, utilisez l'inscription par email
                   (vérification requise).
                 </div>
               ) : null}
