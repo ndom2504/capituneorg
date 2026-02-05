@@ -161,7 +161,7 @@ export default async function AccueilPage() {
     content: p.content,
     likes: p.likes,
     shares: p.shares,
-    comments: p.comments.map((c) => ({
+    comments: p.comments.map((c: { id: string; authorLabel: string; message: string; createdAt: Date }) => ({
       id: c.id,
       author: c.authorLabel,
       message: c.message,
@@ -184,7 +184,7 @@ export default async function AccueilPage() {
     commentsCount: p._count.comments,
     likedByViewer: p.likesRel.length > 0,
     isMine: viewer?.id ? p.userId === viewer.id : false,
-    comments: p.comments.map((c) => ({
+    comments: p.comments.map((c: { id: string; message: string; createdAt: Date }) => ({
       id: c.id,
       message: c.message,
       createdAt: c.createdAt.toISOString(),
