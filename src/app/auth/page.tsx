@@ -384,8 +384,8 @@ export default function AuthPage() {
         // Professionnel : pas de profil marketplace → marketplace-profil, sinon → accueil
         target = !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
       } else {
-        // Demandeur : toujours vers mon-parcours au login (pas de distinction première/autres fois)
-        target = "/mon-parcours";
+        // Demandeur : au login, ils sont déjà inscrits → accueil
+        target = "/accueil";
       }
 
       window.location.assign(target);
