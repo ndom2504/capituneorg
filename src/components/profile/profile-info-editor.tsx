@@ -77,7 +77,7 @@ export function ProfileInfoEditor({
 
   return (
     <div className="overflow-hidden rounded-(--radius-md) border border-border bg-white/60">
-      <div className="relative h-28">
+      <div className="relative h-32">
         {coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -90,62 +90,24 @@ export function ProfileInfoEditor({
         )}
       </div>
 
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="-mt-12 h-16 w-16 shrink-0 rounded-full border border-border bg-white p-1 shadow-sm">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarUrl}
-                  alt="Avatar"
-                  className="h-full w-full rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-navy">
-                  {initialFullName.substring(0, 2).toUpperCase()}
-                </div>
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1 pt-2">
-              {isEditing ? (
-                <div className="space-y-2">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted">
-                      Nom complet
-                    </label>
-                    <Input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Votre nom"
-                      disabled={isPending}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted">
-                      Adresse email
-                    </label>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="votre@email.com"
-                      disabled={isPending}
-                    />
-                  </div>
-                  {error ? <div className="text-sm text-red-600">{error}</div> : null}
-                </div>
-              ) : (
-                <div>
-                  <div className="text-sm font-semibold text-navy">{fullName}</div>
-                  <div className="text-sm text-muted">{email}</div>
-                </div>
-              )}
-            </div>
+      <div className="p-4 pt-14">
+        <div className="-mt-20 mb-4 flex items-start justify-between gap-3">
+          <div className="h-20 w-20 shrink-0 rounded-full border-2 border-white bg-white p-1 shadow-lg">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/15 text-base font-bold text-navy">
+                {initialFullName.substring(0, 2).toUpperCase()}
+              </div>
+            )}
           </div>
 
-          <div className="flex shrink-0 gap-2 pt-2">
+          <div className="flex shrink-0 gap-2 pt-16">
             {isEditing ? (
               <>
                 <Button
@@ -171,6 +133,52 @@ export function ProfileInfoEditor({
               </Button>
             )}
           </div>
+        </div>
+
+        <div className="min-w-0">
+          {isEditing ? (
+            <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">
+                    Nom complet
+                  </label>
+                  <Input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Votre nom"
+                    disabled={isPending}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">
+                    Adresse email
+                  </label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="votre@email.com"
+                    disabled={isPending}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              {error ? <div className="text-sm text-red-600">{error}</div> : null}
+            </div>
+          ) : (
+            <div className="grid gap-2 md:grid-cols-2">
+              <div>
+                <div className="text-xs font-medium text-muted">Nom complet</div>
+                <div className="text-sm font-semibold text-navy">{fullName}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted">Adresse email</div>
+                <div className="text-sm font-semibold text-navy">{email}</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
