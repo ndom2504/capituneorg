@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { SafeImg } from "@/components/ui/safe-img";
 import { cn } from "@/lib/cn";
 
 export function CommunityPageHeader({
@@ -40,10 +41,23 @@ export function CommunityPageHeader({
           <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--capitune-navy),var(--capitune-blue))]" />
         )}
           <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_20%_20%,white_0_2px,transparent_2px),radial-gradient(circle_at_80%_30%,white_0_2px,transparent_2px),radial-gradient(circle_at_30%_80%,white_0_2px,transparent_2px)] [background-size:48px_48px]" />
-        <div className="absolute bottom-3 right-3 hidden sm:block">
-          <Button variant="outline" className="bg-white/80">
-            Modifier la couverture (bientôt)
-          </Button>
+        <div className="absolute bottom-3 right-3 z-10 hidden sm:block">
+          {isOwner ? (
+            <Link
+              href="/profil#cover"
+              aria-label="Modifier la couverture"
+              title="Modifier la couverture"
+              className={cn(
+                "inline-flex h-10 w-10 items-center justify-center rounded-full",
+                "border border-border bg-white/85 shadow-sm backdrop-blur",
+                "transition-[color,background-color,border-color,box-shadow,transform] hover:bg-white hover:shadow-md hover:-translate-y-px active:translate-y-0",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              )}
+            >
+              <span className="sr-only">Modifier la couverture</span>
+              <PencilIcon className="h-5 w-5 text-navy" />
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -51,19 +65,19 @@ export function CommunityPageHeader({
       <div className="relative px-4 pb-4 sm:px-6">
         <div className="-mt-10 flex flex-col gap-3 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col items-start gap-2">
-            <div className="h-20 w-20 shrink-0 rounded-full border border-border bg-white p-1 shadow-sm sm:h-24 sm:w-24">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+            <div className="relative z-10 h-20 w-20 shrink-0 overflow-hidden rounded-full border border-border bg-white p-1 shadow-sm sm:h-24 sm:w-24">
+              <div className="h-full w-full overflow-hidden rounded-full bg-white">
+                <SafeImg
                   src={avatarUrl}
                   alt="Avatar"
-                  className="h-full w-full rounded-full object-cover"
+                  className="h-full w-full object-cover"
+                  fallback={
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/15 text-navy">
+                      <span className="text-lg font-bold">C</span>
+                    </div>
+                  }
                 />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/15 text-navy">
-                  <span className="text-lg font-bold">C</span>
-                </div>
-              )}
+              </div>
             </div>
             <div className="pl-1">
               <div className="text-lg font-semibold text-navy sm:text-xl">
@@ -134,5 +148,24 @@ function Tab({
     >
       {children}
     </Link>
+  );
+}
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   );
 }

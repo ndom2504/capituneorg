@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --capitune-blue: #5fa8d3;
-  --capitune-green: #7cb342;
+  /* Accents plus vifs (tout en restant "LinkedIn-like") */
+  --capitune-blue: #0a66c2;
+  --capitune-green: #2e7d32;
   --capitune-navy: #1f3a4a;
   /* LinkedIn-like surface: très clair, légèrement chaud */
   --capitune-surface: #f3f2ef;
+  --capitune-surface-2: color-mix(in oklab, var(--capitune-surface) 70%, white);
   --capitune-text: #2e2e2e;
 
-  /* Bordure plus légère (moins "encadrée") */
-  --capitune-border: color-mix(in oklab, var(--capitune-navy) 12%, white);
-  --capitune-muted: color-mix(in oklab, var(--capitune-text) 65%, white);
+  /* Bordures / textes secondaires avec un peu plus de contraste */
+  --capitune-border: color-mix(in oklab, var(--capitune-navy) 16%, white);
+  --capitune-muted: color-mix(in oklab, var(--capitune-text) 55%, white);
+  --capitune-ring: color-mix(in oklab, var(--capitune-blue) 55%, white);
 
   --background: var(--capitune-surface);
   --foreground: var(--capitune-navy);
@@ -24,9 +27,11 @@
   --color-success: var(--capitune-green);
   --color-navy: var(--capitune-navy);
   --color-surface: var(--capitune-surface);
+  --color-surface-2: var(--capitune-surface-2);
   --color-text: var(--capitune-text);
   --color-muted: var(--capitune-muted);
   --color-border: var(--capitune-border);
+  --color-ring: var(--capitune-ring);
 
   --radius-md: 12px;
   --font-sans: var(--font-geist-sans);
@@ -34,7 +39,19 @@
 }
 
 body {
-  background: var(--background);
+  /* Fond légèrement “vivant” (subtil, sans distraire) */
+  background:
+    radial-gradient(
+      1100px circle at 15% -15%,
+      color-mix(in oklab, var(--capitune-blue) 14%, transparent) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      900px circle at 115% 10%,
+      color-mix(in oklab, var(--capitune-green) 12%, transparent) 0%,
+      transparent 55%
+    ),
+    var(--background);
   color: var(--capitune-text);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   color-scheme: light;
@@ -45,8 +62,8 @@ body {
   sans refactoriser toutes les pages une par une.
 */
 .capitune-compact {
-  /* Supprime les arrondis des "fenêtres" (Card/Button/Input/...) basées sur var(--radius-md). */
-  --radius-md: 0px;
+  /* Compact mais pas "plat" : conserve un léger arrondi. */
+  --radius-md: 10px;
 }
 
 .capitune-compact .space-y-8 > :not([hidden]) ~ :not([hidden]) {
@@ -89,4 +106,46 @@ body {
 
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Auth page background (image floutée + overlay) */
+.capitune-auth {
+  position: relative;
+  isolation: isolate;
+}
+
+.capitune-auth::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image: url("/auth/auth-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  filter: blur(20px);
+  transform: scale(1.08);
+  opacity: 0.38;
+}
+
+.capitune-auth::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      1200px circle at 12% 0%,
+      color-mix(in oklab, var(--capitune-blue) 18%, transparent) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      900px circle at 110% 5%,
+      color-mix(in oklab, var(--capitune-green) 14%, transparent) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--capitune-surface) 65%, transparent),
+      color-mix(in oklab, white 80%, transparent)
+    );
 }

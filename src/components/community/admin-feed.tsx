@@ -59,13 +59,6 @@ export function AdminFeed({ initialPosts }: { initialPosts: Post[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-[var(--radius-md)] border border-border bg-white/70 p-4">
-        <div className="text-sm font-semibold text-navy">Publications</div>
-        <div className="mt-1 text-sm text-muted">
-          Publications officielles de l’équipe (commentaires/likes disponibles en
-          mode local).
-        </div>
-      </div>
 
       <div className="space-y-0">
         {posts.map((post) => (

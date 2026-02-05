@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { cn } from "@/lib/cn";
 
 export function Topbar({
@@ -55,6 +56,8 @@ export function Topbar({
             </svg>
             <span>Rechercher…</span>
           </div>
+
+          <NotificationsBell />
 
           <Link href="/profil">
             <Button className="bg-navy hover:bg-navy/90">Mon profil</Button>

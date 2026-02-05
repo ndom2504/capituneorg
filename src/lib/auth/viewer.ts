@@ -12,10 +12,28 @@ export type AppViewer = {
 };
 
 export async function getAppViewer(): Promise<AppViewer | null> {
-  const sessionUserId = await getSessionUserId();
-  if (sessionUserId) {
+  try {
+    const sessionUserId = await getSessionUserId();
+    if (sessionUserId) {
+      const user = await prisma.user.findUnique({
+        where: { id: sessionUserId },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          accountType: true,
+          isCertified: true,
+          avatarUrl: true,
+          coverUrl: true,
+        },
+      });
+      return user ?? null;
+    }
+
+    // fallback mode démo (variable d'env)
+    const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
     const user = await prisma.user.findUnique({
-      where: { id: sessionUserId },
+      where: { email },
       select: {
         id: true,
         fullName: true,
@@ -27,21 +45,13 @@ export async function getAppViewer(): Promise<AppViewer | null> {
       },
     });
     return user ?? null;
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      const errorName = err instanceof Error ? err.name : "UnknownError";
+      console.warn(
+        `[getAppViewer] Prisma indisponible (${errorName}). Configurez DATABASE_URL/DIRECT_URL (PostgreSQL) dans .env.local.`,
+      );
+    }
+    return null;
   }
-
-  // fallback mode démo (variable d'env)
-  const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      accountType: true,
-      isCertified: true,
-      avatarUrl: true,
-      coverUrl: true,
-    },
-  });
-  return user ?? null;
 }

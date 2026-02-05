@@ -3,6 +3,7 @@ import { AboutCard } from "@/components/community/about-card";
 import { ConnectionsCard } from "@/components/community/connections-card";
 import { CommunityPageHeader } from "@/components/community/community-page-header";
 import { UserPostsFeed } from "@/components/community/user-posts-feed";
+import { EventsSidebarCard } from "@/components/events/events-sidebar-card";
 import { prisma } from "@/lib/db";
 import { getAppViewer } from "@/lib/auth/viewer";
 
@@ -20,26 +21,67 @@ function formatRelativeDate(date: Date) {
 export default async function AccueilPage() {
   const viewer = await getAppViewer();
 
-  const directoryUsers = viewer
-    ? await prisma.user.findMany({
-        where: { id: { not: viewer.id } },
-        orderBy: [{ accountType: "desc" }, { fullName: "asc" }],
-        select: {
-          id: true,
-          fullName: true,
-          avatarUrl: true,
-          accountType: true,
-          isCertified: true,
-        },
-      })
-    : [];
+  let directoryUsers: any[] = [];
+  let following: any[] = [];
+  let userPosts: any[] = [];
+  let posts: any[] = [];
 
-  const following = viewer
-    ? await prisma.follow.findMany({
-        where: { followerId: viewer.id },
-        select: { followingId: true },
-      })
-    : [];
+  try {
+    directoryUsers = viewer
+      ? await prisma.user.findMany({
+          where: { id: { not: viewer.id } },
+          orderBy: [{ accountType: "desc" }, { fullName: "asc" }],
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+            accountType: true,
+            isCertified: true,
+          },
+        })
+      : [];
+
+    following = viewer
+      ? await prisma.follow.findMany({
+          where: { followerId: viewer.id },
+          select: { followingId: true },
+        })
+      : [];
+
+    userPosts = await prisma.userPost.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { fullName: true, avatarUrl: true } },
+        _count: { select: { comments: true } },
+        likesRel: viewer?.id
+          ? { where: { userId: viewer.id }, select: { userId: true } }
+          : { where: { userId: "__none__" }, select: { userId: true } },
+        comments: viewer?.id
+          ? {
+              where: { userId: viewer.id },
+              orderBy: { createdAt: "desc" },
+              take: 5,
+              select: { id: true, message: true, createdAt: true },
+            }
+          : {
+              where: { userId: "__none__" },
+              orderBy: { createdAt: "desc" },
+              take: 0,
+              select: { id: true, message: true, createdAt: true },
+            },
+      },
+    });
+
+    posts = await prisma.adminPost.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { comments: { orderBy: { createdAt: "desc" } } },
+    });
+  } catch (err) {
+    // DB unavailable: return empty data
+    if (process.env.NODE_ENV === "development") {
+      console.error("[AccueilPage] Database error:", err);
+    }
+  }
 
   const followingSet = new Set(following.map((f) => f.followingId));
 
@@ -112,35 +154,6 @@ export default async function AccueilPage() {
     };
   });
 
-  const userPosts = await prisma.userPost.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      user: { select: { fullName: true, avatarUrl: true } },
-      _count: { select: { comments: true } },
-      likesRel: viewer?.id
-        ? { where: { userId: viewer.id }, select: { userId: true } }
-        : { where: { userId: "__none__" }, select: { userId: true } },
-      comments: viewer?.id
-        ? {
-            where: { userId: viewer.id },
-            orderBy: { createdAt: "desc" },
-            take: 5,
-            select: { id: true, message: true, createdAt: true },
-          }
-        : {
-            where: { userId: "__none__" },
-            orderBy: { createdAt: "desc" },
-            take: 0,
-            select: { id: true, message: true, createdAt: true },
-          },
-    },
-  });
-
-  const posts = await prisma.adminPost.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { comments: { orderBy: { createdAt: "desc" } } },
-  });
-
   const initialPosts = posts.map((p) => ({
     id: p.id,
     adminLabel: p.adminLabel,
@@ -195,6 +208,7 @@ export default async function AccueilPage() {
           <div className="lg:sticky lg:top-[92px]">
             <div className="space-y-4">
               <AboutCard />
+              <EventsSidebarCard />
               <ConnectionsCard users={connections} />
             </div>
           </div>

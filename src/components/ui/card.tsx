@@ -9,7 +9,9 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-md)] border border-border bg-white shadow-[0_1px_1px_rgba(0,0,0,0.04)]",
+        "rounded-[var(--radius-md)] border border-border bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70",
+        "shadow-[0_1px_1px_rgba(0,0,0,0.04),0_12px_30px_rgba(31,58,74,0.06)]",
+        "transition-[box-shadow,transform] hover:-translate-y-px hover:shadow-[0_1px_1px_rgba(0,0,0,0.04),0_18px_45px_rgba(31,58,74,0.10)]",
         className,
       )}
       {...props}

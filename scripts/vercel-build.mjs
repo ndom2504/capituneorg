@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 
 function log(msg) {
-  // eslint-disable-next-line no-console
   console.log(`[vercel-build] ${msg}`);
 }
 

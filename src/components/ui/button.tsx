@@ -21,15 +21,16 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-sm font-semibold transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-sm font-semibold transition-[color,background-color,border-color,box-shadow,transform]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:pointer-events-none disabled:opacity-50",
         size === "sm" ? "h-9 px-3" : "h-10 px-4",
         variant === "primary" &&
-          "bg-primary text-white hover:bg-primary/90 border border-primary/20 shadow-sm",
+          "bg-primary text-white border border-primary/25 shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 active:shadow-sm",
         variant === "outline" &&
-          "bg-white/70 text-text border border-border hover:bg-white",
-        variant === "ghost" && "bg-transparent text-text hover:bg-black/5",
+          "bg-white/80 text-text border border-border shadow-sm hover:bg-white hover:shadow-md hover:-translate-y-px active:translate-y-0",
+        variant === "ghost" &&
+          "bg-transparent text-text hover:bg-black/5",
         className,
       )}
       {...props}

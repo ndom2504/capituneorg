@@ -251,6 +251,37 @@ enum EventFormat {
   REPLAY
 }
 
+enum NotificationRole {
+  DEMANDEUR
+  PRO
+}
+
+enum NotificationPriority {
+  CRITICAL
+  IMPORTANT
+  INFO
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+
+  role      NotificationRole
+  type      String
+  title     String
+  message   String
+  link      String
+  priority  NotificationPriority @default(INFO)
+
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -294,6 +325,8 @@ model User {
   paymentServices PaymentService[]
   paymentOrdersBought PaymentOrder[] @relation("PaymentOrderBuyer")
   paymentOrdersProvided PaymentOrder[] @relation("PaymentOrderProvider")
+
+  notifications Notification[]
 }
 
 model PreRegistration {

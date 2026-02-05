@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 
@@ -12,18 +11,21 @@ export function LogoutButton({
   children,
   ...props
 }: ButtonProps) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function onLogout() {
     if (loading) return;
     setLoading(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+      });
     } finally {
-      router.push("/auth");
-      router.refresh();
-      setLoading(false);
+      // Navigation "hard" pour éviter les incohérences de chunks (404) après déploiement
+      // et pour repartir d'un état clean.
+      window.location.replace(`/auth?logout=${Date.now()}`);
     }
   }
 

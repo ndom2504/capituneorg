@@ -84,8 +84,9 @@ function isProfessionalAccount(accountType: AuthApiResponse["accountType"] | str
 
 function selectClassName() {
   return cn(
-    "h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text",
-    "placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+    "h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/85 px-3 text-sm text-text",
+    "placeholder:text-muted transition-[box-shadow,border-color,background-color]",
+    "focus-visible:outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
   );
 }
 
@@ -283,7 +284,7 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="min-h-dvh bg-gradient-to-b from-slate-50 via-white to-slate-50">
+    <main className="capitune-auth min-h-dvh">
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-4 py-10 sm:py-14 lg:grid-cols-2">
         <div className="space-y-5">
           <div>

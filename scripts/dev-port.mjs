@@ -80,7 +80,7 @@ try {
   console.warn("dev:port preflight warning:", error);
 }
 
-const child = spawn(process.execPath, [nextBin, "dev", "--webpack", "-p", String(port)], {
+const child = spawn(process.execPath, [nextBin, "dev", "-p", String(port)], {
   cwd: projectRoot,
   stdio: "inherit",
 });

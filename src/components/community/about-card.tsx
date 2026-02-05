@@ -15,10 +15,20 @@ export function AboutCard() {
           </div>
         </div>
 
-        <div className="grid gap-2">
-          <Info label="Statut" value="Mode local (dev)" />
-          <Info label="Espace" value="Communauté (posts admin)" />
-          <Info label="Dossier" value="Suivi des documents" />
+        <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3">
+          <div className="text-xs font-semibold text-navy">Vision</div>
+          <div className="mt-1 text-sm text-muted">
+            Rendre l’information plus claire, le parcours plus simple, et le suivi plus
+            fiable — du premier doute jusqu’au dépôt.
+          </div>
+        </div>
+
+        <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3">
+          <div className="text-xs font-semibold text-navy">Notre promesse</div>
+          <div className="mt-1 text-sm text-muted">
+            Des étapes concrètes, des documents bien organisés, et un accompagnement
+            professionnel quand vous en avez besoin.
+          </div>
         </div>
 
         <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3">
@@ -29,14 +39,5 @@ export function AboutCard() {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-2 rounded-[var(--radius-md)] border border-border bg-white/60 px-3 py-2">
-      <div className="text-xs text-muted">{label}</div>
-      <div className="text-xs font-semibold text-text">{value}</div>
-    </div>
   );
 }

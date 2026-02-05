@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { SafeImg } from "@/components/ui/safe-img";
 import { cn } from "@/lib/cn";
 
 type Kind = "avatar" | "cover";
@@ -114,20 +115,21 @@ function Preview({ kind, url }: { kind: Kind; url: string | null }) {
   if (kind === "cover") {
     return (
       <div className="h-14 w-28 overflow-hidden rounded-[var(--radius-md)] border border-border bg-surface">
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="Aperçu" className="h-full w-full object-cover" />
-        ) : null}
+        <SafeImg src={url} alt="Aperçu" className="block h-full w-full object-cover" />
       </div>
     );
   }
 
   return (
     <div className="h-12 w-12 overflow-hidden rounded-full border border-border bg-surface">
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="Aperçu" className="h-full w-full object-cover" />
-      ) : null}
+      <div className="h-full w-full overflow-hidden rounded-full">
+        <SafeImg
+          src={url}
+          alt="Aperçu"
+          className="block h-full w-full rounded-full object-cover"
+          fallback={<div className="h-full w-full bg-primary/10" />}
+        />
+      </div>
     </div>
   );
 }

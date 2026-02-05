@@ -157,10 +157,6 @@ export function UserPostsFeed({ initialPosts }: { initialPosts: ApiPost[] }) {
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-navy">Créer une publication</div>
-            <div className="mt-1 text-xs text-muted">
-              Texte + image/vidéo. Pas d’interaction entre utilisateurs (vous pouvez
-              seulement liker leurs publications).
-            </div>
           </div>
           <Button variant="outline" onClick={refresh} disabled={submitting}>
             Actualiser

@@ -29,7 +29,7 @@ export default async function ProfilPage() {
         <CardHeader>
           <CardTitle>Profil utilisateur</CardTitle>
           <CardDescription>
-            Exemple local. Plus tard: authentification (Supabase).
+            Gérez vos informations de profil et vos médias.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -77,8 +77,12 @@ export default async function ProfilPage() {
           </div>
 
           <div className="space-y-4">
-            <ProfileMediaUploader kind="avatar" initialUrl={user?.avatarUrl} />
-            <ProfileMediaUploader kind="cover" initialUrl={user?.coverUrl} />
+            <div id="avatar">
+              <ProfileMediaUploader kind="avatar" initialUrl={user?.avatarUrl} />
+            </div>
+            <div id="cover">
+              <ProfileMediaUploader kind="cover" initialUrl={user?.coverUrl} />
+            </div>
             <ProfileNameEditor initialFullName={user?.fullName ?? "Client Capitune"} />
           </div>
 
@@ -102,8 +106,8 @@ export default async function ProfilPage() {
               <div className="text-sm font-medium text-text">Immigration Canada</div>
             </div>
             <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3">
-              <div className="text-xs text-muted">Statut</div>
-              <div className="text-sm font-medium text-text">Mode local</div>
+              <div className="text-xs text-muted">Objectif</div>
+              <div className="text-sm font-medium text-text">Un parcours clair, étape par étape</div>
             </div>
           </div>
 

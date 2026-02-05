@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 async function getViewer() {
   const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
-  return prisma.user.findUnique({ where: { email }, select: { id: true } });
+  return prisma.user.findUnique({ where: { email }, select: { id: true, accountType: true } });
 }
 
 export async function POST(
@@ -50,6 +50,26 @@ export async function POST(
     });
   } else {
     await prisma.eventRegistration.create({ data: { userId: viewer.id, eventId } });
+
+    // V1 notifications: inscription confirmée (silencieux si la table n'existe pas encore)
+    const role = viewer.accountType === "USER" ? "DEMANDEUR" : "PRO";
+    const soon = event.startsAt ? event.startsAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 : false;
+    const priority = soon ? "IMPORTANT" : "INFO";
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: viewer.id,
+          role,
+          type: "EVENT_REGISTERED",
+          title: "Inscription confirmée",
+          message: "Votre inscription est enregistrée. Cliquez pour voir les détails.",
+          link: `/evenements-formations/${eventId}`,
+          priority,
+        },
+      });
+    } catch {
+      // ignore
+    }
   }
 
   const registrationsCount = await prisma.eventRegistration.count({ where: { eventId } });

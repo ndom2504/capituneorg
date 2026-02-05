@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/cn";
 import { NAV_ITEMS } from "@/components/dashboard/nav-items";
+import { EventsSidebarCard } from "@/components/events/events-sidebar-card";
 
 export function Sidebar({
   collapsed,
@@ -70,11 +71,8 @@ export function Sidebar({
       </nav>
 
       {!collapsed ? (
-        <div className="mt-auto rounded-[var(--radius-md)] border border-border bg-white/50 p-3">
-          <div className="text-xs font-medium text-navy">Statut</div>
-          <div className="mt-1 text-xs text-muted">
-            Mode local (sans Supabase/Railway)
-          </div>
+        <div className="mt-auto">
+          <EventsSidebarCard />
         </div>
       ) : null}
     </div>
@@ -157,11 +155,8 @@ function SidebarDrawerContent({
         })}
       </nav>
 
-      <div className="mt-auto rounded-[var(--radius-md)] border border-border bg-white/50 p-3">
-        <div className="text-xs font-medium text-navy">Statut</div>
-        <div className="mt-1 text-xs text-muted">
-          Mode local (sans Supabase/Railway)
-        </div>
+      <div className="mt-auto">
+        <EventsSidebarCard />
       </div>
     </div>
   );
