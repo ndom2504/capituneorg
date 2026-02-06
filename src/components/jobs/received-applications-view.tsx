@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Download, ExternalLink } from "lucide-react";
+import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AvatarBubble } from "@/components/ui/avatar-bubble";
@@ -137,7 +137,7 @@ export function ReceivedApplicationsView() {
                 {/* Avatar */}
                 <AvatarBubble
                   url={app.applicant.avatarUrl}
-                  fallback={app.applicant.fullName}
+                  name={app.applicant.fullName}
                   size="md"
                 />
 

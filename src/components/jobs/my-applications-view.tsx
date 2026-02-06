@@ -122,7 +122,7 @@ export function MyApplicationsView() {
                 {/* Avatar du recruteur */}
                 <AvatarBubble
                   url={app.job.poster.avatarUrl}
-                  fallback={app.job.poster.fullName}
+                  name={app.job.poster.fullName}
                   size="md"
                 />
 
