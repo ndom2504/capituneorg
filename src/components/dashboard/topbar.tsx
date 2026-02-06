@@ -89,6 +89,9 @@ export function Topbar({
           <TopbarTab href="/mon-dossier" active={pathname.startsWith("/mon-dossier")}>Mon dossier</TopbarTab>
           <TopbarTab href="/emploi" active={pathname.startsWith("/emploi")}>Emploi</TopbarTab>
           <TopbarTab href="/clients" active={pathname.startsWith("/clients")}>Clients</TopbarTab>
+          <TopbarTab href="/marketplace" active={pathname.startsWith("/marketplace")}>Marketplace</TopbarTab>
+          <TopbarTab href="/mes-demandes" active={pathname.startsWith("/mes-demandes")}>Mes demandes</TopbarTab>
+          <TopbarTab href="/mon-parcours" active={pathname.startsWith("/mon-parcours")}>Mon parcours</TopbarTab>
         </nav>
 
         {/* Spacer pour pousser les actions à droite */}

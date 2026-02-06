@@ -1,9 +1,12 @@
 import { EventHub } from "@/components/events/event-hub";
+import { getAppViewer } from "@/lib/auth/viewer";
 
-export default function EvenementsFormationsPage() {
+export default async function EvenementsFormationsPage() {
+  const viewer = await getAppViewer();
+  
   return (
     <div className="mx-auto max-w-5xl">
-      <EventHub />
+      <EventHub viewer={viewer} />
     </div>
   );
 }

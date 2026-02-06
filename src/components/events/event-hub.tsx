@@ -6,6 +6,8 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EventCreateForm } from "@/components/events/event-create-form";
+import type { AppViewer } from "@/lib/auth/viewer";
 
 type EventType = "LIVE" | "WEBINAIRE" | "ATELIER" | "FORMATION";
 
@@ -156,13 +158,14 @@ function matchesQuery(e: { title: string; description: string }, q: string) {
   return hay.includes(q);
 }
 
-export function EventHub() {
+export function EventHub({ viewer }: { viewer: AppViewer | null }) {
   const [events, setEvents] = useState<EventDto[]>([]);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<EventType | "ALL">("ALL");
   const [onlyUpcoming, setOnlyUpcoming] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -254,10 +257,34 @@ export function EventHub() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Événements & formations</CardTitle>
-        </CardHeader>
+      {showCreateForm ? (
+        <div className="space-y-4">
+          <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+            ← Retour aux événements
+          </Button>
+          <EventCreateForm
+            onSuccess={() => {
+              setShowCreateForm(false);
+              // Recharger les événements
+              fetchEvents()
+                .then((data) => setEvents(data))
+                .catch((e: unknown) => setError(e instanceof Error ? e.message : "Erreur inconnue"));
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Événements & formations</CardTitle>
+                {viewer?.accountType === "PROFESSIONAL" && viewer.isCertified && (
+                  <Button onClick={() => setShowCreateForm(true)} className="bg-navy hover:bg-navy/90">
+                    + Créer un événement
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <Input
@@ -406,6 +433,8 @@ export function EventHub() {
           ))}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

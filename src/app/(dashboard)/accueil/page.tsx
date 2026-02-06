@@ -4,6 +4,7 @@ import { ConnectionsCard } from "@/components/community/connections-card";
 import { CommunityPageHeader } from "@/components/community/community-page-header";
 import { UserPostsFeed } from "@/components/community/user-posts-feed";
 import { EventsSidebarCard } from "@/components/events/events-sidebar-card";
+import { PerformanceCard } from "@/components/profile/performance-card";
 import { prisma } from "@/lib/db";
 import { getAppViewer } from "@/lib/auth/viewer";
 
@@ -208,6 +209,7 @@ export default async function AccueilPage() {
           <div className="lg:sticky lg:top-[92px]">
             <div className="space-y-4">
               <AboutCard />
+              {viewer && <PerformanceCard userId={viewer.id} isPro={!!viewer.marketplaceProfile} />}
               <EventsSidebarCard />
               <ConnectionsCard users={connections} />
             </div>

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { ProfileMediaUploader } from "@/components/profile/profile-media-uploader";
 import { ProfileInfoEditor } from "@/components/profile/profile-info-editor";
+import { PerformanceCard } from "@/components/profile/performance-card";
 import { getAppViewer } from "@/lib/auth/viewer";
 import { prisma } from "@/lib/db";
 
@@ -26,7 +27,15 @@ export default async function ProfilPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: viewer.id },
-    select: { fullName: true, email: true, avatarUrl: true, coverUrl: true },
+    select: {
+      fullName: true,
+      email: true,
+      avatarUrl: true,
+      coverUrl: true,
+      marketplaceProfile: {
+        select: { id: true },
+      },
+    },
   });
 
   const normalizedUser = user
@@ -36,6 +45,8 @@ export default async function ProfilPage() {
         coverUrl: normalizeMediaUrl(user.coverUrl),
       }
     : null;
+
+  const isPro = !!user?.marketplaceProfile;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -81,6 +92,9 @@ export default async function ProfilPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Performance card pour les pros */}
+      <PerformanceCard userId={viewer.id} isPro={isPro} />
     </div>
   );
 }

@@ -352,6 +352,10 @@ model User {
   jobApplications JobApplication[] @relation("JobApplicant")
 
   notifications Notification[]
+  
+  // Performance: reviews given and received
+  reviewsGiven Review[] @relation("ReviewAuthor")
+  reviewsReceived Review[] @relation("ReviewProfessional")
 }
 
 model PreRegistration {
@@ -531,6 +535,11 @@ model MarketplaceRequest {
   message String?
 
   proNote String?
+  
+  // Performance tracking (V1)
+  acceptedAt DateTime?
+  firstProResponseAt DateTime?
+  closedByClientAt DateTime?
 
   meetingId String? @unique
   meeting Meeting? @relation("MarketplaceRequestMeeting", fields: [meetingId], references: [id], onDelete: SetNull)
@@ -542,6 +551,8 @@ model MarketplaceRequest {
   messages MarketplaceRequestMessage[]
 
   paymentOrders PaymentOrder[]
+  
+  reviews Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -568,6 +579,30 @@ model MarketplaceRequestMessage {
   createdAt DateTime @default(now())
 
   @@index([requestId, createdAt])
+}
+
+model Review {
+  id String @id @default(cuid())
+
+  professionalId String
+  professional User @relation("ReviewProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author User @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  marketplaceRequestId String
+  marketplaceRequest MarketplaceRequest @relation(fields: [marketplaceRequestId], references: [id], onDelete: Cascade)
+
+  rating Int // 1-5
+  comment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([authorId, marketplaceRequestId])
+  @@index([professionalId])
+  @@index([authorId])
+  @@index([createdAt])
 }
 
 model ProfessionalNetwork {
