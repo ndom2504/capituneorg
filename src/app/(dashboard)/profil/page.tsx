@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,6 +13,13 @@ import { ProfileInfoEditor } from "@/components/profile/profile-info-editor";
 import { getAppViewer } from "@/lib/auth/viewer";
 import { prisma } from "@/lib/db";
 
+function normalizeMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/")) return url;
+  return `/${url}`;
+}
+
 export default async function ProfilPage() {
   const viewer = await getAppViewer();
   if (!viewer) redirect("/auth");
@@ -22,6 +28,14 @@ export default async function ProfilPage() {
     where: { id: viewer.id },
     select: { fullName: true, email: true, avatarUrl: true, coverUrl: true },
   });
+
+  const normalizedUser = user
+    ? {
+        ...user,
+        avatarUrl: normalizeMediaUrl(user.avatarUrl),
+        coverUrl: normalizeMediaUrl(user.coverUrl),
+      }
+    : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -34,18 +48,18 @@ export default async function ProfilPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <ProfileInfoEditor
-            initialFullName={user?.fullName ?? "Client Capitune"}
-            initialEmail={user?.email ?? "client@capitune.local"}
-            avatarUrl={user?.avatarUrl}
-            coverUrl={user?.coverUrl}
+            initialFullName={normalizedUser?.fullName ?? "Client Capitune"}
+            initialEmail={normalizedUser?.email ?? "client@capitune.local"}
+            avatarUrl={normalizedUser?.avatarUrl}
+            coverUrl={normalizedUser?.coverUrl}
           />
 
           <div className="space-y-4">
             <div id="avatar">
-              <ProfileMediaUploader kind="avatar" initialUrl={user?.avatarUrl} />
+              <ProfileMediaUploader kind="avatar" initialUrl={normalizedUser?.avatarUrl} />
             </div>
             <div id="cover">
-              <ProfileMediaUploader kind="cover" initialUrl={user?.coverUrl} />
+              <ProfileMediaUploader kind="cover" initialUrl={normalizedUser?.coverUrl} />
             </div>
           </div>
 

@@ -11,6 +11,13 @@ export type AppViewer = {
   coverUrl: string | null;
 };
 
+function normalizeMediaUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/")) return url;
+  return `/${url}`;
+}
+
 export async function getAppViewer(): Promise<AppViewer | null> {
   try {
     const sessionUserId = await getSessionUserId();
@@ -27,7 +34,12 @@ export async function getAppViewer(): Promise<AppViewer | null> {
           coverUrl: true,
         },
       });
-      return user ?? null;
+      if (!user) return null;
+      return {
+        ...user,
+        avatarUrl: normalizeMediaUrl(user.avatarUrl),
+        coverUrl: normalizeMediaUrl(user.coverUrl),
+      };
     }
 
     // fallback mode démo (variable d'env)
@@ -44,7 +56,12 @@ export async function getAppViewer(): Promise<AppViewer | null> {
         coverUrl: true,
       },
     });
-    return user ?? null;
+    if (!user) return null;
+    return {
+      ...user,
+      avatarUrl: normalizeMediaUrl(user.avatarUrl),
+      coverUrl: normalizeMediaUrl(user.coverUrl),
+    };
   } catch (err) {
     if (process.env.NODE_ENV === "development") {
       const errorName = err instanceof Error ? err.name : "UnknownError";
