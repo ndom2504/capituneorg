@@ -77,6 +77,16 @@ function isConversationAlreadyExistsError(output) {
   );
 }
 
+function getFailedMigrationName(output) {
+  const text = String(output ?? "");
+  if (!text.includes("migrate found failed migrations")) return null;
+
+  // Example:
+  // The `20260206_add_messaging_system` migration started at ... failed
+  const match = text.match(/The `([^`]+)` migration started[\s\S]*?failed/);
+  return match?.[1] ?? null;
+}
+
 function fileExists(p) {
   try {
     fs.accessSync(p);
@@ -200,6 +210,22 @@ if (isVercel) {
     let deployResult = deploy();
     if (deployResult.status !== 0) {
       const combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
+
+      // Auto-heal when Prisma blocks deploy due to a migration recorded as failed.
+      // In our case, the DB already contains the objects, but _prisma_migrations
+      // has the migration in a failed state.
+      const failedMigration = getFailedMigrationName(combinedOutput);
+      if (failedMigration === "20260206_add_messaging_system") {
+        log(
+          `Detected failed migration record '${failedMigration}'; resolving as applied, then retrying prisma migrate deploy.`,
+        );
+        try {
+          runBin("prisma", ["migrate", "resolve", "--applied", failedMigration]);
+          deployResult = deploy();
+        } catch {
+          // fall through to other auto-heal / failure handling
+        }
+      }
 
       // Auto-heal a common production blocker: tables exist but migration history is missing.
       // Symptom: migrate deploy fails with duplicate table on Conversation.
