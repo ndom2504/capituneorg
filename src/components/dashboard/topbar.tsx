@@ -23,7 +23,7 @@ export function Topbar({
 }) {
   return (
     <header className="shrink-0 border-b border-border bg-white/80 backdrop-blur">
-      <div className="relative flex w-full items-center gap-3 px-4 py-3 sm:px-6">
+      <div className="relative grid w-full grid-cols-[auto,1fr,auto] items-center gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -56,9 +56,9 @@ export function Topbar({
           </div>
         </div>
 
-        {/* Barre de recherche */}
-        <div className="hidden md:block">
-          <div className="flex w-[400px] items-center gap-2 rounded-[var(--radius-md)] border border-border bg-white/70 px-3 py-2 text-sm text-muted lg:w-[500px]">
+        {/* Barre de recherche (centrée) */}
+        <div className="hidden md:flex justify-center">
+          <div className="flex w-full max-w-[560px] items-center gap-2 rounded-[var(--radius-md)] border border-border bg-white/70 px-3 py-2 text-sm text-muted">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3.2-3.2" />
@@ -67,9 +67,10 @@ export function Topbar({
           </div>
         </div>
 
-        {/* Bulle de profil animée (centrée entre recherche et cloche) */}
-        <div className="hidden flex-1 items-center justify-center md:flex">
-          {viewer && (
+        {/* Notifications et profil à droite */}
+        <div className="flex items-center gap-3">
+          {/* Avatar (entre recherche et cloche) */}
+          {viewer ? (
             <div
               className={cn(
                 "transition-all duration-300 ease-out",
@@ -91,11 +92,8 @@ export function Topbar({
                 </div>
               </Link>
             </div>
-          )}
-        </div>
+          ) : null}
 
-        {/* Notifications et profil à droite */}
-        <div className="flex items-center gap-3">
           <NotificationsBell />
 
           <Link href="/profil">
