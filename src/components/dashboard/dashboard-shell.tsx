@@ -6,13 +6,16 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { MessagingWidget } from "@/components/dashboard/messaging-widget";
 import { usePresence } from "@/lib/hooks/usePresence";
+import type { AppViewer } from "@/lib/auth/viewer";
 
 export function DashboardShell({
   children,
   isProfessional,
+  viewer,
 }: {
   children: React.ReactNode;
   isProfessional: boolean;
+  viewer: AppViewer | null;
 }) {
   // Envoyer automatiquement des heartbeats de présence
   usePresence();
@@ -61,6 +64,7 @@ export function DashboardShell({
             sidebarCollapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
             onOpenMobile={() => setMobileSidebarOpen(true)}
+            viewer={viewer}
           />
           <main className="px-0 py-2">
             <div className="mx-auto w-full max-w-6xl px-3">{children}</div>

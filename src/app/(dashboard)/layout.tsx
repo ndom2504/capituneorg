@@ -9,5 +9,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const isProfessional =
     viewer?.accountType === "ADMIN" || viewer?.accountType === "PROFESSIONAL";
 
-  return <DashboardShell isProfessional={isProfessional}>{children}</DashboardShell>;
+  return (
+    <DashboardShell 
+      isProfessional={isProfessional}
+      viewer={viewer}
+    >
+      {children}
+    </DashboardShell>
+  );
 }

@@ -1,18 +1,36 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { NotificationsBell } from "@/components/notifications/notifications-bell";
+import { AvatarBubble } from "@/components/ui/avatar-bubble";
 import { cn } from "@/lib/cn";
+import type { AppViewer } from "@/lib/auth/viewer";
 
 export function Topbar({
   sidebarCollapsed,
   onToggleCollapse,
   onOpenMobile,
+  viewer,
 }: {
   sidebarCollapsed: boolean;
   onToggleCollapse: () => void;
   onOpenMobile: () => void;
+  viewer: AppViewer | null;
 }) {
+  const [showProfileBubble, setShowProfileBubble] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Afficher la bulle de profil quand on scrolle vers le bas (> 100px)
+      setShowProfileBubble(window.scrollY > 100);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-white/80 backdrop-blur">
       <div className="relative flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -57,6 +75,31 @@ export function Topbar({
             </svg>
             <span>Rechercher…</span>
           </div>
+        </div>
+
+        {/* Bulle de profil animée (apparaît au scroll) */}
+        <div
+          className={cn(
+            "fixed left-1/2 top-3 -translate-x-1/2 transition-all duration-300 ease-out",
+            showProfileBubble
+              ? "scale-100 opacity-100"
+              : "pointer-events-none scale-75 opacity-0",
+          )}
+        >
+          {viewer && (
+            <Link href="/profil" className="block">
+              <div className="group cursor-pointer">
+                <AvatarBubble
+                  name={viewer.fullName}
+                  url={viewer.avatarUrl}
+                  size="lg"
+                  className="ring-2 ring-white shadow-lg transition-transform group-hover:scale-110"
+                  showOnline={true}
+                  userId={viewer.id}
+                />
+              </div>
+            </Link>
+          )}
         </div>
 
         {/* Notifications et profil à droite */}
