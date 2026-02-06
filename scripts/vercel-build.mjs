@@ -87,6 +87,11 @@ function getFailedMigrationName(output) {
   return match?.[1] ?? null;
 }
 
+const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
+  "20260206_add_messaging_system",
+  "20260206193000_add_user_settings",
+]);
+
 function fileExists(p) {
   try {
     fs.accessSync(p);
@@ -215,7 +220,7 @@ if (isVercel) {
       // In our case, the DB already contains the objects, but _prisma_migrations
       // has the migration in a failed state.
       const failedMigration = getFailedMigrationName(combinedOutput);
-      if (failedMigration === "20260206_add_messaging_system") {
+      if (failedMigration && AUTO_RESOLVE_APPLIED_MIGRATIONS.has(failedMigration)) {
         log(
           `Detected failed migration record '${failedMigration}'; resolving as applied, then retrying prisma migrate deploy.`,
         );
