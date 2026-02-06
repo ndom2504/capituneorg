@@ -9,6 +9,7 @@ export type AppViewer = {
   isCertified: boolean;
   avatarUrl: string | null;
   coverUrl: string | null;
+  marketplaceProfile: { id: string } | null;
 };
 
 function normalizeMediaUrl(url: string | null): string | null {
@@ -32,6 +33,7 @@ export async function getAppViewer(): Promise<AppViewer | null> {
           isCertified: true,
           avatarUrl: true,
           coverUrl: true,
+          marketplaceProfile: { select: { id: true } },
         },
       });
       if (!user) return null;
@@ -54,6 +56,7 @@ export async function getAppViewer(): Promise<AppViewer | null> {
         isCertified: true,
         avatarUrl: true,
         coverUrl: true,
+        marketplaceProfile: { select: { id: true } },
       },
     });
     if (!user) return null;

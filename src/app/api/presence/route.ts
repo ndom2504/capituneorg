@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
 /**
@@ -34,15 +35,45 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Récupérer les données de présence
-    const users = await db.user.findMany({
-      where: { id: { in: userIds } },
-      select: {
-        id: true,
-        lastSeenAt: true,
-        statusManual: true,
-      },
-    });
+    // Récupérer les données de présence + confidentialité
+    // (Fallback si la migration UserSettings n’est pas encore appliquée)
+    let users: Array<{
+      id: string;
+      lastSeenAt: Date | null;
+      statusManual: string | null;
+      settings?: { showOnlineStatus: boolean; showLastSeen: boolean } | null;
+    }>;
+
+    try {
+      users = await db.user.findMany({
+        where: { id: { in: userIds } },
+        select: {
+          id: true,
+          lastSeenAt: true,
+          statusManual: true,
+          settings: {
+            select: {
+              showOnlineStatus: true,
+              showLastSeen: true,
+            },
+          },
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
+        const baseUsers = await db.user.findMany({
+          where: { id: { in: userIds } },
+          select: {
+            id: true,
+            lastSeenAt: true,
+            statusManual: true,
+          },
+        });
+        users = baseUsers.map((u) => ({ ...u, settings: null }));
+      } else {
+        throw e;
+      }
+    }
 
     // Calculer le statut online (< 2 minutes)
     const now = new Date();
@@ -58,14 +89,17 @@ export async function GET(req: NextRequest) {
     > = {};
 
     users.forEach((user) => {
+      const showOnline = user.settings?.showOnlineStatus ?? true;
+      const showLastSeen = user.settings?.showLastSeen ?? true;
+
       const isOnline = user.lastSeenAt
         ? now.getTime() - user.lastSeenAt.getTime() <= ONLINE_THRESHOLD_MS
         : false;
 
       presenceData[user.id] = {
-        online: isOnline,
-        lastSeenAt: user.lastSeenAt?.toISOString() || null,
-        statusManual: user.statusManual || null,
+        online: showOnline ? isOnline : false,
+        lastSeenAt: showLastSeen ? user.lastSeenAt?.toISOString() || null : null,
+        statusManual: showOnline ? user.statusManual || null : null,
       };
     });
 

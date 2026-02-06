@@ -41,6 +41,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Identifiants invalides." }, { status: 401 });
   }
 
+  let preRegistrationStatus: "DRAFT" | "SUBMITTED" | null = null;
+  if (user.accountType === "USER") {
+    const pre = await prisma.preRegistration.findUnique({
+      where: { userId: user.id },
+      select: { status: true },
+    });
+    preRegistrationStatus = pre?.status ?? null;
+  }
+
   // Pour les professionnels, vérifier s'ils ont déjà un profil marketplace
   let hasMarketplaceProfile = false;
   if (user.accountType === "PROFESSIONAL" || user.accountType === "ADMIN") {
@@ -56,6 +65,7 @@ export async function POST(req: NextRequest) {
     ok: true, 
     accountType: user.accountType,
     hasMarketplaceProfile,
+    preRegistrationStatus,
   });
   setSessionCookie(res, token);
   return res;

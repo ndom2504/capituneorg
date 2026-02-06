@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -312,6 +313,8 @@ model User {
   
   createdAt DateTime @default(now())
 
+  settings  UserSettings?
+
   dossiers  Dossier[]
   preRegistration PreRegistration?
   posts     UserPost[]
@@ -356,6 +359,55 @@ model User {
   // Performance: reviews given and received
   reviewsGiven Review[] @relation("ReviewAuthor")
   reviewsReceived Review[] @relation("ReviewProfessional")
+  
+  // Messaging
+  conversationsInitiated Conversation[] @relation("ConversationInitiator")
+  conversationsReceived Conversation[] @relation("ConversationRecipient")
+  messagesSent Message[] @relation("MessageSender")
+}
+
+model UserSettings {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Compte
+  language String @default("FR")
+  timezone String @default("UTC")
+  country  String?
+
+  // Confidentialité
+  showOnlineStatus    Boolean @default(true)
+  showLastSeen        Boolean @default(true)
+  showCountryOnProfile Boolean @default(true)
+  communityVisible    Boolean @default(true)
+
+  // Statut & présence
+  autoAwayMinutes Int @default(30)
+
+  // Notifications
+  notifyInApp     Boolean @default(true)
+  notifyEmail     Boolean @default(false)
+  notifyRequests  Boolean @default(true)
+  notifyDocuments Boolean @default(true)
+  notifyPayments  Boolean @default(true)
+  notifyMeetings  Boolean @default(true)
+  notifyEvents    Boolean @default(true)
+  notifyMarketplace Boolean @default(true)
+  notificationFrequency String @default("IMMEDIATE")
+
+  // Marketplace / Performance (PRO)
+  allowFollow          Boolean @default(true)
+  showFollowersCount   Boolean @default(true)
+  showBadges           Boolean @default(true)
+  allowReviews         Boolean @default(true)
+  showRatingPublicly   Boolean @default(true)
+  showReviewComments   Boolean @default(true)
+
+  // Données
+  deletionRequestedAt DateTime?
+  deletionScheduledAt DateTime?
+
+  updatedAt DateTime @updatedAt
 }
 
 model PreRegistration {
@@ -1009,4 +1061,52 @@ model JobApplication {
   @@index([applicantId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ============================================================================
+// MESSAGING SYSTEM
+// ============================================================================
+
+model Conversation {
+  id String @id @default(cuid())
+  
+  // Participants (always 2: initiator and recipient)
+  initiatorId String
+  initiator User @relation("ConversationInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  
+  recipientId String
+  recipient User @relation("ConversationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  
+  messages Message[]
+  
+  lastMessageAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  
+  // Ensure unique conversation between two users (bidirectional)
+  @@unique([initiatorId, recipientId])
+  @@index([initiatorId])
+  @@index([recipientId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id String @id @default(cuid())
+  
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  senderId String
+  sender User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  content String @db.Text
+  
+  isRead Boolean @default(false)
+  readAt DateTime?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([isRead])
 }

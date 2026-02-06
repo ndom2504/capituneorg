@@ -176,6 +176,20 @@ export const icons = {
       </svg>
     </IconWrap>
   ),
+  settings: ({ className }: { className?: string }) => (
+    <IconWrap className={className}>
+      <svg
+        className="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+        <path d="M19.4 15a7.9 7.9 0 0 0 .1-1 7.9 7.9 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a8 8 0 0 0-1.7-1l-.4-2.6H9.1L8.7 7a8 8 0 0 0-1.7 1l-2.4-1-2 3.4L4.6 12a7.9 7.9 0 0 0-.1 1 7.9 7.9 0 0 0 .1 1l-2 1.6 2 3.4 2.4-1a8 8 0 0 0 1.7 1l.4 2.6h5.8l.4-2.6a8 8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6z" />
+      </svg>
+    </IconWrap>
+  ),
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -244,4 +258,5 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/mon-dossier", label: "Mon dossier", icon: icons.folder },
   { href: "/profil", label: "Profil", icon: icons.user },
+  { href: "/parametres", label: "Paramètres", icon: icons.settings },
 ];

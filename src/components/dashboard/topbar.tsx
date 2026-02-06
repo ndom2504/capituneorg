@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { NotificationsBell } from "@/components/notifications/notifications-bell";
-import { AvatarBubble } from "@/components/ui/avatar-bubble";
+import { PresenceStatusMenu } from "@/components/presence/presence-status-menu";
 import { cn } from "@/lib/cn";
 import type { AppViewer } from "@/lib/auth/viewer";
 
@@ -39,9 +39,10 @@ export function Topbar({
   isScrolled: boolean;
 }) {
   const pathname = usePathname();
+  const showClientsTab = viewer?.accountType === "PROFESSIONAL" || viewer?.accountType === "ADMIN";
 
   return (
-    <header className="shrink-0 border-b border-border bg-white/80 backdrop-blur">
+    <header className="relative z-50 shrink-0 border-b border-border bg-purple-50/60 backdrop-blur">
       <div className="flex w-full items-center gap-6 px-4 py-3 sm:px-6">
         {/* Gauche: Logo/Menu compact */}
         <div className="flex shrink-0 items-center gap-2">
@@ -58,7 +59,7 @@ export function Topbar({
 
           <button
             type="button"
-            className="hidden h-10 w-10 items-center justify-center rounded-(--radius-md) border border-border bg-white/70 text-navy hover:bg-white sm:inline-flex lg:w-auto lg:gap-2 lg:px-3"
+            className="hidden h-10 w-10 items-center justify-center rounded-(--radius-md) border border-border bg-white/70 text-navy hover:bg-white sm:inline-flex"
             onClick={onToggleCollapse}
             aria-label={sidebarCollapsed ? "Déplier" : "Replier"}
           >
@@ -67,10 +68,7 @@ export function Topbar({
                 <path d="M15 18l-6-6 6-6" />
               </svg>
             </span>
-            <span className="hidden lg:inline text-sm">Menu</span>
           </button>
-
-          <div className="hidden text-sm font-semibold text-navy sm:block">Capitune</div>
         </div>
 
         {/* Recherche */}
@@ -85,38 +83,42 @@ export function Topbar({
         </div>
 
         {/* Onglets */}
-        <nav className="hidden shrink-0 items-center gap-1 md:flex" aria-label="Navigation principale">
+        <nav className="hidden shrink-0 items-center gap-0.5 md:flex" aria-label="Navigation principale">
           <TopbarTab href="/mon-dossier" active={pathname.startsWith("/mon-dossier")}>Mon dossier</TopbarTab>
           <TopbarTab href="/emploi" active={pathname.startsWith("/emploi")}>Emploi</TopbarTab>
-          <TopbarTab href="/clients" active={pathname.startsWith("/clients")}>Clients</TopbarTab>
-          <TopbarTab href="/marketplace" active={pathname.startsWith("/marketplace")}>Marketplace</TopbarTab>
-          <TopbarTab href="/mes-demandes" active={pathname.startsWith("/mes-demandes")}>Mes demandes</TopbarTab>
+          {showClientsTab ? (
+            <TopbarTab href="/clients" active={pathname.startsWith("/clients")}>Clients</TopbarTab>
+          ) : null}
+          <TopbarTab
+            href="/marketplace"
+            active={pathname.startsWith("/marketplace") && !pathname.startsWith("/marketplace/mes-demandes")}
+          >
+            Marketplace
+          </TopbarTab>
+          {viewer?.accountType === "USER" ? (
+            <TopbarTab
+              href="/marketplace/mes-demandes"
+              active={pathname.startsWith("/marketplace/mes-demandes")}
+            >
+              Mes demandes
+            </TopbarTab>
+          ) : null}
           <TopbarTab href="/mon-parcours" active={pathname.startsWith("/mon-parcours")}>Mon parcours</TopbarTab>
+          <TopbarTab href="/evenements-formations" active={pathname.startsWith("/evenements-formations")}>Événements</TopbarTab>
         </nav>
 
         {/* Spacer pour pousser les actions à droite */}
         <div className="flex-1" />
 
         {/* Droite: Actions compactes */}
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 rounded-(--radius-md) border border-border bg-muted/60 px-2 py-1">
           {viewer ? (
-            <Link href="/profil" className="block">
-              <div
-                className={cn(
-                  "group cursor-pointer transition-all duration-300 ease-out",
-                  isScrolled ? "scale-100" : "scale-90 opacity-60",
-                )}
-              >
-                <AvatarBubble
-                  name={viewer.fullName}
-                  url={viewer.avatarUrl}
-                  size="lg"
-                  className="ring-2 ring-white shadow-lg transition-transform group-hover:scale-110"
-                  showOnline={true}
-                  userId={viewer.id}
-                />
-              </div>
-            </Link>
+            <PresenceStatusMenu
+              userId={viewer.id}
+              fullName={viewer.fullName}
+              avatarUrl={viewer.avatarUrl}
+              isScrolled={isScrolled}
+            />
           ) : null}
 
           <NotificationsBell />

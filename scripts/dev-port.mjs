@@ -56,6 +56,12 @@ if (!fs.existsSync(packageJsonPath)) {
 
 const nextBin = path.join(projectRoot, "node_modules", "next", "dist", "bin", "next");
 
+// Driver adapters (ex: Neon) require the "library" Query Engine.
+// Some dev environments may have PRISMA_CLIENT_ENGINE_TYPE=binary set globally.
+const useNeonAdapter =
+  String(process.env.USE_NEON_ADAPTER ?? "").toLowerCase() === "true" ||
+  String(process.env.USE_NEON_ADAPTER ?? "") === "1";
+
 // Self-heal common Windows dev issues: stale lock or partial .next output
 try {
   const lockPath = path.join(projectRoot, ".next", "dev", "lock");
@@ -83,6 +89,10 @@ try {
 const child = spawn(process.execPath, [nextBin, "dev", "-p", String(port)], {
   cwd: projectRoot,
   stdio: "inherit",
+  env: {
+    ...process.env,
+    ...(useNeonAdapter ? { PRISMA_CLIENT_ENGINE_TYPE: "library" } : null),
+  },
 });
 
 child.on("exit", (code) => {

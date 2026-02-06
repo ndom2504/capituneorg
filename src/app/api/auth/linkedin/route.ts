@@ -79,14 +79,14 @@ export async function POST(req: NextRequest) {
       });
 
   // Préinscription uniquement pour les demandeurs
+  let preRegistrationStatus: "DRAFT" | "SUBMITTED" | null = null;
   if (user.accountType === "USER") {
-    await prisma.preRegistration.upsert({
+    const pre = await prisma.preRegistration.upsert({
       where: { userId: user.id },
       update: {
         firstName: firstName || undefined,
         lastName: lastName || undefined,
         email,
-        status: "DRAFT",
       },
       create: {
         userId: user.id,
@@ -95,8 +95,9 @@ export async function POST(req: NextRequest) {
         lastName: lastName || null,
         email,
       },
-      select: { id: true },
+      select: { status: true },
     });
+    preRegistrationStatus = pre.status;
   }
 
   // Pour les professionnels, vérifier s'ils ont déjà un profil marketplace
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
     accountType: user.accountType,
     isNewUser,
     hasMarketplaceProfile,
+    preRegistrationStatus,
   });
   setSessionCookie(res, token);
   return res;

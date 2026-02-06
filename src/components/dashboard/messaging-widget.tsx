@@ -52,7 +52,7 @@ export function MessagingWidget() {
       {/* Widget content (slides up/down) */}
       <div
         className={`overflow-hidden transition-all duration-300 ${
-          isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+          isOpen ? "max-h-125 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <div className="w-80 bg-white shadow-xl">
@@ -91,7 +91,7 @@ export function MessagingWidget() {
           </div>
 
           {/* Content area */}
-          <div className="h-[400px] overflow-y-auto">
+          <div className="h-100 overflow-y-auto">
             {activeTab === "conversations" && (
               <ConversationsTab />
             )}
@@ -167,9 +167,9 @@ function JobsTab() {
           <rect x="2" y="7" width="20" height="14" rx="2" />
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
         </svg>
-        <p className="font-medium">Aucune offre d'emploi</p>
+        <p className="font-medium">Aucune offre d’emploi</p>
         <p className="mt-1 text-xs">
-          Les offres d'emploi pertinentes apparaîtront ici
+          Les offres d’emploi pertinentes apparaîtront ici
         </p>
       </div>
     </div>

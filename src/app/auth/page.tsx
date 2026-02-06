@@ -83,6 +83,7 @@ type AuthApiResponse = {
   accountType?: "USER" | "PROFESSIONAL" | "ADMIN";
   isNewUser?: boolean;
   hasMarketplaceProfile?: boolean;
+  preRegistrationStatus?: "DRAFT" | "SUBMITTED" | null;
   error?: string;
 };
 
@@ -160,6 +161,7 @@ export default function AuthPage() {
     const resolvedAccountType = data.accountType ?? "USER";
     const isNewUser = data.isNewUser ?? false;
     const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
+    const preRegistrationStatus = data.preRegistrationStatus ?? null;
 
     // Déterminer la cible de redirection
     let target: string;
@@ -168,8 +170,8 @@ export default function AuthPage() {
       // Sinon → accueil
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
     } else {
-      // Demandeur : première connexion → mon-parcours, sinon → accueil
-      target = isNewUser ? "/mon-parcours" : "/accueil";
+      // Demandeur : tant que la préinscription n'est pas soumise → mon-parcours, sinon → accueil
+      target = isNewUser || preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
     }
 
     window.location.assign(target);
@@ -191,12 +193,13 @@ export default function AuthPage() {
     const resolvedAccountType = data.accountType ?? "USER";
     const isNewUser = data.isNewUser ?? false;
     const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
+    const preRegistrationStatus = data.preRegistrationStatus ?? null;
 
     let target: string;
     if (isProfessionalAccount(resolvedAccountType)) {
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
     } else {
-      target = isNewUser ? "/mon-parcours" : "/accueil";
+      target = isNewUser || preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
     }
 
     window.location.assign(target);
@@ -218,12 +221,13 @@ export default function AuthPage() {
     const resolvedAccountType = data.accountType ?? "USER";
     const isNewUser = data.isNewUser ?? false;
     const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
+    const preRegistrationStatus = data.preRegistrationStatus ?? null;
 
     let target: string;
     if (isProfessionalAccount(resolvedAccountType)) {
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
     } else {
-      target = isNewUser ? "/mon-parcours" : "/accueil";
+      target = isNewUser || preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
     }
 
     window.location.assign(target);
@@ -377,6 +381,7 @@ export default function AuthPage() {
 
       const accountType = data.accountType ?? "USER";
       const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
+      const preRegistrationStatus = data.preRegistrationStatus ?? null;
 
       // Déterminer la cible de redirection
       let target: string;
@@ -384,8 +389,8 @@ export default function AuthPage() {
         // Professionnel : pas de profil marketplace → marketplace-profil, sinon → accueil
         target = !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
       } else {
-        // Demandeur : au login, ils sont déjà inscrits → accueil
-        target = "/accueil";
+        // Demandeur : tant que la préinscription n'est pas soumise → mon-parcours
+        target = preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
       }
 
       window.location.assign(target);
@@ -487,7 +492,7 @@ export default function AuthPage() {
 
         <Card className="border-border bg-white/75">
           <CardHeader className="space-y-3">
-            <div className="flex rounded-[var(--radius-md)] border border-border bg-white/60 p-1">
+            <div className="flex rounded-(--radius-md) border border-border bg-white/60 p-1">
               <button
                 type="button"
                 onClick={() => {
@@ -526,7 +531,7 @@ export default function AuthPage() {
             </div>
 
             {error ? (
-              <div className="rounded-[var(--radius-md)] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              <div className="rounded-(--radius-md) border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
                 {error}
               </div>
             ) : null}
@@ -545,7 +550,7 @@ export default function AuthPage() {
               </Button>
               {mode === "signup" && signup.accountType === "PROFESSIONAL" ? (
                 <div className="text-xs text-muted">
-                  L'authentification sociale est activée pour les demandeurs. Pour un compte professionnel, utilisez l'inscription par email
+                  L’authentification sociale est activée pour les demandeurs. Pour un compte professionnel, utilisez l’inscription par email
                   (vérification requise).
                 </div>
               ) : null}
@@ -640,7 +645,7 @@ export default function AuthPage() {
                       type="button"
                       onClick={() => setSignup((s) => ({ ...s, accountType: "USER" }))}
                       className={cn(
-                        "rounded-[var(--radius-md)] border px-3 py-2 text-left text-sm",
+                        "rounded-(--radius-md) border px-3 py-2 text-left text-sm",
                         signup.accountType === "USER"
                           ? "border-primary/30 bg-primary/10"
                           : "border-border bg-white/60 hover:bg-white",
@@ -653,7 +658,7 @@ export default function AuthPage() {
                       type="button"
                       onClick={() => setSignup((s) => ({ ...s, accountType: "PROFESSIONAL" }))}
                       className={cn(
-                        "rounded-[var(--radius-md)] border px-3 py-2 text-left text-sm",
+                        "rounded-(--radius-md) border px-3 py-2 text-left text-sm",
                         signup.accountType === "PROFESSIONAL"
                           ? "border-primary/30 bg-primary/10"
                           : "border-border bg-white/60 hover:bg-white",
@@ -681,8 +686,11 @@ export default function AuthPage() {
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="space-y-1">
-                        <label className="text-sm font-medium text-navy">Langue</label>
+                        <label htmlFor="signup-language" className="text-sm font-medium text-navy">
+                          Langue
+                        </label>
                         <select
+                          id="signup-language"
                           className={selectClassName()}
                           value={signup.language}
                           onChange={(e) =>
@@ -696,8 +704,11 @@ export default function AuthPage() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-sm font-medium text-navy">Objectif (optionnel)</label>
+                        <label htmlFor="signup-main-objective" className="text-sm font-medium text-navy">
+                          Objectif (optionnel)
+                        </label>
                         <select
+                          id="signup-main-objective"
                           className={selectClassName()}
                           value={signup.mainObjective}
                           onChange={(e) =>
@@ -716,8 +727,11 @@ export default function AuthPage() {
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="space-y-1">
-                        <label className="text-sm font-medium text-navy">Budget (optionnel)</label>
+                        <label htmlFor="signup-budget-range" className="text-sm font-medium text-navy">
+                          Budget (optionnel)
+                        </label>
                         <select
+                          id="signup-budget-range"
                           className={selectClassName()}
                           value={signup.budgetRange}
                           onChange={(e) =>
@@ -734,8 +748,11 @@ export default function AuthPage() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-sm font-medium text-navy">Besoin principal (optionnel)</label>
+                        <label htmlFor="signup-primary-need" className="text-sm font-medium text-navy">
+                          Besoin principal (optionnel)
+                        </label>
                         <select
+                          id="signup-primary-need"
                           className={selectClassName()}
                           value={signup.primaryNeed}
                           onChange={(e) =>
@@ -790,8 +807,11 @@ export default function AuthPage() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-sm font-medium text-navy">Métier</label>
+                        <label htmlFor="signup-profession" className="text-sm font-medium text-navy">
+                          Métier
+                        </label>
                         <select
+                          id="signup-profession"
                           className={selectClassName()}
                           value={signup.profession}
                           onChange={(e) =>
@@ -923,7 +943,7 @@ export default function AuthPage() {
                       </label>
                     </div>
 
-                    <div className="rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    <div className="rounded-(--radius-md) border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                       Après inscription, votre profil reste en mode privé (en vérification). La
                       visibilité Marketplace arrive une fois validé.
                     </div>

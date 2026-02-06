@@ -16,7 +16,16 @@ type Props = {
   className?: string;
   showOnline?: boolean; // Afficher l'indicateur en ligne
   userId?: string; // ID utilisateur pour récupérer le statut
+  statusManualOverride?: string | null; // Surcharge locale (ex: menu statut)
 };
+
+function statusDotClass(statusManual: string | null | undefined) {
+  if (statusManual === "MEETING") return "bg-red-500";
+  if (statusManual === "PAUSE") return "bg-amber-400";
+  if (statusManual === "ABSENT") return "bg-slate-400";
+  if (statusManual === "MUTE") return "bg-sky-400";
+  return "bg-green-500";
+}
 
 function initials(name: string) {
   const parts = name
@@ -29,10 +38,19 @@ function initials(name: string) {
   return (first + second).toUpperCase();
 }
 
-export function AvatarBubble({ name, url, size = "md", className, showOnline = false, userId }: Props) {
+export function AvatarBubble({
+  name,
+  url,
+  size = "md",
+  className,
+  showOnline = false,
+  userId,
+  statusManualOverride,
+}: Props) {
   // Récupérer le statut de présence si demandé
   const presenceData = usePresenceStatus(showOnline && userId ? [userId] : []);
   const isOnline = userId && presenceData?.[userId]?.online;
+  const statusManual = statusManualOverride ?? (userId ? presenceData?.[userId]?.statusManual : null);
 
   const dims =
     size === "sm"
@@ -85,7 +103,8 @@ export function AvatarBubble({ name, url, size = "md", className, showOnline = f
       {showOnline && isOnline && (
         <span
           className={cn(
-            "absolute bottom-0 right-0 block rounded-full bg-green-500 ring-2 ring-white",
+            "absolute bottom-0 right-0 block rounded-full ring-2 ring-white",
+            statusDotClass(statusManual),
             dotSize,
           )}
           aria-label="En ligne"

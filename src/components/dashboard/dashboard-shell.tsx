@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
-import { MessagingWidget } from "@/components/dashboard/messaging-widget";
+import { MessagingManager } from "@/components/messaging/messaging-manager";
 import { usePresence } from "@/lib/hooks/usePresence";
 import type { AppViewer } from "@/lib/auth/viewer";
 
@@ -83,7 +83,7 @@ export function DashboardShell({
       </div>
       
       {/* Messaging widget */}
-      <MessagingWidget />
+      {viewer && <MessagingManager currentUserId={viewer.id} />}
     </div>
   );
 }
