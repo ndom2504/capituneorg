@@ -82,7 +82,7 @@ export function Sidebar({
     <>
       <aside
         className={cn(
-          "sticky top-0 h-screen shrink-0 overflow-y-auto border-r border-border bg-white/70 backdrop-blur",
+          "h-full shrink-0 overflow-y-auto border-r border-border bg-white/70 backdrop-blur",
           collapsed ? "w-20 p-2" : "w-72 p-4",
         )}
       >

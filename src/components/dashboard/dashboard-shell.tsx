@@ -51,22 +51,22 @@ export function DashboardShell({
   }, []);
 
   return (
-    <div className="min-h-dvh bg-surface text-text">
-      <div className="flex w-full">
+    <div className="h-screen overflow-hidden bg-surface text-text">
+      <div className="flex h-full w-full">
         <Sidebar
           collapsed={sidebarCollapsed}
           mobileOpen={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
           isProfessional={isProfessional}
         />
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Topbar
             sidebarCollapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
             onOpenMobile={() => setMobileSidebarOpen(true)}
             viewer={viewer}
           />
-          <main className="px-0 py-2">
+          <main className="flex-1 overflow-y-auto px-0 py-2">
             <div className="mx-auto w-full max-w-6xl px-3">{children}</div>
           </main>
         </div>

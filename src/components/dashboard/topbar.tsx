@@ -32,7 +32,7 @@ export function Topbar({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-white/80 backdrop-blur">
+    <header className="shrink-0 border-b border-border bg-white/80 backdrop-blur">
       <div className="relative flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
           <button
@@ -66,8 +66,8 @@ export function Topbar({
           </div>
         </div>
 
-        {/* Barre de recherche centrée */}
-        <div className="absolute left-1/2 hidden -translate-x-1/2 md:block">
+        {/* Barre de recherche et bulle de profil */}
+        <div className="hidden items-center gap-4 md:flex">
           <div className="flex w-[400px] items-center gap-2 rounded-[var(--radius-md)] border border-border bg-white/70 px-3 py-2 text-sm text-muted lg:w-[500px]">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
               <circle cx="11" cy="11" r="7" />
@@ -75,31 +75,31 @@ export function Topbar({
             </svg>
             <span>Rechercher…</span>
           </div>
-        </div>
 
-        {/* Bulle de profil animée (apparaît au scroll) */}
-        <div
-          className={cn(
-            "fixed left-1/2 top-3 -translate-x-1/2 transition-all duration-300 ease-out",
-            showProfileBubble
-              ? "scale-100 opacity-100"
-              : "pointer-events-none scale-75 opacity-0",
-          )}
-        >
-          {viewer && (
-            <Link href="/profil" className="block">
-              <div className="group cursor-pointer">
-                <AvatarBubble
-                  name={viewer.fullName}
-                  url={viewer.avatarUrl}
-                  size="lg"
-                  className="ring-2 ring-white shadow-lg transition-transform group-hover:scale-110"
-                  showOnline={true}
-                  userId={viewer.id}
-                />
-              </div>
-            </Link>
-          )}
+          {/* Bulle de profil animée (apparaît au scroll) */}
+          <div
+            className={cn(
+              "transition-all duration-300 ease-out",
+              showProfileBubble
+                ? "scale-100 opacity-100"
+                : "pointer-events-none scale-75 opacity-0",
+            )}
+          >
+            {viewer && (
+              <Link href="/profil" className="block">
+                <div className="group cursor-pointer">
+                  <AvatarBubble
+                    name={viewer.fullName}
+                    url={viewer.avatarUrl}
+                    size="lg"
+                    className="ring-2 ring-white shadow-lg transition-transform group-hover:scale-110"
+                    showOnline={true}
+                    userId={viewer.id}
+                  />
+                </div>
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Notifications et profil à droite */}
