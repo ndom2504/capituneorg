@@ -67,15 +67,15 @@ export function Topbar({
           </div>
 
           {/* Bulle de profil animée (apparaît au scroll) */}
-          <div
-            className={cn(
-              "transition-all duration-300 ease-out",
-              isScrolled
-                ? "scale-100 opacity-100"
-                : "pointer-events-none scale-75 opacity-0",
-            )}
-          >
-            {viewer && (
+          {viewer && (
+            <div
+              className={cn(
+                "transition-all duration-300 ease-out",
+                isScrolled
+                  ? "scale-100"
+                  : "scale-90 opacity-60",
+              )}
+            >
               <Link href="/profil" className="block">
                 <div className="group cursor-pointer">
                   <AvatarBubble
@@ -88,8 +88,8 @@ export function Topbar({
                   />
                 </div>
               </Link>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Notifications et profil à droite */}

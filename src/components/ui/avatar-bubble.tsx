@@ -33,13 +33,6 @@ export function AvatarBubble({ name, url, size = "md", className, showOnline = f
   const presenceData = usePresenceStatus(showOnline && userId ? [userId] : []);
   const isOnline = userId && presenceData?.[userId]?.online;
 
-  // Debug
-  React.useEffect(() => {
-    if (showOnline && userId) {
-      console.log('🟢 Presence data for', userId, ':', presenceData?.[userId]);
-    }
-  }, [showOnline, userId, presenceData]);
-
   const dims =
     size === "sm"
       ? "h-9 w-9 text-xs"
