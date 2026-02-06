@@ -23,7 +23,7 @@ export function Topbar({
 }) {
   return (
     <header className="shrink-0 border-b border-border bg-white/80 backdrop-blur">
-      <div className="relative flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <div className="relative flex w-full items-center gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -56,8 +56,8 @@ export function Topbar({
           </div>
         </div>
 
-        {/* Barre de recherche et bulle de profil */}
-        <div className="hidden items-center gap-4 md:flex">
+        {/* Barre de recherche */}
+        <div className="hidden md:block">
           <div className="flex w-[400px] items-center gap-2 rounded-[var(--radius-md)] border border-border bg-white/70 px-3 py-2 text-sm text-muted lg:w-[500px]">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
               <circle cx="11" cy="11" r="7" />
@@ -65,8 +65,10 @@ export function Topbar({
             </svg>
             <span>Rechercher…</span>
           </div>
+        </div>
 
-          {/* Bulle de profil animée (apparaît au scroll) */}
+        {/* Bulle de profil animée (centrée entre recherche et cloche) */}
+        <div className="hidden flex-1 items-center justify-center md:flex">
           {viewer && (
             <div
               className={cn(
