@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { AvatarBubble } from "@/components/ui/avatar-bubble";
+import { VerifiedBadge } from "@/components/marketplace/verified-badge";
 import { NEEDS, type NeedId } from "@/lib/taxonomy";
+import type { VerificationStatus, ProfileBadgeType } from "@prisma/client";
 
 type ProfileItem = {
   professionalId: string;
@@ -28,7 +30,9 @@ type ProfileItem = {
   targetAudiences: string[];
   format: string;
   responseTime: string | null;
-  isVerified: boolean;
+  isVerified: boolean; // Legacy
+  verificationStatus: VerificationStatus;
+  badges: ProfileBadgeType[] | null;
   bioShort: string | null;
   bioLong: string | null;
   employerDetails: string | null;
@@ -223,11 +227,11 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
         <Link href="/marketplace" className="text-sm text-muted">
           ← Retour
         </Link>
-        {item.isVerified ? (
-          <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs text-green-700">
-            Vérifié
-          </span>
-        ) : null}
+        <VerifiedBadge 
+          verificationStatus={item.verificationStatus}
+          badges={item.badges}
+          showPending={false}
+        />
       </div>
 
       {ok ? (
@@ -242,10 +246,24 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
           <Card className="p-4 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="rounded-full border border-border bg-white p-1 shadow-sm">
-                <AvatarBubble name={item.fullName} url={item.avatarUrl} size="xxl" className="border-0" />
+                <AvatarBubble 
+                  name={item.fullName} 
+                  url={item.avatarUrl} 
+                  size="xxl" 
+                  className="border-0"
+                  showOnline={true}
+                  userId={item.professionalId}
+                />
               </div>
               <div className="min-w-0">
-                <div className="text-xl font-semibold text-navy">{item.fullName}</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-xl font-semibold text-navy">{item.fullName}</div>
+                  <VerifiedBadge 
+                    verificationStatus={item.verificationStatus}
+                    badges={item.badges}
+                    size="md"
+                  />
+                </div>
                 <div className="mt-1 text-sm text-muted">
                   {item.professionLabel}
                   {item.organization ? ` • ${item.organization}` : ""}

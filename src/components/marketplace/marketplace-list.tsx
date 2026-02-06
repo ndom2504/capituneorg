@@ -8,8 +8,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarBubble } from "@/components/ui/avatar-bubble";
+import { VerifiedBadgeInline } from "@/components/marketplace/verified-badge";
 import { cn } from "@/lib/cn";
 import { NEEDS, needLabel, serviceLabel, type NeedId } from "@/lib/taxonomy";
+import type { VerificationStatus, ProfileBadgeType } from "@prisma/client";
 
 type MarketplaceItem = {
   professionalId: string;
@@ -25,7 +27,9 @@ type MarketplaceItem = {
   languages: string[];
   themes: string[];
   specialties: string[];
-  isVerified: boolean;
+  isVerified: boolean; // Legacy
+  verificationStatus: VerificationStatus;
+  badges: ProfileBadgeType[] | null;
   format: string;
   pricingMode: string;
   price30Min: number | null;
@@ -349,17 +353,23 @@ export function MarketplaceList() {
             <div className="flex h-full flex-col items-center gap-3 text-center">
               <div className="flex flex-col items-center gap-2">
                 <div className="rounded-full border border-border bg-white p-1 shadow-sm">
-                  <AvatarBubble name={it.fullName} url={it.avatarUrl} size="xxl" className="border-0" />
+                  <AvatarBubble 
+                    name={it.fullName} 
+                    url={it.avatarUrl} 
+                    size="xxl" 
+                    className="border-0"
+                    showOnline={true}
+                    userId={it.professionalId}
+                  />
                 </div>
 
                 <div>
-                  <div className="flex flex-wrap items-center justify-center gap-2">
+                  <div className="flex flex-wrap items-center justify-center gap-1">
                     <div className="text-base font-semibold text-navy">{it.fullName}</div>
-                    {it.isVerified ? (
-                      <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs text-green-700">
-                        Vérifié
-                      </span>
-                    ) : null}
+                    <VerifiedBadgeInline 
+                      verificationStatus={it.verificationStatus}
+                      badges={it.badges}
+                    />
                   </div>
                   <div className="mt-1 text-sm text-muted">
                     {it.professionLabel}

@@ -5,6 +5,7 @@ import * as React from "react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { MessagingWidget } from "@/components/dashboard/messaging-widget";
+import { usePresence } from "@/lib/hooks/usePresence";
 
 export function DashboardShell({
   children,
@@ -13,6 +14,9 @@ export function DashboardShell({
   children: React.ReactNode;
   isProfessional: boolean;
 }) {
+  // Envoyer automatiquement des heartbeats de présence
+  usePresence();
+
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 

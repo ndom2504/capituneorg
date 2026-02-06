@@ -120,6 +120,20 @@ enum MarketplaceProfileStatus {
   SUSPENDED
 }
 
+enum VerificationStatus {
+  DRAFT
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum ProfileBadgeType {
+  VERIFIED
+  PARTNER
+  TOP_CONTRIBUTOR
+}
+
 enum MarketplacePricingMode {
   FREE
   PAID
@@ -291,6 +305,11 @@ model User {
   coverUrl  String?
   accountType AccountType @default(USER)
   isCertified Boolean @default(false)
+  
+  // Presence / Online status
+  lastSeenAt DateTime?
+  statusManual String? // "busy", "away", etc. (facultatif)
+  
   createdAt DateTime @default(now())
 
   dossiers  Dossier[]
@@ -321,6 +340,9 @@ model User {
   marketplaceProfile MarketplaceProfile?
   marketplaceRequestsSent MarketplaceRequest[] @relation("MarketplaceRequester")
   marketplaceRequestsReceived MarketplaceRequest[] @relation("MarketplaceProfessional")
+  
+  // Vérification de profils marketplace en tant qu'admin
+  verifiedProfiles MarketplaceProfile[] @relation("ProfileVerifier")
 
   paymentServices PaymentService[]
   paymentOrdersBought PaymentOrder[] @relation("PaymentOrderBuyer")
@@ -437,7 +459,17 @@ model MarketplaceProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   status MarketplaceProfileStatus @default(DRAFT)
-  isVerified Boolean @default(false)
+  isVerified Boolean @default(false) // Gardé pour compatibilité, à déprécier
+  
+  // Nouveau système de vérification
+  verificationStatus VerificationStatus @default(DRAFT)
+  verifiedAt DateTime?
+  verifiedById String?
+  verifiedBy User? @relation("ProfileVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  rejectionReason String?
+  
+  // Badges attribués manuellement par admin
+  badgesJson Json? // ["VERIFIED", "PARTNER", "TOP_CONTRIBUTOR"]
 
   profession MarketplaceProfession
   headline String?

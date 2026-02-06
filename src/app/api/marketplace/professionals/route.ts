@@ -109,7 +109,9 @@ export async function GET(req: NextRequest) {
         themes,
         specialties,
         services: servicesRaw,
-        isVerified: p.isVerified,
+        isVerified: p.isVerified, // Legacy
+        verificationStatus: p.verificationStatus,
+        badges: Array.isArray(p.badgesJson) ? p.badgesJson : null,
         format: p.format,
         pricingMode: p.pricingMode,
         price30Min: p.price30Min,

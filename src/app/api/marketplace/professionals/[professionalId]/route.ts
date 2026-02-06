@@ -72,7 +72,9 @@ export async function GET(
       targetAudiences: jsonStringArray(profile.targetAudiencesJson),
       format: profile.format,
       responseTime: profile.responseTime,
-      isVerified: profile.isVerified,
+      isVerified: profile.isVerified, // Legacy
+      verificationStatus: profile.verificationStatus,
+      badges: Array.isArray(profile.badgesJson) ? profile.badgesJson : null,
       bioShort: profile.bioShort,
       bioLong: profile.bioLong,
       employerDetails: profile.employerDetails ?? null,
