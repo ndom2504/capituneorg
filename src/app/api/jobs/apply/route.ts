@@ -89,8 +89,22 @@ export async function POST(req: NextRequest) {
             id: true,
             title: true,
             jobType: true,
+            posterId: true,
           },
         },
+      },
+    });
+
+    // Créer une notification pour le professionnel
+    await prisma.notification.create({
+      data: {
+        userId: application.job.posterId,
+        role: "PRO",
+        type: "JOB_APPLICATION",
+        title: "Nouvelle candidature reçue",
+        message: `${user.fullName} a postulé pour "${application.job.title}"`,
+        link: `/emploi/candidatures`,
+        priority: "INFO",
       },
     });
 

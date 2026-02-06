@@ -38,7 +38,7 @@ export async function GET() {
             fullName: true,
             avatarUrl: true,
             email: true,
-            preRegistrationData: {
+            preRegistration: {
               select: {
                 residenceSituation: true,
               },
@@ -111,6 +111,13 @@ export async function PATCH(req: Request) {
         job: {
           select: {
             posterId: true,
+            title: true,
+          },
+        },
+        applicant: {
+          select: {
+            id: true,
+            fullName: true,
           },
         },
       },
@@ -135,6 +142,33 @@ export async function PATCH(req: Request) {
       where: { id: applicationId },
       data: { status },
     });
+
+    // Créer une notification pour le demandeur si le statut a changé (sauf RECUE qui est le statut initial)
+    if (status !== "RECUE") {
+      const statusMessages: Record<string, string> = {
+        EN_COURS: "Votre candidature est en cours d'examen",
+        RETENUE: "Félicitations ! Votre candidature a été retenue",
+        REFUSEE: "Votre candidature n'a pas été retenue",
+      };
+
+      const statusPriorities: Record<string, "INFO" | "IMPORTANT" | "CRITICAL"> = {
+        EN_COURS: "INFO",
+        RETENUE: "IMPORTANT",
+        REFUSEE: "INFO",
+      };
+
+      await prisma.notification.create({
+        data: {
+          userId: application.applicant.id,
+          role: "DEMANDEUR",
+          type: "JOB_STATUS_UPDATE",
+          title: statusMessages[status] || "Mise à jour de votre candidature",
+          message: `Pour l'offre "${application.job.title}"`,
+          link: `/emploi/mes-candidatures`,
+          priority: statusPriorities[status] || "INFO",
+        },
+      });
+    }
 
     return NextResponse.json({ application: updated });
   } catch (error) {
