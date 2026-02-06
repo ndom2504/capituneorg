@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -14,23 +13,14 @@ export function Topbar({
   onToggleCollapse,
   onOpenMobile,
   viewer,
+  isScrolled,
 }: {
   sidebarCollapsed: boolean;
   onToggleCollapse: () => void;
   onOpenMobile: () => void;
   viewer: AppViewer | null;
+  isScrolled: boolean;
 }) {
-  const [showProfileBubble, setShowProfileBubble] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Afficher la bulle de profil quand on scrolle vers le bas (> 100px)
-      setShowProfileBubble(window.scrollY > 100);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
   return (
     <header className="shrink-0 border-b border-border bg-white/80 backdrop-blur">
       <div className="relative flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -80,7 +70,7 @@ export function Topbar({
           <div
             className={cn(
               "transition-all duration-300 ease-out",
-              showProfileBubble
+              isScrolled
                 ? "scale-100 opacity-100"
                 : "pointer-events-none scale-75 opacity-0",
             )}

@@ -22,6 +22,8 @@ export function DashboardShell({
 
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
+  const [isScrolled, setIsScrolled] = React.useState(false);
+  const mainRef = React.useRef<HTMLElement>(null);
 
   React.useEffect(() => {
     // Collapse plus tôt pour que l'effet soit visible sur desktop.
@@ -65,8 +67,16 @@ export function DashboardShell({
             onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
             onOpenMobile={() => setMobileSidebarOpen(true)}
             viewer={viewer}
+            isScrolled={isScrolled}
           />
-          <main className="flex-1 overflow-y-auto px-0 py-2">
+          <main 
+            ref={mainRef}
+            className="flex-1 overflow-y-auto px-0 py-2"
+            onScroll={(e) => {
+              const target = e.currentTarget;
+              setIsScrolled(target.scrollTop > 100);
+            }}
+          >
             <div className="mx-auto w-full max-w-6xl px-3">{children}</div>
           </main>
         </div>
