@@ -5,6 +5,7 @@
 import * as React from "react";
 import { usePresenceStatus } from "@/lib/hooks/usePresence";
 import { cn } from "@/lib/cn";
+import { SafeImg } from "@/components/ui/safe-img";
 
 type Size = "sm" | "md" | "lg" | "xl" | "xxl";
 
@@ -68,7 +69,16 @@ export function AvatarBubble({ name, url, size = "md", className, showOnline = f
         aria-label={name}
         title={name}
       >
-        {url ? <img src={url} alt={name} className="h-full w-full rounded-full object-cover" /> : initials(name)}
+        {url ? (
+          <SafeImg
+            src={url}
+            alt={name}
+            className="h-full w-full rounded-full object-cover"
+            fallback={initials(name)}
+          />
+        ) : (
+          initials(name)
+        )}
       </div>
 
       {/* Indicateur en ligne */}

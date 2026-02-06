@@ -12,6 +12,23 @@ type Props = {
   fallback?: ReactNode;
 };
 
+function proxiedSrc(src: string): string {
+  // Proxy uniquement quelques hosts connus pour éviter un open-proxy.
+  try {
+    if (!src.startsWith("http://") && !src.startsWith("https://")) return src;
+    const u = new URL(src);
+    const allow = new Set([
+      "lh3.googleusercontent.com",
+      "firebasestorage.googleapis.com",
+      "platform-lookaside.fbsbx.com",
+    ]);
+    if (!allow.has(u.hostname)) return src;
+    return `/api/media-proxy?url=${encodeURIComponent(src)}`;
+  } catch {
+    return src;
+  }
+}
+
 export function SafeImg({ src, alt, className, fallback }: Props) {
   const [failed, setFailed] = useState(false);
 
@@ -19,11 +36,14 @@ export function SafeImg({ src, alt, className, fallback }: Props) {
     return fallback ?? null;
   }
 
+  const finalSrc = proxiedSrc(src);
+
   return (
     <img
-      src={src}
+      src={finalSrc}
       alt={alt}
       className={className}
+      referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
     />
   );
