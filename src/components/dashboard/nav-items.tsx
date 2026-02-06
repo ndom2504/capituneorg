@@ -216,7 +216,32 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Événements & formations",
     icon: icons.calendar,
   },
-  { href: "/emploi", label: "Emploi", icon: icons.briefcase },
+  // Pôle emploi - Professionnel
+  {
+    href: "/emploi/mes-offres",
+    label: "Mes offres d'emploi",
+    icon: icons.briefcase,
+    professionalOnly: true,
+  },
+  {
+    href: "/emploi/candidatures",
+    label: "Candidatures reçues",
+    icon: icons.inbox,
+    professionalOnly: true,
+  },
+  // Pôle emploi - Demandeur
+  {
+    href: "/emploi/parcourir",
+    label: "Offres d'emploi",
+    icon: icons.briefcase,
+    hideForProfessionals: true,
+  },
+  {
+    href: "/emploi/mes-candidatures",
+    label: "Mes candidatures",
+    icon: icons.folder,
+    hideForProfessionals: true,
+  },
   { href: "/mon-dossier", label: "Mon dossier", icon: icons.folder },
   { href: "/profil", label: "Profil", icon: icons.user },
 ];

@@ -44,11 +44,17 @@ function CreateJobForm({ onClose }: { onClose: () => void }) {
       description: formData.get("description"),
       requirements: formData.get("requirements"),
       jobType: formData.get("jobType"),
+      domain: formData.get("domain"),
       experienceLevel: formData.get("experienceLevel"),
-      location: formData.get("location"),
+      city: formData.get("city"),
+      province: formData.get("province"),
       remote: formData.get("remote") === "on",
+      languages: formData.get("languages"),
+      startDate: formData.get("startDate") || null,
+      deadline: formData.get("deadline") || null,
       salaryMin: formData.get("salaryMin") ? parseInt(formData.get("salaryMin") as string) : null,
       salaryMax: formData.get("salaryMax") ? parseInt(formData.get("salaryMax") as string) : null,
+      status: formData.get("status"),
     };
 
     try {
@@ -128,21 +134,43 @@ function CreateJobForm({ onClose }: { onClose: () => void }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="jobType" className="block text-sm font-medium">
-              Type de contrat
+              Type de contrat *
             </label>
             <select
               id="jobType"
               name="jobType"
+              required
               className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
             >
-              <option value="FULL_TIME">Temps plein</option>
-              <option value="PART_TIME">Temps partiel</option>
-              <option value="CONTRACT">Contrat</option>
-              <option value="INTERNSHIP">Stage</option>
-              <option value="TEMPORARY">Temporaire</option>
+              <option value="CDI">CDI</option>
+              <option value="CDD">CDD</option>
+              <option value="STAGE">Stage</option>
+              <option value="MISSION">Mission</option>
+              <option value="FREELANCE">Freelance</option>
             </select>
           </div>
 
+          <div>
+            <label htmlFor="domain" className="block text-sm font-medium">
+              Domaine *
+            </label>
+            <select
+              id="domain"
+              name="domain"
+              required
+              className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            >
+              <option value="TECH">Tech</option>
+              <option value="SANTE">Santé</option>
+              <option value="COMMERCE_GESTION">Commerce & Gestion</option>
+              <option value="INGENIERIE">Ingénierie</option>
+              <option value="TECHNIQUE">Technique</option>
+              <option value="AUTRE">Autre</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="experienceLevel" className="block text-sm font-medium">
               Niveau d'expérience
@@ -152,25 +180,108 @@ function CreateJobForm({ onClose }: { onClose: () => void }) {
               name="experienceLevel"
               className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
             >
-              <option value="ENTRY">Débutant</option>
+              <option value="ENTRY">Junior</option>
               <option value="INTERMEDIATE">Intermédiaire</option>
               <option value="SENIOR">Senior</option>
               <option value="EXPERT">Expert</option>
             </select>
           </div>
+
+          <div>
+            <label htmlFor="languages" className="block text-sm font-medium">
+              Langue(s) *
+            </label>
+            <select
+              id="languages"
+              name="languagestartDate" className="block text-sm font-medium">
+              Date de début
+            </label>
+            <input
+              type="date"
+              id="startDate"
+              name="startDate"
+              className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="deadline" className="block text-sm font-medium">
+              Date limite de candidature
+            </label>
+            <input
+              type="date"
+              id="deadline"
+              name="deadline"
+              className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="salaryMin" className="block text-sm font-medium">
+              Salaire min (CAD/an)
+            </label>
+            <input
+              type="number"
+              id="salaryMin"
+              name="salaryMin"
+              placeholder="50000"
+              className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="salaryMax" className="block text-sm font-medium">
+              Salaire max (CAD/an)
+            </label>
+            <input
+              type="number"
+              id="salaryMax"
+              name="salaryMax"
+              placeholder="80000"
+              className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
         </div>
 
         <div>
-          <label htmlFor="location" className="block text-sm font-medium">
-            Localisation
+          <label htmlFor="status" className="block text-sm font-medium">
+            Statut de publication
           </label>
-          <input
-            type="text"
-            id="location"
-            name="location"
-            placeholder="ex: Montréal, QC"
+          <select
+            id="status"
+            name="status"
             className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
-          />
+          >
+            <option value="DRAFT">Brouillon (ne sera pas visible)</option>
+            <option value="PUBLISHED">Publier immédiatement</option>
+          </select
+          </div>
+
+          <div>
+            <label htmlFor="province" className="block text-sm font-medium">
+              Province *
+            </label>
+            <select
+              id="province"
+              name="province"
+              required
+              className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            >
+              <option value="">Sélectionnez</option>
+              <option value="QC">Québec</option>
+              <option value="ON">Ontario</option>
+              <option value="BC">Colombie-Britannique</option>
+              <option value="AB">Alberta</option>
+              <option value="MB">Manitoba</option>
+              <option value="SK">Saskatchewan</option>
+              <option value="NS">Nouvelle-Écosse</option>
+              <option value="NB">Nouveau-Brunswick</option>
+              <option value="PE">Île-du-Prince-Édouard</option>
+              <option value="NL">Terre-Neuve-et-Labrador</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -240,37 +351,58 @@ function JobOffersList() {
 
   React.useEffect(() => {
     fetch("/api/jobs?my=true")
-      .then((res) => res.json())
-      .then((data) => {
-        setJobs(data.jobs || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="text-center py-12 text-muted">
-        Chargement...
-      </div>
-    );
-  }
-
-  if (jobs.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-white p-12 text-center">
-        <svg
-          className="mx-auto mb-4 h-12 w-12 text-muted opacity-30"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <rect x="2" y="7" width="20" height="14" rx="2" />
-          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-        </svg>
-        <p className="font-medium text-muted">Aucune offre d'emploi</p>
-        <p className="mt-1 text-sm text-muted">
+      .then((res) => res.json()) transition hover:shadow-md">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-navy">{job.title}</h3>
+                  <p className="mt-1 text-sm text-muted line-clamp-2">{job.description}</p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  job.status === "PUBLISHED" ? "bg-green-100 text-green-700" :
+                  job.status === "CLOSED" ? "bg-gray-100 text-gray-700" :
+                  job.status === "ARCHIVED" ? "bg-gray-100 text-gray-600" :
+                  "bg-yellow-100 text-yellow-700"
+                }`}>
+                  {job.status === "PUBLISHED" ? "Publié" :
+                   job.status === "CLOSED" ? "Fermé" :
+                   job.status === "ARCHIVED" ? "Archivé" :
+                   "Brouillon"}
+                </span>
+              </div>
+              
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded bg-surface px-2 py-1 text-xs font-medium">
+                  {job.jobType}
+                </span>
+                <span className="rounded bg-surface px-2 py-1 text-xs font-medium">
+                  {job.domain}
+                </span>
+                {(job.city || job.province) && (
+                  <span className="rounded bg-surface px-2 py-1 text-xs font-medium">
+                    {job.city}{job.city && job.province ? ", " : ""}{job.province}
+                  </span>
+                )}
+                {job.remote && (
+                  <span className="rounded bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                    Remote
+                  </span>
+                )}
+                <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                  {job._count?.applications || 0} candidature{(job._count?.applications || 0) !== 1 ? "s" : ""}
+                </span>
+              </div>
+              
+              <div className="mt-3 text-xs text-muted">
+                {job.publishedAt && (
+                  <span>Publié le {new Date(job.publishedAt).toLocaleDateString("fr-FR")}</span>
+                )}
+                {!job.publishedAt && job.createdAt && (
+                  <span>Créé le {new Date(job.createdAt).toLocaleDateString("fr-FR")}</span>
+                )}
+              </div>
+            </divme="mt-1 text-sm text-muted">
           Créez votre première offre pour commencer à recruter
         </p>
       </div>

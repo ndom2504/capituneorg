@@ -4,6 +4,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,16 +51,12 @@ export async function POST(req: Request) {
     );
   }
 
-  // Démo: un seul utilisateur local
-  const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
-
+  // Récupérer l'utilisateur connecté
+  const user = await getSessionUser();
   if (!user) {
     return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
+      { error: "Non authentifié." },
+      { status: 401 },
     );
   }
 

@@ -510,8 +510,6 @@ model MarketplaceRequest {
   messages MarketplaceRequestMessage[]
 
   paymentOrders PaymentOrder[]
-  
-  jobApplication JobApplication? @relation("JobApplicationRequest")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -854,11 +852,11 @@ enum JobPostingStatus {
 }
 
 enum JobType {
-  FULL_TIME
-  PART_TIME
-  CONTRACT
-  INTERNSHIP
-  TEMPORARY
+  STAGE
+  CDD
+  CDI
+  MISSION
+  FREELANCE
 }
 
 enum ExperienceLevel {
@@ -866,6 +864,19 @@ enum ExperienceLevel {
   INTERMEDIATE
   SENIOR
   EXPERT
+}
+
+enum JobApplicationStatus {
+  RECUE
+  EN_COURS
+  RETENUE
+  REFUSEE
+}
+
+enum JobLanguage {
+  FR
+  EN
+  BILINGUE
 }
 
 model JobPosting {
@@ -878,15 +889,22 @@ model JobPosting {
   description String
   requirements String?
   
-  jobType JobType @default(FULL_TIME)
+  jobType JobType @default(CDI)
+  domain MainDomain @default(AUTRE)
   experienceLevel ExperienceLevel @default(INTERMEDIATE)
   
-  location String?
+  city String?
+  province String?
   remote Boolean @default(false)
+  
+  languages JobLanguage @default(FR)
+  
+  startDate DateTime?
+  deadline DateTime?
   
   salaryMin Int?
   salaryMax Int?
-  currency String @default("cad")
+  currency String @default("CAD")
   
   status JobPostingStatus @default(DRAFT)
   
@@ -912,13 +930,9 @@ model JobApplication {
   applicantId String
   applicant User @relation("JobApplicant", fields: [applicantId], references: [id], onDelete: Cascade)
 
-  coverLetter String?
-  cvUrl String?
+  cvUrl String
   
-  status MarketplaceRequestStatus @default(PENDING)
-  
-  requestId String? @unique
-  request MarketplaceRequest? @relation("JobApplicationRequest", fields: [requestId], references: [id], onDelete: SetNull)
+  status JobApplicationStatus @default(RECUE)
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

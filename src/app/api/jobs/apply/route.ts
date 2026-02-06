@@ -5,7 +5,7 @@ import { getSessionUser } from "@/lib/auth/session";
 
 /**
  * POST /api/jobs/apply
- * Apply to a job posting
+ * Postuler à une offre d'emploi (V1 : CV uniquement)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { jobId, coverLetter, cvUrl } = body;
+    const { jobId, cvUrl } = body;
 
     if (!jobId) {
       return NextResponse.json(
@@ -24,7 +24,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if job exists and is published
+    if (!cvUrl) {
+      return NextResponse.json(
+        { error: "CV requis pour postuler" },
+        { status: 400 }
+      );
+    }
+
+    // Vérifier que l'offre existe et est publiée
     const job = await prisma.jobPosting.findUnique({
       where: { id: jobId },
       include: {
@@ -51,7 +58,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user already applied
+    // Vérifier que l'utilisateur n'a pas déjà postulé
     const existingApplication = await prisma.jobApplication.findUnique({
       where: {
         jobId_applicantId: {
@@ -68,57 +75,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create MarketplaceRequest for communication
-    const request = await prisma.marketplaceRequest.create({
-      data: {
-        requesterId: user.id,
-        professionalId: job.posterId,
-        status: "PENDING",
-        message: `Candidature pour: ${job.title}\n\n${coverLetter || "Aucune lettre de motivation fournie."}`,
-      },
-    });
-
-    // Create job application
+    // Créer la candidature (V1 : pas de MarketplaceRequest, CV uniquement)
     const application = await prisma.jobApplication.create({
       data: {
         jobId,
         applicantId: user.id,
-        coverLetter: coverLetter || null,
-        cvUrl: cvUrl || null,
-        status: "PENDING",
-        requestId: request.id,
+        cvUrl,
+        status: "RECUE",
+      },
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            jobType: true,
+          },
+        },
       },
     });
 
-    // Create initial message in the request thread
-    if (coverLetter) {
-      await db.marketplaceRequestMessage.create({
-        data: {
-          requestId: request.id,
-          senderRole: "REQUESTER",
-          kind: "TEXT",
-          body: coverLetter,
-        },
-      });
-    }
-
-    if (cvUrl) {
-      await db.marketplaceRequestMessage.create({
-        data: {
-          requestId: request.id,
-          senderRole: "REQUESTER",
-          kind: "FILE",
-          fileUrl: cvUrl,
-          fileName: "CV.pdf",
-        },
-      });
-    }
-
-    return NextResponse.json({ ok: true, application });
+    return NextResponse.json({
+      success: true,
+      application,
+      message: "Candidature envoyée avec succès",
+    });
   } catch (error) {
-    console.error("[POST /api/jobs/apply] Error:", error);
+    console.error("Erreur lors de la candidature:", error);
     return NextResponse.json(
-      { error: "Erreur lors de l'envoi de la candidature" },
+      { error: "Erreur serveur lors de l'envoi de la candidature" },
       { status: 500 }
     );
   }

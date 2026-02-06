@@ -70,16 +70,21 @@ export function JobBrowseView() {
                       {formatJobType(job.jobType)}
                     </span>
                     <span className="rounded bg-surface px-2 py-1 text-xs font-medium">
-                      {formatExperienceLevel(job.experienceLevel)}
+                      {job.domain}
                     </span>
-                    {job.location && (
+                    {(job.city || job.province) && (
                       <span className="rounded bg-surface px-2 py-1 text-xs font-medium">
-                        📍 {job.location}
+                        📍 {job.city}{job.city && job.province ? ", " : ""}{job.province}
                       </span>
                     )}
                     {job.remote && (
                       <span className="rounded bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                        💼 À distance
+                        💼 Remote
+                      </span>
+                    )}
+                    {job.languages && (
+                      <span className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                        🗣️ {formatLanguages(job.languages)}
                       </span>
                     )}
                     {(job.salaryMin || job.salaryMax) && (
@@ -120,34 +125,43 @@ function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!cvFile) {
+      alert("Veuillez sélectionner un CV (obligatoire)");
+      return;
+    }
+    
     setSubmitting(true);
 
-    const formData = new FormData(e.currentTarget);
-    
-    // Upload CV first if provided
+    // Upload CV (obligatoire en V1)
     let cvUrl = null;
-    if (cvFile) {
-      const uploadFormData = new FormData();
-      uploadFormData.append("file", cvFile);
+    const uploadFormData = new FormData();
+    uploadFormData.append("file", cvFile);
+    
+    try {
+      const uploadRes = await fetch("/api/jobs/upload-cv", {
+        method: "POST",
+        body: uploadFormData,
+      });
       
-      try {
-        const uploadRes = await fetch("/api/user-media/upload", {
-          method: "POST",
-          body: uploadFormData,
-        });
-        
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          cvUrl = uploadData.url;
-        }
-      } catch (error) {
-        console.error("Erreur lors de l'upload du CV:", error);
+      if (!uploadRes.ok) {
+        const errorData = await uploadRes.json();
+        alert(errorData.error || "Erreur lors de l'upload du CV");
+        setSubmitting(false);
+        return;
       }
+      
+      const uploadData = await uploadRes.json();
+      cvUrl = uploadData.url;
+    } catch (error) {
+      console.error("Erreur lors de l'upload du CV:", error);
+      alert("Erreur lors de l'upload du CV");
+      setSubmitting(false);
+      return;
     }
 
     const data = {
       jobId: job.id,
-      coverLetter: formData.get("coverLetter"),
       cvUrl,
     };
 
@@ -159,8 +173,9 @@ function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }
       });
 
       if (res.ok) {
-        alert("Candidature envoyée avec succès !");
+        alert("Candidature envoyée avec succès ! Vous pouvez suivre son statut dans 'Mes candidatures'.");
         onClose();
+        window.location.href = "/emploi/mes-candidatures";
       } else {
         const error = await res.json();
         alert(error.error || "Erreur lors de l'envoi de la candidature");
@@ -206,49 +221,63 @@ function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }
               {formatJobType(job.jobType)}
             </span>
             <span className="rounded bg-surface px-2 py-1 text-xs font-medium">
+              {job.domain}
+            </span>
+            <span className="rounded bg-surface px-2 py-1 text-xs font-medium">
               {formatExperienceLevel(job.experienceLevel)}
             </span>
-            {job.location && (
+            {(job.city || job.province) && (
               <span className="rounded bg-surface px-2 py-1 text-xs font-medium">
-                📍 {job.location}
+                📍 {job.city}{job.city && job.province ? ", " : ""}{job.province}
               </span>
             )}
             {job.remote && (
               <span className="rounded bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
-                💼 À distance
+                💼 Remote
+              </span>
+            )}
+            {job.languages && (
+              <span className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                🗣️ {formatLanguages(job.languages)}
               </span>
             )}
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="coverLetter" className="block text-sm font-medium">
-              Lettre de motivation
-            </label>
-            <textarea
-              id="coverLetter"
-              name="coverLetter"
-              rows={5}
-              placeholder="Expliquez pourquoi vous êtes le candidat idéal pour ce poste..."
-              className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            />
+          <div className="rounded-md bg-blue-50 p-4">
+            <p className="text-sm text-blue-700">
+              <strong>V1 : Candidature simplifiée</strong><br />
+              Pour postuler, déposez simplement votre CV (PDF recommandé). Aucune lettre de motivation requise.
+            </p>
           </div>
 
           <div>
             <label htmlFor="cv" className="block text-sm font-medium">
-              CV (facultatif)
+              CV (obligatoire) *
             </label>
             <input
               type="file"
               id="cv"
               accept=".pdf,.doc,.docx"
+              required
               onChange={(e) => setCvFile(e.target.files?.[0] || null)}
               className="mt-1 w-full text-sm"
             />
             <p className="mt-1 text-xs text-muted">
-              Formats acceptés: PDF, DOC, DOCX (max 5MB)
+              Formats acceptés: PDF (recommandé), DOC, DOCX (max 10MB)
             </p>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="confirm"
+                required
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <label htmlFor="confirm" className="text-sm">
+                Je confirme que mon CV est exact et à jour
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -275,23 +304,32 @@ function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }
 
 function formatJobType(type: string): string {
   const types: Record<string, string> = {
-    FULL_TIME: "Temps plein",
-    PART_TIME: "Temps partiel",
-    CONTRACT: "Contrat",
-    INTERNSHIP: "Stage",
-    TEMPORARY: "Temporaire",
+    CDI: "CDI",
+    CDD: "CDD",
+    STAGE: "Stage",
+    MISSION: "Mission",
+    FREELANCE: "Freelance",
   };
   return types[type] || type;
 }
 
 function formatExperienceLevel(level: string): string {
   const levels: Record<string, string> = {
-    ENTRY: "Débutant",
+    ENTRY: "Junior",
     INTERMEDIATE: "Intermédiaire",
     SENIOR: "Senior",
     EXPERT: "Expert",
   };
   return levels[level] || level;
+}
+
+function formatLanguages(lang: string): string {
+  const languages: Record<string, string> = {
+    FR: "Français",
+    EN: "Anglais",
+    BILINGUE: "Bilingue FR/EN",
+  };
+  return languages[lang] || lang;
 }
 
 function formatSalary(min: number | null, max: number | null): string {
