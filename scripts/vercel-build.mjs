@@ -19,6 +19,20 @@ function run(cmd, args, options = {}) {
   }
 }
 
+function runCapture(cmd, args, options = {}) {
+  const result = spawnSync(cmd, args, {
+    stdio: "pipe",
+    encoding: "utf8",
+    shell: process.platform === "win32",
+    ...options,
+  });
+
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+
+  return result;
+}
+
 function resolveLocalBin(projectRootDir, binName) {
   const binDir = path.join(projectRootDir, "node_modules", ".bin");
   const candidates =
@@ -42,7 +56,26 @@ function runBin(binName, args, options = {}) {
   run(cmd, args, options);
 }
 
+function runBinCapture(binName, args, options = {}) {
+  const cmd = resolveLocalBin(process.cwd(), binName);
+  return runCapture(cmd, args, options);
+}
+
 const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+
+function isTruthyEnv(name) {
+  const v = String(process.env[name] ?? "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
+function isConversationAlreadyExistsError(output) {
+  const text = String(output ?? "");
+  return (
+    text.includes('relation "Conversation" already exists') ||
+    text.includes("relation \"Conversation\" already exists") ||
+    (text.includes("E42P07") && text.includes("Conversation") && text.includes("already exists"))
+  );
+}
 
 function fileExists(p) {
   try {
@@ -113,47 +146,91 @@ if (isVercel) {
   // Guardrail: Postgres fails with a 42601 if a migration file starts with a UTF-8 BOM.
   stripBomsInPrismaMigrations(process.cwd());
 
-  if (!process.env.DATABASE_URL) {
-    throw new Error(
-      "Missing DATABASE_URL on Vercel. Set it in Project Settings → Environment Variables.",
-    );
+  const skipPrismaMigrate =
+    isTruthyEnv("SKIP_PRISMA_MIGRATE") || isTruthyEnv("SKIP_PRISMA_MIGRATE_DEPLOY");
+  const allowMigrateFailure = isTruthyEnv("ALLOW_PRISMA_MIGRATE_FAILURE");
+
+  if (skipPrismaMigrate) {
+    log("SKIP_PRISMA_MIGRATE is set; skipping prisma migrate deploy.");
   }
 
-  log(
-    `Env present: DATABASE_URL=${process.env.DATABASE_URL ? "yes" : "no"}, DIRECT_URL=${process.env.DIRECT_URL ? "yes" : "no"}, DATABASE_URL_UNPOOLED=${process.env.DATABASE_URL_UNPOOLED ? "yes" : "no"}`,
-  );
+  if (!skipPrismaMigrate) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error(
+        "Missing DATABASE_URL on Vercel. Set it in Project Settings → Environment Variables.",
+      );
+    }
 
-  // Prisma schema expects DIRECT_URL; allow common alternative names.
-  if (!process.env.DIRECT_URL) {
-    const candidates = [
-      ["DATABASE_URL_UNPOOLED", process.env.DATABASE_URL_UNPOOLED],
-      ["POSTGRES_URL_NON_POOLING", process.env.POSTGRES_URL_NON_POOLING],
-      ["POSTGRES_URL_NON_POOLING_DIRECT", process.env.POSTGRES_URL_NON_POOLING_DIRECT],
-      ["POSTGRES_URL_UNPOOLED", process.env.POSTGRES_URL_UNPOOLED],
-    ];
+    log(
+      `Env present: DATABASE_URL=${process.env.DATABASE_URL ? "yes" : "no"}, DIRECT_URL=${process.env.DIRECT_URL ? "yes" : "no"}, DATABASE_URL_UNPOOLED=${process.env.DATABASE_URL_UNPOOLED ? "yes" : "no"}`,
+    );
 
-    const hit = candidates.find(([, v]) => Boolean(v));
-    if (hit) {
-      const [name, value] = hit;
-      process.env.DIRECT_URL = value;
-      log(`DIRECT_URL was missing; using fallback from ${name}.`);
+    // Prisma schema expects DIRECT_URL; allow common alternative names.
+    if (!process.env.DIRECT_URL) {
+      const candidates = [
+        ["DATABASE_URL_UNPOOLED", process.env.DATABASE_URL_UNPOOLED],
+        ["POSTGRES_URL_NON_POOLING", process.env.POSTGRES_URL_NON_POOLING],
+        ["POSTGRES_URL_NON_POOLING_DIRECT", process.env.POSTGRES_URL_NON_POOLING_DIRECT],
+        ["POSTGRES_URL_UNPOOLED", process.env.POSTGRES_URL_UNPOOLED],
+      ];
+
+      const hit = candidates.find(([, v]) => Boolean(v));
+      if (hit) {
+        const [name, value] = hit;
+        process.env.DIRECT_URL = value;
+        log(`DIRECT_URL was missing; using fallback from ${name}.`);
+      }
+    }
+
+    if (!process.env.DIRECT_URL) {
+      throw new Error(
+        "Missing DIRECT_URL on Vercel. Set DIRECT_URL (Neon unpooled) or DATABASE_URL_UNPOOLED.",
+      );
+    }
+
+    // Soft warning: DIRECT_URL should generally be unpooled/unpgbouncer.
+    if (/pooler|pgbouncer/i.test(process.env.DIRECT_URL)) {
+      log(
+        "Warning: DIRECT_URL looks like a pooled/pooler URL. Prisma migrate deploy often requires an unpooled (direct) connection.",
+      );
+    }
+
+    const deploy = () => runBinCapture("prisma", ["migrate", "deploy"]);
+
+    let deployResult = deploy();
+    if (deployResult.status !== 0) {
+      const combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
+
+      // Auto-heal a common production blocker: tables exist but migration history is missing.
+      // Symptom: migrate deploy fails with duplicate table on Conversation.
+      if (isConversationAlreadyExistsError(combinedOutput)) {
+        const migrationName = "20260206_add_messaging_system";
+        log(
+          `Detected existing Conversation table; resolving migration '${migrationName}' as applied, then retrying prisma migrate deploy.`,
+        );
+
+        try {
+          runBin("prisma", ["migrate", "resolve", "--applied", migrationName]);
+          deployResult = deploy();
+        } catch (error) {
+          // fall through to normal failure handling
+          deployResult = deployResult ?? { status: 1, stdout: "", stderr: String(error?.message ?? error) };
+        }
+      }
+
+      if (deployResult.status !== 0) {
+        const retriedCombined = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
+        if (!allowMigrateFailure) {
+          const pretty = "prisma migrate deploy";
+          throw new Error(`Command failed (${deployResult.status}): ${pretty}\n${retriedCombined}`);
+        }
+
+        log(
+          `Warning: prisma migrate deploy failed but ALLOW_PRISMA_MIGRATE_FAILURE is set; continuing. (${retriedCombined.trim() || "no output"})`,
+        );
+      }
     }
   }
-
-  if (!process.env.DIRECT_URL) {
-    throw new Error(
-      "Missing DIRECT_URL on Vercel. Set DIRECT_URL (Neon unpooled) or DATABASE_URL_UNPOOLED.",
-    );
-  }
-
-  // Soft warning: DIRECT_URL should generally be unpooled/unpgbouncer.
-  if (/pooler|pgbouncer/i.test(process.env.DIRECT_URL)) {
-    log(
-      "Warning: DIRECT_URL looks like a pooled/pooler URL. Prisma migrate deploy often requires an unpooled (direct) connection.",
-    );
-  }
-
-  runBin("prisma", ["migrate", "deploy"]);
 }
 
 runBin("next", ["build"]);
