@@ -22,6 +22,10 @@ function normalizeBucketName(raw: string | null | undefined): string | null {
   // Accepte aussi les formats gs://bucket-name
   if (name.startsWith("gs://")) name = name.slice("gs://".length);
 
+  // Si quelqu'un met un chemin (ex: gs://bucket-name/sous-dossier), garder uniquement le bucket.
+  const slashIdx = name.indexOf("/");
+  if (slashIdx >= 0) name = name.slice(0, slashIdx);
+
   return name || null;
 }
 
