@@ -331,12 +331,12 @@ export function JobBrowseView() {
                             </span>
                           )}
                           {job.languages && (
-                            <span className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-navy">
                               🗣️ {formatLanguages(job.languages)}
                             </span>
                           )}
                           {(job.salaryMin || job.salaryMax) && (
-                            <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-navy">
                               💰 {formatSalary(job.salaryMin, job.salaryMax)}
                             </span>
                           )}
@@ -402,12 +402,12 @@ export function JobBrowseView() {
                             </span>
                           )}
                           {job.languages && (
-                            <span className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-navy">
                               🗣️ {formatLanguages(job.languages)}
                             </span>
                           )}
                           {(job.salaryMin || job.salaryMax) && (
-                            <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-navy">
                               💰 {formatSalary(job.salaryMin, job.salaryMax)}
                             </span>
                           )}
@@ -559,7 +559,7 @@ function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }
               </span>
             )}
             {job.languages && (
-              <span className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+              <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-navy">
                 🗣️ {formatLanguages(job.languages)}
               </span>
             )}
@@ -567,8 +567,8 @@ function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-md bg-blue-50 p-4">
-            <p className="text-sm text-blue-700">
+          <div className="rounded-md bg-primary/10 p-4">
+            <p className="text-sm text-navy">
               <strong>V1 : Candidature simplifiée</strong><br />
               Pour postuler, déposez simplement votre CV (PDF recommandé). Aucune lettre de motivation requise.
             </p>

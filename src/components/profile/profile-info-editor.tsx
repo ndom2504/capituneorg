@@ -86,7 +86,7 @@ export function ProfileInfoEditor({
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--capitune-navy),var(--capitune-blue))]" />
+          <div className="absolute inset-0 bg-[color-mix(in_oklab,var(--capitune-blue)_16%,white)]" />
         )}
         
         {/* Avatar centré sur la bannière */}

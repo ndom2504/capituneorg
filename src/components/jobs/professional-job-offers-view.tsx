@@ -428,7 +428,7 @@ function JobOffersList() {
                     Remote
                   </span>
                 )}
-                <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-navy">
                   {job._count?.applications || 0} candidature{(job._count?.applications || 0) !== 1 ? "s" : ""}
                 </span>
               </div>

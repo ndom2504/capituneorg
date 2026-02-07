@@ -65,7 +65,7 @@ function badge(status: ReviewStatus | string) {
   if (status === "NEEDS_INFO")
     return <span className={cn(base, "border-amber-200 bg-amber-50 text-amber-800")}>Infos requises</span>;
   if (status === "IN_REVIEW")
-    return <span className={cn(base, "border-blue-200 bg-blue-50 text-blue-700")}>En analyse</span>;
+    return <span className={cn(base, "border-primary/20 bg-primary/10 text-navy")}>En analyse</span>;
   if (status === "NEW")
     return <span className={cn(base, "border-slate-200 bg-slate-50 text-slate-700")}>Nouveau</span>;
 

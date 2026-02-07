@@ -47,7 +47,7 @@ export function Topbar({
   const showPresence = featureFlags.presence !== false;
 
   return (
-    <header className="relative z-50 shrink-0 border-b border-border bg-purple-50/60 backdrop-blur">
+    <header className="relative z-50 shrink-0 border-b border-border bg-primary/5 backdrop-blur">
       <div className="flex w-full items-center gap-6 px-4 py-3 sm:px-6">
         {/* Gauche: Logo/Menu compact */}
         <div className="flex shrink-0 items-center gap-2">

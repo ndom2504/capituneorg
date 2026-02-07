@@ -65,7 +65,7 @@ export function PerformanceCard({ userId, isPro = false }: PerformanceCardProps)
 
   // Pour les pros, affichage complet
   const badgeLabels: Record<string, { emoji: string; label: string; color: string }> = {
-    FIABLE: { emoji: "🟦", label: "Fiable", color: "text-blue-600" },
+    FIABLE: { emoji: "🟪", label: "Fiable", color: "text-primary" },
     PLEBISCITE: { emoji: "⭐", label: "Plébiscité", color: "text-yellow-600" },
   };
 

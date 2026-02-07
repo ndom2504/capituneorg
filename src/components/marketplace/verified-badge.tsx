@@ -26,7 +26,7 @@ export function VerifiedBadge({
   // Badge "En vérification" pour PENDING
   if (showPending && verificationStatus === "PENDING") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-navy">
         <BadgeCheck className="w-3 h-3" />
         En vérification
       </span>
@@ -53,11 +53,11 @@ export function VerifiedBadge({
   return (
     <div className="inline-flex items-center gap-1">
       {/* Badge vérifié */}
-      <BadgeCheck className={`${iconSize} text-blue-600`} aria-label="Profil vérifié" />
+      <BadgeCheck className={`${iconSize} text-primary`} aria-label="Profil vérifié" />
 
       {/* Badges supplémentaires */}
       {hasBadges && badges.includes("PARTNER" as ProfileBadgeType) && (
-        <Award className={`${iconSize} text-purple-600`} aria-label="Partenaire" />
+        <Award className={`${iconSize} text-primary`} aria-label="Partenaire" />
       )}
 
       {hasBadges && badges.includes("TOP_CONTRIBUTOR" as ProfileBadgeType) && (
@@ -88,10 +88,10 @@ export function VerifiedBadgeInline({
 
   return (
     <span className="inline-flex items-center gap-1 ml-1">
-      <BadgeCheck className="w-4 h-4 text-blue-600" />
+      <BadgeCheck className="w-4 h-4 text-primary" />
       
       {hasBadges && badges.includes("PARTNER" as ProfileBadgeType) && (
-        <Award className="w-4 h-4 text-purple-600" />
+        <Award className="w-4 h-4 text-primary" />
       )}
 
       {hasBadges && badges.includes("TOP_CONTRIBUTOR" as ProfileBadgeType) && (

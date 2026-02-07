@@ -42,7 +42,7 @@ const STATUS_LABELS: Record<JobApplicationStatus, string> = {
 };
 
 const STATUS_COLORS: Record<JobApplicationStatus, string> = {
-  RECUE: "bg-blue-100 text-blue-700",
+  RECUE: "bg-primary/15 text-navy",
   EN_COURS: "bg-yellow-100 text-yellow-700",
   RETENUE: "bg-green-100 text-green-700",
   REFUSEE: "bg-gray-100 text-gray-700",

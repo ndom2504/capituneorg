@@ -60,7 +60,7 @@ export function AdminSidebar({ featureFlags }: { featureFlags: FeatureFlagsSetti
               href={it.href}
               className={cn(
                 "block rounded-md px-3 py-2 text-sm",
-                active ? "bg-blue-50 text-navy font-medium" : "text-muted hover:bg-gray-50",
+                active ? "bg-primary/10 text-navy font-medium" : "text-muted hover:bg-gray-50",
               )}
             >
               {it.label}

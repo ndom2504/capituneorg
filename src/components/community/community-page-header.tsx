@@ -46,7 +46,7 @@ export function CommunityPageHeader({
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--capitune-navy),var(--capitune-blue))]" />
+          <div className="absolute inset-0 bg-[color-mix(in_oklab,var(--capitune-blue)_16%,white)]" />
         )}
           <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_20%_20%,white_0_2px,transparent_2px),radial-gradient(circle_at_80%_30%,white_0_2px,transparent_2px),radial-gradient(circle_at_30%_80%,white_0_2px,transparent_2px)] [background-size:48px_48px]" />
         <div className="absolute bottom-3 right-3 z-10 hidden sm:block">
