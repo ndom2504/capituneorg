@@ -53,12 +53,18 @@ export async function GET(req: NextRequest) {
   const format = url.searchParams.get("format");
   const verified = url.searchParams.get("verified");
   const needsParam = url.searchParams.get("needs");
+  const servicesParam = url.searchParams.get("services");
 
   const selectedNeeds: NeedId[] = (needsParam ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)
     .filter((v): v is NeedId => isNeedId(v));
+
+  const selectedServices: string[] = (servicesParam ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   type FindManyArgs = NonNullable<Parameters<typeof prisma.marketplaceProfile.findMany>[0]>;
   const where: FindManyArgs["where"] = {
@@ -127,6 +133,11 @@ export async function GET(req: NextRequest) {
         matchedNeeds,
         matchedServices,
       };
+    })
+    .filter((it) => {
+      if (!selectedServices.length) return true;
+      const set = new Set(it.services);
+      return selectedServices.some((svc) => set.has(svc));
     })
     .filter((it) => {
       if (!q) return true;
