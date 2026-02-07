@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -19,7 +18,16 @@ function createPrismaClient() {
     return new PrismaClient({ log: [...log] });
   }
 
-  neonConfig.webSocketConstructor = ws;
+  // Prefer Node's built-in WebSocket (avoids optional native deps like bufferutil).
+  // Fallback to requiring `ws` only if WebSocket isn't available.
+  const nativeWebSocket = (globalThis as unknown as { WebSocket?: unknown }).WebSocket;
+  if (nativeWebSocket) {
+    neonConfig.webSocketConstructor = nativeWebSocket as never;
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const ws = require("ws");
+    neonConfig.webSocketConstructor = (ws?.default ?? ws) as never;
+  }
 
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
