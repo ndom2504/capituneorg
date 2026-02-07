@@ -15,18 +15,46 @@ export const dynamic = "force-dynamic";
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
 
-function getFirebaseBucketName(): string | null {
-  const raw =
-    process.env.FIREBASE_STORAGE_BUCKET ??
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
-    null;
+function normalizeBucketName(raw: string | null | undefined): string | null {
   let name = raw?.trim();
   if (!name) return null;
 
   // Accepte aussi les formats gs://bucket-name
   if (name.startsWith("gs://")) name = name.slice("gs://".length);
 
-  return name ? name : null;
+  return name || null;
+}
+
+function getFirebaseBucketCandidates(): string[] {
+  const primary = normalizeBucketName(
+    process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  );
+  if (!primary) return [];
+
+  const candidates = [primary];
+
+  const firebasestorageMatch = primary.match(/^(.+)\.firebasestorage\.app$/);
+  if (firebasestorageMatch?.[1]) {
+    candidates.push(`${firebasestorageMatch[1]}.appspot.com`);
+  }
+
+  const appspotMatch = primary.match(/^(.+)\.appspot\.com$/);
+  if (appspotMatch?.[1]) {
+    candidates.push(`${appspotMatch[1]}.firebasestorage.app`);
+  }
+
+  return Array.from(new Set(candidates));
+}
+
+function isBucketNotFoundError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  const m = msg.toLowerCase();
+  return (
+    m.includes("specified bucket does not exist") ||
+    m.includes("no such bucket") ||
+    m.includes("bucket does not exist") ||
+    m.includes("not found")
+  );
 }
 
 async function uploadToFirebaseStorage(args: {
@@ -34,14 +62,12 @@ async function uploadToFirebaseStorage(args: {
   kind: "avatar" | "cover";
   file: File;
 }): Promise<string> {
-  const bucketName = getFirebaseBucketName();
-  if (!bucketName) {
-    throw new Error("Firebase Storage bucket non configuré.");
+  const bucketCandidates = getFirebaseBucketCandidates();
+  if (!bucketCandidates.length) {
+    throw new Error(
+      "Firebase Storage bucket non configuré. Définissez FIREBASE_STORAGE_BUCKET (recommandé) ou NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET.",
+    );
   }
-
-  // Initialise l'app Admin (credentials) et récupère un bucket explicitement.
-  getFirebaseAdminApp();
-  const bucket = admin.storage().bucket(bucketName);
 
   const ext = safeExt(args.file.name);
   const objectPath = `uploads/users/${args.userId}/${args.kind}-${randomUUID()}${ext}`;
@@ -49,18 +75,37 @@ async function uploadToFirebaseStorage(args: {
   const token = randomUUID();
   const arrayBuffer = await args.file.arrayBuffer();
 
-  await bucket.file(objectPath).save(Buffer.from(arrayBuffer), {
-    contentType: args.file.type || undefined,
-    resumable: false,
-    metadata: {
-      metadata: {
-        firebaseStorageDownloadTokens: token,
-      },
-    },
-  });
+  // Initialise l'app Admin (credentials) une fois.
+  getFirebaseAdminApp();
 
-  const encoded = encodeURIComponent(objectPath);
-  return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encoded}?alt=media&token=${token}`;
+  let lastErr: unknown = null;
+  for (const bucketName of bucketCandidates) {
+    try {
+      const bucket = admin.storage().bucket(bucketName);
+      await bucket.file(objectPath).save(Buffer.from(arrayBuffer), {
+        contentType: args.file.type || undefined,
+        resumable: false,
+        metadata: {
+          metadata: {
+            firebaseStorageDownloadTokens: token,
+          },
+        },
+      });
+
+      const encoded = encodeURIComponent(objectPath);
+      return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encoded}?alt=media&token=${token}`;
+    } catch (e) {
+      lastErr = e;
+      // Si le bucket n'existe pas, essayer le fallback (.appspot.com / .firebasestorage.app)
+      if (isBucketNotFoundError(e)) continue;
+      // Sinon (permissions, etc.), on tente quand même les autres candidats si dispo.
+    }
+  }
+
+  const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+  throw new Error(
+    `Firebase Storage bucket inaccessible. Essayés: ${bucketCandidates.join(", ")}. Dernière erreur: ${msg}`,
+  );
 }
 
 async function updateUserMediaUrl(userId: string, kind: "avatar" | "cover", url: string) {
@@ -152,7 +197,7 @@ export async function POST(req: Request) {
     const ext = safeExt(file.name);
 
     const isProd = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
-    const hasFirebaseBucket = Boolean(getFirebaseBucketName());
+    const hasFirebaseBucket = getFirebaseBucketCandidates().length > 0;
 
     let url: string;
 
