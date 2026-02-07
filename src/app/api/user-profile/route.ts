@@ -17,6 +17,34 @@ function normalizeEmail(input: string) {
   return input.trim().toLowerCase();
 }
 
+export async function GET() {
+  const viewer = await getAppViewer();
+
+  if (!viewer) {
+    return NextResponse.json(
+      { error: "Non authentifié." },
+      { status: 401 },
+    );
+  }
+
+  const preRegistration = await prisma.preRegistration.findUnique({
+    where: { userId: viewer.id },
+    select: { domain: true },
+  });
+
+  return NextResponse.json({
+    user: {
+      id: viewer.id,
+      fullName: viewer.fullName,
+      email: viewer.email,
+      accountType: viewer.accountType,
+      preRegistrationData: {
+        mainDomain: preRegistration?.domain ?? null,
+      },
+    },
+  });
+}
+
 export async function PATCH(req: Request) {
   const viewer = await getAppViewer();
 
