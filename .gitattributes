@@ -1,0 +1,10 @@
+# Normalisation des fins de ligne
+# - Conserve LF dans le dépôt (compatible Linux/Vercel)
+# - Laisse Git gérer la conversion côté poste via core.autocrlf
+
+* text=auto eol=lf
+
+# Scripts Windows: CRLF est généralement attendu
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
