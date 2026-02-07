@@ -86,6 +86,7 @@ export function MarketplaceProfile({
   const [item, setItem] = useState<ProfileItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   const [primaryNeed, setPrimaryNeed] = useState<NeedId>("need.orientation");
   const [urgency, setUrgency] = useState<RequestUrgency>("MEDIUM");
@@ -132,8 +133,16 @@ export function MarketplaceProfile({
     async function run() {
       setLoading(true);
       setError(null);
+      setNotFound(false);
       try {
         const res = await fetch(`/api/marketplace/professionals/${professionalId}`);
+        if (res.status === 404) {
+          if (!canceled) {
+            setItem(null);
+            setNotFound(true);
+          }
+          return;
+        }
         if (!res.ok) {
           const text = await res.text();
           throw new Error(text || `HTTP ${res.status}`);
@@ -216,6 +225,29 @@ export function MarketplaceProfile({
   }
 
   if (error || !item) {
+    if (notFound) {
+      return (
+        <Card className="p-6">
+          <div className="text-sm font-medium text-navy">Aucun profil public créé</div>
+          <div className="mt-2 text-sm text-text">
+            {mode === "PRO_SELF"
+              ? "Vous n’avez pas encore créé de profil Marketplace."
+              : "Ce profil n’existe pas (ou n’est pas disponible)."}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href={mode === "PRO_SELF" ? "/marketplace/mon-profil-marketplace" : "/marketplace"}>
+              <Button variant="outline">Retour</Button>
+            </Link>
+            {mode === "PRO_SELF" ? (
+              <Link href="/marketplace/mon-profil-marketplace/modifier">
+                <Button>Créer mon profil</Button>
+              </Link>
+            ) : null}
+          </div>
+        </Card>
+      );
+    }
     return (
       <Card className="p-6">
         <div className="text-sm font-medium text-danger">Erreur</div>

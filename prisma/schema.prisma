@@ -195,6 +195,8 @@ enum ProfileBadgeType {
   VERIFIED
   PARTNER
   TOP_CONTRIBUTOR
+  REGULATED_PROFESSION
+  EXPERT
 }
 
 enum MarketplacePricingMode {
@@ -749,6 +751,10 @@ model MarketplaceProfile {
   badgesJson Json? // ["VERIFIED", "PARTNER", "TOP_CONTRIBUTOR"]
 
   profession   MarketplaceProfession
+  // V2 - taxonomie métiers (métier principal + secondaires)
+  // NOTE: on garde `profession` pour compat, mais l’UI doit basculer vers ces champs.
+  primaryProfessionId       String?
+  secondaryProfessionIdsJson Json?
   headline     String?
   organization String?
 
@@ -785,6 +791,7 @@ model MarketplaceProfile {
 
   @@index([status])
   @@index([profession])
+  @@index([primaryProfessionId])
   @@index([country])
   @@index([city])
 }

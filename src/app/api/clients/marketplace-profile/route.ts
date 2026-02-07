@@ -4,22 +4,23 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 import { requireProfessionalViewer } from "@/app/api/clients/_auth";
+import {
+  isProfessionId,
+  isRegulatedProfession,
+  legacyMarketplaceProfessionFromProfessionId,
+  type LegacyMarketplaceProfession,
+} from "@/lib/professions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type ProfilePayload = {
   status?: "DRAFT" | "PUBLISHED" | "SUSPENDED";
-  profession?:
-    | "IMMIGRATION_CONSULTANT"
-    | "IMMIGRATION_LAWYER"
-    | "ORIENTATION_COUNSELOR"
-    | "ACADEMIC_COUNSELOR"
-    | "EMPLOYMENT_COUNSELOR"
-    | "CASE_MANAGER"
-    | "CERTIFIED_TRANSLATOR"
-    | "INTEGRATION_COACH"
-    | "COMMUNITY_ORG";
+  // Legacy (V1)
+  profession?: LegacyMarketplaceProfession;
+  // V2
+  primaryProfessionId?: string | null;
+  secondaryProfessionIds?: string[];
   headline?: string | null;
   organization?: string | null;
   country?: string;
@@ -45,6 +46,36 @@ type ProfilePayload = {
   complianceAccepted?: boolean;
   accuracyConfirmed?: boolean;
 };
+
+function primaryProfessionIdFromLegacy(legacy: LegacyMarketplaceProfession) {
+  switch (legacy) {
+    case "IMMIGRATION_CONSULTANT":
+      return "profession.immigration.rcic";
+    case "IMMIGRATION_LAWYER":
+      return "profession.law.immigration_lawyer";
+    case "ORIENTATION_COUNSELOR":
+      return "profession.immigration.orientation_counselor";
+    case "ACADEMIC_COUNSELOR":
+      return "profession.studies.school_guidance_counselor";
+    case "EMPLOYMENT_COUNSELOR":
+      return "profession.employment.employment_counselor";
+    case "CASE_MANAGER":
+      return "profession.admin.case_manager";
+    case "CERTIFIED_TRANSLATOR":
+      return "profession.legacy.certified_translator";
+    case "INTEGRATION_COACH":
+      return "profession.integration.settlement_advisor";
+    case "COMMUNITY_ORG":
+      return "profession.legacy.community_org";
+    default:
+      return "profession.immigration.orientation_counselor";
+  }
+}
+
+function professionIdsFromJson(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v): v is string => typeof v === "string").map((s) => s.trim()).filter(Boolean);
+}
 
 function clampText(value: string | undefined | null, max: number) {
   const v = (value ?? "").trim();
@@ -125,6 +156,8 @@ export async function GET() {
       status: true,
       isVerified: true,
       profession: true,
+      primaryProfessionId: true,
+      secondaryProfessionIdsJson: true,
       headline: true,
       organization: true,
       country: true,
@@ -161,9 +194,19 @@ export async function GET() {
   const jsonStringArray = (value: unknown) =>
     Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 
+  const primaryProfessionId =
+    (profile.primaryProfessionId && isProfessionId(profile.primaryProfessionId)
+      ? profile.primaryProfessionId
+      : null) ?? primaryProfessionIdFromLegacy(profile.profession);
+  const secondaryProfessionIds = professionIdsFromJson(profile.secondaryProfessionIdsJson).filter(
+    (id) => isProfessionId(id) && id !== primaryProfessionId,
+  );
+
   return NextResponse.json({
     profile: {
       ...profile,
+      primaryProfessionId,
+      secondaryProfessionIds,
       languages: jsonStringArray(profile.languagesJson),
       themes: jsonStringArray(profile.themesJson),
       specialties: jsonStringArray(profile.specialtiesJson),
@@ -207,9 +250,20 @@ export async function POST(req: NextRequest) {
   const country = (body.country ?? "").trim();
   const city = (body.city ?? "").trim();
 
-  if (!profession) {
+  const primaryProfessionIdRaw = (body.primaryProfessionId ?? "").trim();
+  const primaryProfessionId =
+    (primaryProfessionIdRaw && isProfessionId(primaryProfessionIdRaw)
+      ? primaryProfessionIdRaw
+      : null) ?? (profession ? primaryProfessionIdFromLegacy(profession) : null);
+
+  if (!primaryProfessionId) {
     return NextResponse.json({ error: "Métier requis." }, { status: 400 });
   }
+
+  const secondaryProfessionIds = stringArray(body.secondaryProfessionIds, 8)
+    .filter((id) => isProfessionId(id))
+    .filter((id) => id !== primaryProfessionId);
+
   if (!country) {
     return NextResponse.json({ error: "Pays requis." }, { status: 400 });
   }
@@ -222,18 +276,92 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Au moins une langue est requise." }, { status: 400 });
   }
 
-  const status = body.status ?? "DRAFT";
+  const requestedStatus = body.status ?? "DRAFT";
+
+  const selectedProfessionIds = [primaryProfessionId, ...secondaryProfessionIds];
+  const hasRegulatedProfession = selectedProfessionIds.some((id) => isRegulatedProfession(id));
+
+  const normalizedLicenseNumber = clampText(body.licenseNumber, 80);
+  const normalizedLicenseAuthority = clampText(body.licenseAuthority, 80);
+  const normalizedProofUrl = clampText(body.proofUrl, 300);
+
+  if (hasRegulatedProfession && requestedStatus === "PUBLISHED") {
+    if (!normalizedLicenseNumber || !normalizedLicenseAuthority || !normalizedProofUrl) {
+      return NextResponse.json(
+        {
+          error:
+            "Ce métier est réglementé : licence + autorité + preuve sont requises, et la publication est bloquée jusqu’à validation admin.",
+        },
+        { status: 400 },
+      );
+    }
+  }
 
   const availabilityJson =
     body.availability === undefined ? undefined : body.availability ?? Prisma.DbNull;
 
   const services = normalizeMarketplaceServices(body.services);
 
+  const existing = await prisma.marketplaceProfile.findUnique({
+    where: { userId: auth.viewer.id },
+    select: {
+      id: true,
+      profession: true,
+      primaryProfessionId: true,
+      secondaryProfessionIdsJson: true,
+      verificationStatus: true,
+      isVerified: true,
+      verifiedAt: true,
+      verifiedById: true,
+      rejectionReason: true,
+    },
+  });
+
+  const existingPrimary =
+    (existing?.primaryProfessionId && isProfessionId(existing.primaryProfessionId)
+      ? existing.primaryProfessionId
+      : null) ?? (existing ? primaryProfessionIdFromLegacy(existing.profession) : null);
+  const existingSecondary = existing
+    ? professionIdsFromJson(existing.secondaryProfessionIdsJson).filter((id) => isProfessionId(id))
+    : [];
+
+  const professionsChanged =
+    !existing ||
+    existingPrimary !== primaryProfessionId ||
+    existingSecondary.length !== secondaryProfessionIds.length ||
+    existingSecondary.some((id) => !secondaryProfessionIds.includes(id)) ||
+    secondaryProfessionIds.some((id) => !existingSecondary.includes(id));
+
+  const legacyProfession = legacyMarketplaceProfessionFromProfessionId(primaryProfessionId);
+
+  // Règle CAPITUNE: métier principal/secondaires validés par admin.
+  // -> Toute modification des métiers renvoie le profil en DRAFT (non public) + PENDING.
+  // -> Les métiers réglementés ne peuvent pas être publiés avant validation.
+  const existingVerificationStatus = existing?.verificationStatus ?? "DRAFT";
+  const needsAdminValidation =
+    professionsChanged || (hasRegulatedProfession && existingVerificationStatus !== "VERIFIED");
+
+  const status =
+    requestedStatus === "SUSPENDED" ? "SUSPENDED" : needsAdminValidation ? "DRAFT" : requestedStatus;
+
+  const verificationResetData =
+    professionsChanged
+      ? {
+          verificationStatus: "PENDING" as const,
+          isVerified: false,
+          verifiedAt: null,
+          verifiedById: null,
+          rejectionReason: null,
+        }
+      : {};
+
   const profile = await prisma.marketplaceProfile.upsert({
     where: { userId: auth.viewer.id },
     update: {
       status,
-      profession,
+      profession: legacyProfession,
+      primaryProfessionId,
+      secondaryProfessionIdsJson: secondaryProfessionIds,
       headline: clampText(body.headline, 120),
       organization: clampText(body.organization, 120),
       country,
@@ -246,9 +374,9 @@ export async function POST(req: NextRequest) {
       availabilityJson,
       format: body.format ?? "VISIO",
       responseTime: body.responseTime ?? null,
-      licenseNumber: clampText(body.licenseNumber, 80),
-      licenseAuthority: clampText(body.licenseAuthority, 80),
-      proofUrl: clampText(body.proofUrl, 300),
+      licenseNumber: normalizedLicenseNumber,
+      licenseAuthority: normalizedLicenseAuthority,
+      proofUrl: normalizedProofUrl,
       bioShort: clampText(body.bioShort, 300),
       bioLong: clampText(body.bioLong, 1000),
 
@@ -256,11 +384,15 @@ export async function POST(req: NextRequest) {
       pricingMode: body.pricingMode ?? "FREE",
       price30Min: body.price30Min ?? null,
       price60Min: body.price60Min ?? null,
+
+      ...verificationResetData,
     },
     create: {
       userId: auth.viewer.id,
       status,
-      profession,
+      profession: legacyProfession,
+      primaryProfessionId,
+      secondaryProfessionIdsJson: secondaryProfessionIds,
       headline: clampText(body.headline, 120),
       organization: clampText(body.organization, 120),
       country,
@@ -273,9 +405,9 @@ export async function POST(req: NextRequest) {
       availabilityJson,
       format: body.format ?? "VISIO",
       responseTime: body.responseTime ?? null,
-      licenseNumber: clampText(body.licenseNumber, 80),
-      licenseAuthority: clampText(body.licenseAuthority, 80),
-      proofUrl: clampText(body.proofUrl, 300),
+      licenseNumber: normalizedLicenseNumber,
+      licenseAuthority: normalizedLicenseAuthority,
+      proofUrl: normalizedProofUrl,
       bioShort: clampText(body.bioShort, 300),
       bioLong: clampText(body.bioLong, 1000),
 
@@ -283,6 +415,9 @@ export async function POST(req: NextRequest) {
       pricingMode: body.pricingMode ?? "FREE",
       price30Min: body.price30Min ?? null,
       price60Min: body.price60Min ?? null,
+
+      verificationStatus: "PENDING",
+      isVerified: false,
     },
     select: { id: true, status: true, updatedAt: true },
   });

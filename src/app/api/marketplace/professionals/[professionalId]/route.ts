@@ -3,33 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 import { jsonStringArray } from "@/app/api/marketplace/_viewer";
+import { professionLabel as professionLabelFromTaxonomy } from "@/lib/professions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function professionLabel(p: string) {
-  switch (p) {
-    case "IMMIGRATION_CONSULTANT":
-      return "Consultant immigration";
-    case "IMMIGRATION_LAWYER":
-      return "Avocat immigration";
-    case "ORIENTATION_COUNSELOR":
-      return "Conseiller orientation";
-    case "ACADEMIC_COUNSELOR":
-      return "Conseiller académique";
-    case "EMPLOYMENT_COUNSELOR":
-      return "Conseiller emploi";
-    case "CASE_MANAGER":
-      return "Gestionnaire de dossier";
-    case "CERTIFIED_TRANSLATOR":
-      return "Traducteur agréé";
-    case "INTEGRATION_COACH":
-      return "Coach intégration";
-    case "COMMUNITY_ORG":
-      return "Organisme communautaire";
-    default:
-      return p;
-  }
+  return professionLabelFromTaxonomy(p);
 }
 
 export async function GET(
@@ -65,8 +45,8 @@ export async function GET(
       fullName: profile.user.fullName,
       avatarUrl: profile.user.avatarUrl,
       isCertified: profile.user.isCertified,
-      profession: profile.profession,
-      professionLabel: professionLabel(profile.profession),
+      profession: profile.primaryProfessionId ?? profile.profession,
+      professionLabel: professionLabel(profile.primaryProfessionId ?? profile.profession),
       headline: profile.headline,
       organization: profile.organization,
       country: profile.country,

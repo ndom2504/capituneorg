@@ -4,6 +4,11 @@ import { prisma } from "@/lib/db";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 import { jsonStringArray } from "@/app/api/marketplace/_viewer";
 import {
+  isProfessionId,
+  professionLabel as professionLabelFromTaxonomy,
+  type LegacyMarketplaceProfession,
+} from "@/lib/professions";
+import {
   isNeedId,
   isServiceId,
   needsToServiceDomains,
@@ -15,28 +20,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function professionLabel(p: string) {
-  switch (p) {
-    case "IMMIGRATION_CONSULTANT":
-      return "Consultant immigration";
-    case "IMMIGRATION_LAWYER":
-      return "Avocat immigration";
-    case "ORIENTATION_COUNSELOR":
-      return "Conseiller orientation";
-    case "ACADEMIC_COUNSELOR":
-      return "Conseiller académique";
-    case "EMPLOYMENT_COUNSELOR":
-      return "Conseiller emploi";
-    case "CASE_MANAGER":
-      return "Gestionnaire de dossier";
-    case "CERTIFIED_TRANSLATOR":
-      return "Traducteur agréé";
-    case "INTEGRATION_COACH":
-      return "Coach intégration";
-    case "COMMUNITY_ORG":
-      return "Organisme communautaire";
-    default:
-      return p;
-  }
+  return professionLabelFromTaxonomy(p);
 }
 
 export async function GET(req: NextRequest) {
@@ -69,7 +53,17 @@ export async function GET(req: NextRequest) {
   type FindManyArgs = NonNullable<Parameters<typeof prisma.marketplaceProfile.findMany>[0]>;
   const where: FindManyArgs["where"] = {
     status: "PUBLISHED",
-    ...(profession ? { profession: profession as never } : {}),
+    ...(profession
+      ? profession.startsWith("profession.") && isProfessionId(profession)
+        ? {
+            OR: [
+              { primaryProfessionId: profession },
+              // JSON array (métiers secondaires)
+              { secondaryProfessionIdsJson: { array_contains: [profession] } as never },
+            ],
+          }
+        : { profession: profession as unknown as LegacyMarketplaceProfession }
+      : {}),
     ...(country ? { country } : {}),
     ...(city ? { city } : {}),
     ...(format ? { format: format as never } : {}),
@@ -111,8 +105,8 @@ export async function GET(req: NextRequest) {
         profileId: p.id,
         fullName: p.user.fullName,
         avatarUrl: p.user.avatarUrl,
-        profession: p.profession,
-        professionLabel: professionLabel(p.profession),
+        profession: p.primaryProfessionId ?? p.profession,
+        professionLabel: professionLabel(p.primaryProfessionId ?? p.profession),
         headline: p.headline,
         organization: p.organization,
         country: p.country,

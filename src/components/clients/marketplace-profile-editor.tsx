@@ -14,19 +14,16 @@ import {
   isServiceId,
   serviceLabel,
 } from "@/lib/taxonomy";
+import {
+  PROFESSION_CATEGORIES,
+  PROFESSIONS_PICKER,
+  getProfession,
+  isRegulatedProfession,
+  professionLabel,
+  type ProfessionCategoryId,
+} from "@/lib/professions";
 
 type ProfileStatus = "DRAFT" | "PUBLISHED" | "SUSPENDED";
-
-type Profession =
-  | "IMMIGRATION_CONSULTANT"
-  | "IMMIGRATION_LAWYER"
-  | "ORIENTATION_COUNSELOR"
-  | "ACADEMIC_COUNSELOR"
-  | "EMPLOYMENT_COUNSELOR"
-  | "CASE_MANAGER"
-  | "CERTIFIED_TRANSLATOR"
-  | "INTEGRATION_COACH"
-  | "COMMUNITY_ORG";
 
 type Format = "VISIO" | "IN_PERSON" | "BOTH";
 
@@ -39,7 +36,9 @@ type ApiProfile = {
   userId: string;
   status: ProfileStatus;
   isVerified: boolean;
-  profession: Profession;
+  profession: string; // Legacy
+  primaryProfessionId: string;
+  secondaryProfessionIds: string[];
   headline: string | null;
   organization: string | null;
   country: string;
@@ -84,29 +83,11 @@ function joinList(list: string[]) {
   return (list ?? []).join(", ");
 }
 
-function professionLabel(p: Profession) {
-  switch (p) {
-    case "IMMIGRATION_CONSULTANT":
-      return "Consultant en immigration";
-    case "IMMIGRATION_LAWYER":
-      return "Avocat en immigration";
-    case "ORIENTATION_COUNSELOR":
-      return "Conseiller d’orientation";
-    case "ACADEMIC_COUNSELOR":
-      return "Conseiller académique";
-    case "EMPLOYMENT_COUNSELOR":
-      return "Conseiller emploi";
-    case "CASE_MANAGER":
-      return "Gestionnaire de dossier";
-    case "CERTIFIED_TRANSLATOR":
-      return "Traducteur certifié";
-    case "INTEGRATION_COACH":
-      return "Coach d’intégration";
-    case "COMMUNITY_ORG":
-      return "Organisme communautaire";
-    default:
-      return p;
-  }
+function professionCategoryFromProfessionId(id: string): ProfessionCategoryId {
+  return (
+    getProfession(id)?.category ??
+    (PROFESSION_CATEGORIES[0]?.id as ProfessionCategoryId)
+  );
 }
 
 export function MarketplaceProfileEditor() {
@@ -118,7 +99,16 @@ export function MarketplaceProfileEditor() {
   const [profileId, setProfileId] = useState<string | null>(null);
 
   const [status, setStatus] = useState<ProfileStatus>("DRAFT");
-  const [profession, setProfession] = useState<Profession>("ORIENTATION_COUNSELOR");
+  const [primaryProfessionCategory, setPrimaryProfessionCategory] =
+    useState<ProfessionCategoryId>(PROFESSION_CATEGORIES[0]?.id);
+  const [primaryProfessionId, setPrimaryProfessionId] = useState<string>(
+    PROFESSIONS_PICKER[0]?.id ?? "profession.immigration.orientation_counselor",
+  );
+  const [secondaryProfessionIds, setSecondaryProfessionIds] = useState<string[]>([]);
+  const [secondaryProfessionCategory, setSecondaryProfessionCategory] =
+    useState<ProfessionCategoryId>(PROFESSION_CATEGORIES[0]?.id);
+  const [secondaryProfessionToAdd, setSecondaryProfessionToAdd] = useState<string>("");
+
   const [headline, setHeadline] = useState("");
   const [organization, setOrganization] = useState("");
   const [country, setCountry] = useState("Canada");
@@ -148,6 +138,12 @@ export function MarketplaceProfileEditor() {
   const [viewer, setViewer] = useState<ViewerInfo | null>(null);
 
   const languages = useMemo(() => parseList(languagesText), [languagesText]);
+
+  const hasRegulatedProfession = useMemo(() => {
+    if (isRegulatedProfession(primaryProfessionId)) return true;
+    return secondaryProfessionIds.some((id) => isRegulatedProfession(id));
+  }, [primaryProfessionId, secondaryProfessionIds]);
+
   const hasEmployerService = useMemo(
     () =>
       servicesSelected.some(
@@ -155,6 +151,19 @@ export function MarketplaceProfileEditor() {
       ),
     [servicesSelected],
   );
+
+  const primaryProfessionsForCategory = useMemo(() => {
+    return PROFESSIONS_PICKER.filter((p) => p.category === primaryProfessionCategory);
+  }, [primaryProfessionCategory]);
+
+  const secondaryProfessionsForCategory = useMemo(() => {
+    return PROFESSIONS_PICKER.filter((p) => p.category === secondaryProfessionCategory);
+  }, [secondaryProfessionCategory]);
+
+  useEffect(() => {
+    const first = secondaryProfessionsForCategory.find((p) => p.id !== primaryProfessionId)?.id ?? "";
+    setSecondaryProfessionToAdd(first);
+  }, [secondaryProfessionsForCategory, primaryProfessionId]);
 
   const pickerServicesByCategory = useMemo(() => {
     type PickerService = (typeof SERVICES_PICKER)[number];
@@ -195,7 +204,11 @@ export function MarketplaceProfileEditor() {
           const p = data.profile;
           setProfileId(p.id);
           setStatus(p.status);
-          setProfession(p.profession);
+          setPrimaryProfessionId(p.primaryProfessionId);
+          setPrimaryProfessionCategory(professionCategoryFromProfessionId(p.primaryProfessionId));
+          setSecondaryProfessionIds(p.secondaryProfessionIds ?? []);
+          setSecondaryProfessionCategory(PROFESSION_CATEGORIES[0]?.id);
+          setSecondaryProfessionToAdd("");
           setHeadline(p.headline ?? "");
           setOrganization(p.organization ?? "");
           setCountry(p.country ?? "Canada");
@@ -249,13 +262,25 @@ export function MarketplaceProfileEditor() {
       if (!country.trim()) {
         throw new Error("Pays requis.");
       }
+      if (!primaryProfessionId.trim()) {
+        throw new Error("Métier principal requis.");
+      }
+
+      if (hasRegulatedProfession && status === "PUBLISHED") {
+        if (!licenseNumber.trim() || !licenseAuthority.trim() || !proofUrl.trim()) {
+          throw new Error(
+            "Métier réglementé : licence + autorité + preuve sont requises. La publication est bloquée jusqu’à validation admin.",
+          );
+        }
+      }
 
       const res = await fetch("/api/clients/marketplace-profile", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           status,
-          profession,
+          primaryProfessionId,
+          secondaryProfessionIds,
           headline: headline.trim() || null,
           organization: organization.trim() || null,
           country: country.trim(),
@@ -318,7 +343,11 @@ export function MarketplaceProfileEditor() {
 
       setProfileId(null);
       setStatus("DRAFT");
-      setProfession("ORIENTATION_COUNSELOR");
+      setPrimaryProfessionCategory(PROFESSION_CATEGORIES[0]?.id);
+      setPrimaryProfessionId(PROFESSIONS_PICKER[0]?.id ?? "profession.immigration.orientation_counselor");
+      setSecondaryProfessionIds([]);
+      setSecondaryProfessionCategory(PROFESSION_CATEGORIES[0]?.id);
+      setSecondaryProfessionToAdd("");
       setHeadline("");
       setOrganization("");
       setCountry("Canada");
@@ -407,32 +436,145 @@ export function MarketplaceProfileEditor() {
           </div>
 
           <div>
-            <div className="text-xs font-semibold text-muted">Métier</div>
-            <select
-              aria-label="Métier"
-              className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
-              value={profession}
-              onChange={(e) => setProfession(e.target.value as Profession)}
-            >
-              {(
-                [
-                  "IMMIGRATION_CONSULTANT",
-                  "IMMIGRATION_LAWYER",
-                  "ORIENTATION_COUNSELOR",
-                  "ACADEMIC_COUNSELOR",
-                  "EMPLOYMENT_COUNSELOR",
-                  "CASE_MANAGER",
-                  "CERTIFIED_TRANSLATOR",
-                  "INTEGRATION_COACH",
-                  "COMMUNITY_ORG",
-                ] as Profession[]
-              ).map((p) => (
-                <option key={p} value={p}>
-                  {professionLabel(p)}
-                </option>
-              ))}
-            </select>
+            <div className="text-xs font-semibold text-muted">Métier principal</div>
+
+            <div className="mt-1 grid gap-2 sm:grid-cols-2">
+              <select
+                aria-label="Catégorie de métier principal"
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                value={primaryProfessionCategory}
+                onChange={(e) => {
+                  const nextCat = e.target.value as ProfessionCategoryId;
+                  setPrimaryProfessionCategory(nextCat);
+                  const first = PROFESSIONS_PICKER.find((p) => p.category === nextCat)?.id;
+                  if (first) setPrimaryProfessionId(first);
+                }}
+              >
+                {PROFESSION_CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                aria-label="Métier principal"
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                value={primaryProfessionId}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setPrimaryProfessionId(next);
+                  setPrimaryProfessionCategory(professionCategoryFromProfessionId(next));
+                }}
+              >
+                {primaryProfessionsForCategory.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-1 text-xs text-muted">
+              1 métier principal obligatoire. Les métiers (principal et secondaires) doivent être validés par l’admin.
+            </div>
           </div>
+
+          <div>
+            <div className="text-xs font-semibold text-muted">Métiers secondaires (optionnel)</div>
+
+            <div className="mt-1 grid gap-2 sm:grid-cols-2">
+              <select
+                aria-label="Catégorie de métiers secondaires"
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                value={secondaryProfessionCategory}
+                onChange={(e) => setSecondaryProfessionCategory(e.target.value as ProfessionCategoryId)}
+              >
+                {PROFESSION_CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                aria-label="Métier secondaire"
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                value={secondaryProfessionToAdd}
+                onChange={(e) => setSecondaryProfessionToAdd(e.target.value)}
+              >
+                <option value="">—</option>
+                {secondaryProfessionsForCategory
+                  .filter((p) => p.id !== primaryProfessionId)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                disabled={!secondaryProfessionToAdd}
+                onClick={() => {
+                  const id = secondaryProfessionToAdd;
+                  if (!id) return;
+                  setSecondaryProfessionIds((prev) => {
+                    if (prev.includes(id)) return prev;
+                    if (prev.length >= 6) return prev;
+                    return [...prev, id];
+                  });
+                  setSecondaryProfessionToAdd("");
+                }}
+              >
+                Ajouter
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!secondaryProfessionIds.length}
+                onClick={() => setSecondaryProfessionIds([])}
+              >
+                Réinitialiser
+              </Button>
+            </div>
+
+            {secondaryProfessionIds.length ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {secondaryProfessionIds.map((id) => (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-white/70 px-2 py-0.5 text-xs text-text"
+                  >
+                    {professionLabel(id)}
+                    <button
+                      type="button"
+                      className="text-muted hover:text-text"
+                      aria-label={`Retirer ${professionLabel(id)}`}
+                      onClick={() =>
+                        setSecondaryProfessionIds((prev) => prev.filter((x) => x !== id))
+                      }
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {hasRegulatedProfession ? (
+            <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3 text-xs text-muted">
+              <div className="font-semibold text-text">Métier réglementé</div>
+              <div className="mt-1">
+                La soumission/représentation officielle n’est autorisée que pour les métiers réglementés. Licence +
+                autorité + preuve sont requises, et la publication est bloquée jusqu’à validation admin.
+              </div>
+            </div>
+          ) : null}
 
           <div>
             <div className="text-xs font-semibold text-muted">Accroche</div>
@@ -648,17 +790,23 @@ export function MarketplaceProfileEditor() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <div className="text-xs font-semibold text-muted">Numéro de licence (optionnel)</div>
+              <div className="text-xs font-semibold text-muted">
+                Numéro de licence {hasRegulatedProfession ? "(requis)" : "(optionnel)"}
+              </div>
               <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
             </div>
             <div>
-              <div className="text-xs font-semibold text-muted">Autorité (optionnel)</div>
+              <div className="text-xs font-semibold text-muted">
+                Autorité {hasRegulatedProfession ? "(requis)" : "(optionnel)"}
+              </div>
               <Input value={licenseAuthority} onChange={(e) => setLicenseAuthority(e.target.value)} />
             </div>
           </div>
 
           <div>
-            <div className="text-xs font-semibold text-muted">Lien justificatif (optionnel)</div>
+            <div className="text-xs font-semibold text-muted">
+              Lien justificatif {hasRegulatedProfession ? "(requis)" : "(optionnel)"}
+            </div>
             <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} placeholder="https://…" />
           </div>
         </div>

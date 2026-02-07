@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { professionLabel } from "@/lib/professions";
 
 type QueueItem = {
   id: string;
@@ -14,6 +15,8 @@ type QueueItem = {
   email: string;
   avatarUrl: string | null;
   profession: string;
+  primaryProfessionId?: string;
+  secondaryProfessionIds?: string[];
   organization: string | null;
   headline: string | null;
   country: string;
@@ -170,7 +173,7 @@ export function ProVerificationQueue({ viewerRole }: Props) {
                       <div className="text-xs text-muted">{item.email}</div>
                     </div>
                     <CardDescription>
-                      {item.profession}
+                      {item.primaryProfessionId ? professionLabel(item.primaryProfessionId) : item.profession}
                       {item.organization ? ` · ${item.organization}` : ""}
                       {item.headline ? ` · ${item.headline}` : ""}
                       {` · ${item.city}, ${item.country}`}
@@ -178,6 +181,12 @@ export function ProVerificationQueue({ viewerRole }: Props) {
                   </CardHeader>
 
                   <CardContent className="space-y-3">
+                    {item.secondaryProfessionIds && item.secondaryProfessionIds.length ? (
+                      <div className="text-xs text-muted">
+                        Secondaires: {item.secondaryProfessionIds.map((id) => professionLabel(id)).join(" · ")}
+                      </div>
+                    ) : null}
+
                     <div className="grid gap-2 text-sm text-text sm:grid-cols-2">
                       <div>
                         <div className="text-xs text-muted">Pièce justificative</div>

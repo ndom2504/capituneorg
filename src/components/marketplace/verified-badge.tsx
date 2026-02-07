@@ -6,7 +6,7 @@ import { BadgeCheck, Award, Star } from "lucide-react";
  * 
  * V1 Spec:
  * - Affiche badge uniquement si verificationStatus === VERIFIED
- * - Types de badges: VERIFIED ✅, PARTNER 🟦, TOP_CONTRIBUTOR ⭐
+ * - Types de badges: VERIFIED, PARTNER, TOP_CONTRIBUTOR, REGULATED_PROFESSION, EXPERT
  * - Badge "En vérification" si PENDING
  * - Rien si DRAFT/REJECTED/SUSPENDED
  */
@@ -63,6 +63,18 @@ export function VerifiedBadge({
       {hasBadges && badges.includes("TOP_CONTRIBUTOR" as ProfileBadgeType) && (
         <Star className={`${iconSize} text-yellow-500 fill-yellow-500`} aria-label="Top contributeur" />
       )}
+
+      {hasBadges && badges.includes("REGULATED_PROFESSION" as ProfileBadgeType) && (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-navy">
+          Réglementé
+        </span>
+      )}
+
+      {hasBadges && badges.includes("EXPERT" as ProfileBadgeType) && (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-navy">
+          Expert
+        </span>
+      )}
     </div>
   );
 }
@@ -96,6 +108,18 @@ export function VerifiedBadgeInline({
 
       {hasBadges && badges.includes("TOP_CONTRIBUTOR" as ProfileBadgeType) && (
         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+      )}
+
+      {hasBadges && badges.includes("REGULATED_PROFESSION" as ProfileBadgeType) && (
+        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-navy">
+          Réglementé
+        </span>
+      )}
+
+      {hasBadges && badges.includes("EXPERT" as ProfileBadgeType) && (
+        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-navy">
+          Expert
+        </span>
       )}
     </span>
   );
