@@ -264,6 +264,13 @@ export const NAV_ITEMS: NavItem[] = [
     hideForProfessionals: true,
     featureKey: "jobs",
   },
+  {
+    href: "/emploi/mon-profil-emploi",
+    label: "Mon profil emploi",
+    icon: icons.user,
+    hideForProfessionals: true,
+    featureKey: "jobs",
+  },
   { href: "/mon-dossier", label: "Mon dossier", icon: icons.folder },
   { href: "/profil", label: "Profil", icon: icons.user },
   { href: "/parametres", label: "Paramètres", icon: icons.settings },

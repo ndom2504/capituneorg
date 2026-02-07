@@ -12,16 +12,13 @@ export const dynamic = "force-dynamic";
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB pour les CV
 const ALLOWED_MIME = new Set([
   "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-  "application/msword", // .doc
 ]);
 
 function safeExt(filename: string, mimeType: string) {
   const ext = path.extname(filename).toLowerCase();
-  if ([".pdf", ".doc", ".docx"].includes(ext)) return ext;
+  if ([".pdf"].includes(ext)) return ext;
   // Fallback basé sur le MIME type
   if (mimeType === "application/pdf") return ".pdf";
-  if (mimeType.includes("wordprocessing")) return ".docx";
   return ".pdf";
 }
 
@@ -47,7 +44,7 @@ export async function POST(req: Request) {
 
   if (!ALLOWED_MIME.has(file.type)) {
     return NextResponse.json(
-      { error: "Format non supporté. Utilisez PDF (recommandé), DOC ou DOCX." },
+      { error: "Format non supporté. Utilisez PDF uniquement." },
       { status: 415 },
     );
   }

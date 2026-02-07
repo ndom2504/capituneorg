@@ -447,6 +447,8 @@ model User {
   jobPostings     JobPosting[]     @relation("JobPoster")
   jobApplications JobApplication[] @relation("JobApplicant")
 
+  employmentProfile EmploymentProfile?
+
   notifications Notification[]
 
   auditLogs          AuditLog[]      @relation("AuditActor")
@@ -465,6 +467,50 @@ model User {
   messagesSent           Message[]      @relation("MessageSender")
 
   platformSettingsUpdated PlatformSetting[] @relation("PlatformSettingUpdatedBy")
+}
+
+enum EmploymentAvailability {
+  IMMEDIATE
+  ONE_TO_THREE_MONTHS
+  MORE_THAN_THREE_MONTHS
+}
+
+enum EmploymentWorkPreference {
+  CANADA_ONLY
+  CANADA_AND_REMOTE
+}
+
+enum EmploymentImmigrationSupport {
+  YES
+  NO
+  IN_PROGRESS
+}
+
+model EmploymentProfile {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  professionalTitle String
+  domain            MainDomain
+  experienceLevel   ExperienceLevel
+  availability      EmploymentAvailability
+
+  residenceCountry String
+  workPreference   EmploymentWorkPreference
+  targetProvinces  Json
+  contractTypes    Json
+  immigrationSupport EmploymentImmigrationSupport
+
+  primaryLanguage   JobLanguage
+  otherLanguagesText String?
+
+  cvUrl String
+
+  consentUseCv      Boolean @default(false)
+  accuracyConfirmed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PlatformSetting {

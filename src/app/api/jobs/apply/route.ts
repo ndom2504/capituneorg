@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { jobId, cvUrl } = body;
+    const body = await req.json().catch(() => ({}));
+    const { jobId } = body as { jobId?: string };
 
     if (!jobId) {
       return NextResponse.json(
@@ -30,12 +30,49 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!cvUrl) {
+    const employmentProfile = await prisma.employmentProfile.findUnique({
+      where: { userId: user.id },
+      select: {
+        professionalTitle: true,
+        domain: true,
+        experienceLevel: true,
+        availability: true,
+        residenceCountry: true,
+        workPreference: true,
+        contractTypes: true,
+        primaryLanguage: true,
+        cvUrl: true,
+        consentUseCv: true,
+        accuracyConfirmed: true,
+      },
+    });
+
+    const profileComplete = Boolean(
+      employmentProfile?.professionalTitle?.trim() &&
+        employmentProfile.domain &&
+        employmentProfile.experienceLevel &&
+        employmentProfile.availability &&
+        employmentProfile.residenceCountry?.trim() &&
+        employmentProfile.workPreference &&
+        Array.isArray(employmentProfile.contractTypes) &&
+        (employmentProfile.contractTypes as unknown as string[]).length > 0 &&
+        employmentProfile.primaryLanguage &&
+        employmentProfile.cvUrl &&
+        employmentProfile.consentUseCv &&
+        employmentProfile.accuracyConfirmed
+    );
+
+    if (!profileComplete) {
       return NextResponse.json(
-        { error: "CV requis pour postuler" },
-        { status: 400 }
+        {
+          error: "Profil emploi requis pour postuler.",
+          redirectTo: "/emploi/mon-profil-emploi",
+        },
+        { status: 400 },
       );
     }
+
+    const cvUrl = employmentProfile!.cvUrl;
 
     // Vérifier que l'offre existe et est publiée
     const job = await prisma.jobPosting.findUnique({

@@ -3,9 +3,6 @@
 import * as React from "react";
 import { Search, Filter, X, Star } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-
 type Job = {
   id: string;
   title: string;
@@ -32,52 +29,12 @@ type UserProfile = {
   } | null;
 };
 
-type SavedCv = {
-  url: string;
-  fileName: string;
-  savedAt: string;
-};
-
-const CV_STORAGE_KEY = "capitune.userCv.v1";
-
-function loadSavedCv(): SavedCv | null {
-  try {
-    const raw = window.localStorage.getItem(CV_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<SavedCv>;
-    if (!parsed.url || !parsed.fileName) return null;
-    return {
-      url: String(parsed.url),
-      fileName: String(parsed.fileName),
-      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function persistSavedCv(cv: SavedCv | null) {
-  try {
-    if (!cv) {
-      window.localStorage.removeItem(CV_STORAGE_KEY);
-      return;
-    }
-    window.localStorage.setItem(CV_STORAGE_KEY, JSON.stringify(cv));
-  } catch {
-    // ignore
-  }
-}
 
 export function JobBrowseView() {
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
-
-  const [savedCv, setSavedCv] = React.useState<SavedCv | null>(null);
-  const [cvBusy, setCvBusy] = React.useState(false);
-  const [cvError, setCvError] = React.useState<string | null>(null);
-  const [cvOk, setCvOk] = React.useState<string | null>(null);
   
   // États des filtres
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -88,8 +45,6 @@ export function JobBrowseView() {
   const [showFilters, setShowFilters] = React.useState(false);
 
   React.useEffect(() => {
-    setSavedCv(loadSavedCv());
-
     // Récupérer le profil utilisateur
     fetch("/api/user-profile")
       .then((res) => res.json())
@@ -109,43 +64,6 @@ export function JobBrowseView() {
       })
       .catch(() => setLoading(false));
   }, []);
-
-  async function uploadAndSaveCv(file: File) {
-    setCvBusy(true);
-    setCvError(null);
-    setCvOk(null);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/jobs/upload-cv", { method: "POST", body: form });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
-      }
-      const payload = (await res.json()) as { url?: string };
-      if (!payload.url) throw new Error("Upload impossible.");
-
-      const next: SavedCv = {
-        url: payload.url,
-        fileName: file.name,
-        savedAt: new Date().toISOString(),
-      };
-      setSavedCv(next);
-      persistSavedCv(next);
-      setCvOk("CV importé");
-    } catch (e) {
-      setCvError(e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setCvBusy(false);
-    }
-  }
-
-  function removeSavedCv() {
-    setSavedCv(null);
-    persistSavedCv(null);
-    setCvOk("CV retiré");
-    setCvError(null);
-  }
 
   // Filtrage des offres
   const filteredJobs = jobs.filter((job) => {
@@ -208,64 +126,6 @@ export function JobBrowseView() {
           Parcourez les offres et postulez avec votre CV
         </p>
       </div>
-
-      <Card className="p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-navy">Mon CV</div>
-            <div className="mt-1 text-xs text-muted">
-              Importez votre CV une fois, puis utilisez-le pour postuler plus vite.
-            </div>
-            {savedCv ? (
-              <div className="mt-2 text-xs text-muted">
-                Actuel: {" "}
-                <a
-                  className="underline"
-                  href={savedCv.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {savedCv.fileName}
-                </a>
-              </div>
-            ) : (
-              <div className="mt-2 text-xs text-muted">Aucun CV importé.</div>
-            )}
-            {cvError ? (
-              <div className="mt-2 whitespace-pre-wrap text-xs text-danger">{cvError}</div>
-            ) : null}
-            {cvOk ? <div className="mt-2 text-xs text-muted">{cvOk}</div> : null}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-sm">
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                disabled={cvBusy}
-                onChange={(e) => {
-                  const f = e.target.files?.[0] || null;
-                  if (!f) return;
-                  void uploadAndSaveCv(f);
-                  e.currentTarget.value = "";
-                }}
-                className="w-full text-sm"
-              />
-              <span className="mt-1 block text-xs text-muted">PDF recommandé, max 10MB.</span>
-            </label>
-            {savedCv ? (
-              <Button
-                variant="outline"
-                className="border-danger/30 text-danger hover:bg-danger/5"
-                onClick={removeSavedCv}
-                disabled={cvBusy}
-              >
-                Retirer mon CV
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </Card>
 
       {/* Barre de recherche et filtres */}
       <div className="space-y-3">
@@ -620,7 +480,6 @@ export function JobBrowseView() {
         <JobApplicationModal
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
-          savedCv={savedCv}
         />
       )}
     </div>
@@ -630,67 +489,34 @@ export function JobBrowseView() {
 function JobApplicationModal({
   job,
   onClose,
-  savedCv,
 }: {
   job: Job;
   onClose: () => void;
-  savedCv: SavedCv | null;
 }) {
   const [submitting, setSubmitting] = React.useState(false);
-  const [cvFile, setCvFile] = React.useState<File | null>(null);
-  const [cvMode, setCvMode] = React.useState<"saved" | "upload">(savedCv ? "saved" : "upload");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (cvMode === "saved") {
-      if (!savedCv?.url) {
-        alert("Aucun CV importé. Veuillez téléverser un CV.");
+    // Profil emploi requis uniquement au moment de postuler
+    try {
+      const res = await fetch("/api/jobs/employment-profile", { method: "GET" });
+      const payload = (await res.json().catch(() => null)) as
+        | { isComplete?: boolean }
+        | null;
+      if (!res.ok || !payload?.isComplete) {
+        window.location.href = "/emploi/mon-profil-emploi";
         return;
       }
-    } else {
-      if (!cvFile) {
-        alert("Veuillez sélectionner un CV (obligatoire)");
-        return;
-      }
+    } catch {
+      window.location.href = "/emploi/mon-profil-emploi";
+      return;
     }
     
     setSubmitting(true);
 
-    // Upload CV (obligatoire en V1)
-    let cvUrl: string | null = null;
-    if (cvMode === "saved") {
-      cvUrl = savedCv?.url ?? null;
-    } else {
-      const uploadFormData = new FormData();
-      uploadFormData.append("file", cvFile as File);
-
-      try {
-        const uploadRes = await fetch("/api/jobs/upload-cv", {
-          method: "POST",
-          body: uploadFormData,
-        });
-
-        if (!uploadRes.ok) {
-          const errorData = await uploadRes.json();
-          alert(errorData.error || "Erreur lors de l'upload du CV");
-          setSubmitting(false);
-          return;
-        }
-
-        const uploadData = await uploadRes.json();
-        cvUrl = uploadData.url;
-      } catch (error) {
-        console.error("Erreur lors de l'upload du CV:", error);
-        alert("Erreur lors de l'upload du CV");
-        setSubmitting(false);
-        return;
-      }
-    }
-
     const data = {
       jobId: job.id,
-      cvUrl,
     };
 
     try {
@@ -706,6 +532,10 @@ function JobApplicationModal({
         window.location.href = "/emploi/mes-candidatures";
       } else {
         const error = await res.json();
+        if (error?.redirectTo) {
+          window.location.href = String(error.redirectTo);
+          return;
+        }
         alert(error.error || "Erreur lors de l'envoi de la candidature");
       }
     } catch (error) {
@@ -777,63 +607,8 @@ function JobApplicationModal({
           <div className="rounded-md bg-primary/10 p-4">
             <p className="text-sm text-navy">
               <strong>V1 : Candidature simplifiée</strong><br />
-              Pour postuler, déposez simplement votre CV (PDF recommandé). Aucune lettre de motivation requise.
+              Pour postuler, votre profil emploi doit être complété. Aucune lettre de motivation requise.
             </p>
-          </div>
-
-          <div>
-            <label htmlFor="cv" className="block text-sm font-medium">
-              CV (obligatoire) *
-            </label>
-
-            {savedCv ? (
-              <div className="mt-2 space-y-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="cvMode"
-                    checked={cvMode === "saved"}
-                    onChange={() => setCvMode("saved")}
-                  />
-                  <span>
-                    Utiliser mon CV importé: <span className="font-medium">{savedCv.fileName}</span>
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="cvMode"
-                    checked={cvMode === "upload"}
-                    onChange={() => setCvMode("upload")}
-                  />
-                  <span>Téléverser un autre CV pour cette candidature</span>
-                </label>
-              </div>
-            ) : null}
-
-            <input
-              type="file"
-              id="cv"
-              accept=".pdf,.doc,.docx"
-              required={cvMode === "upload"}
-              disabled={cvMode === "saved"}
-              onChange={(e) => setCvFile(e.target.files?.[0] || null)}
-              className="mt-1 w-full text-sm"
-            />
-            <p className="mt-1 text-xs text-muted">
-              Formats acceptés: PDF (recommandé), DOC, DOCX (max 10MB)
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="confirm"
-                required
-                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <label htmlFor="confirm" className="text-sm">
-                Je confirme que mon CV est exact et à jour
-              </label>
-            </div>
           </div>
 
           <div className="flex gap-3">
