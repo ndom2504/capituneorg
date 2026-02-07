@@ -5,12 +5,56 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
+import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+function getFirebaseBucketName(): string | null {
+  const raw =
+    process.env.FIREBASE_STORAGE_BUCKET ??
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
+    null;
+  const name = raw?.trim();
+  return name ? name : null;
+}
+
+async function uploadToFirebaseStorage(args: {
+  userId: string;
+  kind: "avatar" | "cover";
+  file: File;
+}): Promise<string> {
+  const bucketName = getFirebaseBucketName();
+  if (!bucketName) {
+    throw new Error("Firebase Storage bucket non configuré.");
+  }
+
+  const adminApp = getFirebaseAdminApp();
+  const admin = await import("firebase-admin");
+  const bucket = (admin.default ?? admin).storage(adminApp).bucket(bucketName);
+
+  const ext = safeExt(args.file.name);
+  const objectPath = `uploads/users/${args.userId}/${args.kind}-${crypto.randomUUID()}${ext}`;
+
+  const token = crypto.randomUUID();
+  const arrayBuffer = await args.file.arrayBuffer();
+
+  await bucket.file(objectPath).save(Buffer.from(arrayBuffer), {
+    contentType: args.file.type || undefined,
+    resumable: false,
+    metadata: {
+      metadata: {
+        firebaseStorageDownloadTokens: token,
+      },
+    },
+  });
+
+  const encoded = encodeURIComponent(objectPath);
+  return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encoded}?alt=media&token=${token}`;
+}
 
 async function updateUserMediaUrl(userId: string, kind: "avatar" | "cover", url: string) {
   try {
@@ -99,18 +143,34 @@ export async function POST(req: Request) {
 
   try {
     const ext = safeExt(file.name);
-    const filename = `${kind}-${user.id}-${crypto.randomUUID()}${ext}`;
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadsDir, { recursive: true });
+    const isProd = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+    const hasFirebaseBucket = Boolean(getFirebaseBucketName());
 
-    const arrayBuffer = await file.arrayBuffer();
-    await writeFile(path.join(uploadsDir, filename), Buffer.from(arrayBuffer));
+    let url: string;
 
-    const url = `/uploads/${filename}`;
+    // En prod, privilégier un stockage externe (pas de FS local).
+    if (isProd) {
+      if (!hasFirebaseBucket) {
+        throw new Error(
+          "Stockage média non configuré en production. Définissez FIREBASE_STORAGE_BUCKET ou NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET.",
+        );
+      }
+      url = await uploadToFirebaseStorage({
+        userId: user.id,
+        kind: kind as "avatar" | "cover",
+        file,
+      });
+    } else {
+      const filename = `${kind}-${user.id}-${crypto.randomUUID()}${ext}`;
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(uploadsDir, { recursive: true });
+      const arrayBuffer = await file.arrayBuffer();
+      await writeFile(path.join(uploadsDir, filename), Buffer.from(arrayBuffer));
+      url = `/uploads/${filename}`;
+    }
 
     await updateUserMediaUrl(user.id, kind as "avatar" | "cover", url);
-
     return NextResponse.json({ url });
   } catch (e) {
     console.error("[user-media] Upload failed", {
