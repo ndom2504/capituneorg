@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { MarketplaceProfileEditor } from "@/components/clients/marketplace-profile-editor";
 import { getAppViewer } from "@/lib/auth/viewer";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
@@ -22,5 +21,6 @@ export default async function ModifierProfilMarketplacePage() {
     redirect("/marketplace");
   }
 
-  return <MarketplaceProfileEditor />;
+  // Alias vers la page de gestion principale
+  redirect("/marketplace/mon-profil-marketplace");
 }

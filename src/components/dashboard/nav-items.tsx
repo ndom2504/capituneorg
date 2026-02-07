@@ -222,13 +222,6 @@ export const NAV_ITEMS: NavItem[] = [
         featureKey: "marketplace",
       },
       {
-        href: "/marketplace/bassin-des-demandes",
-        label: "Bassin des demandes",
-        icon: icons.inbox,
-        professionalOnly: true,
-        featureKey: "marketplace",
-      },
-      {
         href: "/marketplace",
         label: "Marketplace",
         icon: icons.marketplace,

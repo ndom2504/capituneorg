@@ -12,5 +12,5 @@ export default async function ClientsMarketplaceProfilPage() {
   }
 
   // Gestion déplacée dans Marketplace (côté PRO)
-  redirect("/marketplace/mon-profil-marketplace/modifier");
+  redirect("/marketplace/mon-profil-marketplace");
 }
