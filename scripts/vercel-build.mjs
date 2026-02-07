@@ -116,6 +116,7 @@ const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
   "20260206_add_messaging_system",
   "20260206193000_add_user_settings",
   "20260206223000_admin_v1",
+  "20260207005000_platform_settings_v1",
 ]);
 
 function fileExists(p) {
@@ -248,11 +249,26 @@ if (isVercel) {
       const failedMigration = getFailedMigrationName(combinedOutput);
       if (failedMigration && AUTO_RESOLVE_APPLIED_MIGRATIONS.has(failedMigration)) {
         log(
-          `Detected failed migration record '${failedMigration}'; resolving as applied, then retrying prisma migrate deploy.`,
+          `Detected failed migration record '${failedMigration}'; resolving (rolled-back then applied if needed), then retrying prisma migrate deploy.`,
         );
         try {
-          runBin("prisma", ["migrate", "resolve", "--applied", failedMigration]);
+          // First prefer rolling it back in migration history so Prisma can retry it.
+          // If the schema changes are already present, the subsequent deploy may fail
+          // with "already exists" errors, which we then resolve as applied.
+          try {
+            runBin("prisma", ["migrate", "resolve", "--rolled-back", failedMigration]);
+          } catch {
+            // Best effort; fall back to applied below.
+          }
+
           deployResult = deploy();
+          if (deployResult.status !== 0) {
+            const retryOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
+            if (isAlreadyExistsLikeError(retryOutput) || getApplyingMigrationName(retryOutput) === failedMigration) {
+              runBin("prisma", ["migrate", "resolve", "--applied", failedMigration]);
+              deployResult = deploy();
+            }
+          }
         } catch {
           // fall through to other auto-heal / failure handling
         }
