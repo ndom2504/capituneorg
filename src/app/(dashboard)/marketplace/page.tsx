@@ -3,12 +3,18 @@ import { MarketplaceList } from "@/components/marketplace/marketplace-list";
 import { getAppViewer } from "@/lib/auth/viewer";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
 
 export default async function MarketplacePage() {
   const viewer = await getAppViewer();
   
   let hasMarketplaceProfile = false;
   const isProfessional = viewer?.accountType === "PROFESSIONAL";
+
+  // Côté PRO, l'entrée Marketplace est un centre de gestion (profil + bassin)
+  if (viewer && isProfessional) {
+    redirect("/marketplace/mon-profil-marketplace");
+  }
   
   if (viewer && isProfessional) {
     const profile = await prisma.marketplaceProfile.findUnique({

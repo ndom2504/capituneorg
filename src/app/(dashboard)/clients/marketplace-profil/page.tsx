@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { MarketplaceProfileEditor } from "@/components/clients/marketplace-profile-editor";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const runtime = "nodejs";
@@ -11,5 +10,7 @@ export default async function ClientsMarketplaceProfilPage() {
   if (!flags.marketplace) {
     redirect("/accueil");
   }
-  return <MarketplaceProfileEditor />;
+
+  // Gestion déplacée dans Marketplace (côté PRO)
+  redirect("/marketplace/mon-profil-marketplace/modifier");
 }

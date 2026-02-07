@@ -76,7 +76,13 @@ function chip(text: string) {
   );
 }
 
-export function MarketplaceProfile({ professionalId }: { professionalId: string }) {
+export function MarketplaceProfile({
+  professionalId,
+  mode = "PUBLIC",
+}: {
+  professionalId: string;
+  mode?: "PUBLIC" | "PRO_SELF";
+}) {
   const [item, setItem] = useState<ProfileItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +95,8 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
   const [cvUploading, setCvUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState<string | null>(null);
+
+  const canSendRequest = mode === "PUBLIC";
 
   function needToTopic(n: NeedId): RequestTopic {
     switch (n) {
@@ -213,7 +221,7 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
         <div className="text-sm font-medium text-danger">Erreur</div>
         <div className="mt-2 text-sm text-text">{error ?? "Profil introuvable."}</div>
         <div className="mt-4">
-          <Link href="/marketplace">
+          <Link href={mode === "PRO_SELF" ? "/marketplace/mon-profil-marketplace" : "/marketplace"}>
             <Button variant="outline">Retour</Button>
           </Link>
         </div>
@@ -224,17 +232,28 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Link href="/marketplace" className="text-sm text-muted">
+        <Link
+          href={mode === "PRO_SELF" ? "/marketplace/mon-profil-marketplace" : "/marketplace"}
+          className="text-sm text-muted"
+        >
           ← Retour
         </Link>
-        <VerifiedBadge 
-          verificationStatus={item.verificationStatus}
-          badges={item.badges}
-          showPending={false}
-        />
+
+        <div className="flex items-center gap-2">
+          {mode === "PRO_SELF" ? (
+            <Link href="/marketplace/mon-profil-marketplace/modifier">
+              <Button>Modifier mon profil</Button>
+            </Link>
+          ) : null}
+          <VerifiedBadge
+            verificationStatus={item.verificationStatus}
+            badges={item.badges}
+            showPending={false}
+          />
+        </div>
       </div>
 
-      {ok ? (
+      {ok && canSendRequest ? (
         <Card className="p-4">
           <div className="text-sm font-medium text-navy">Demande envoyée</div>
           <div className="mt-1 text-sm text-muted">ID: {ok}</div>
@@ -246,33 +265,29 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
           <Card className="p-4 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="rounded-full border border-border bg-white p-1 shadow-sm">
-                <AvatarBubble 
-                  name={item.fullName} 
-                  url={item.avatarUrl} 
-                  size="xxl" 
+                <AvatarBubble
+                  name={item.fullName}
+                  url={item.avatarUrl}
+                  size="xxl"
                   className="border-0"
                   showOnline={true}
                   userId={item.professionalId}
                 />
               </div>
+
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <div className="text-xl font-semibold text-navy">{item.fullName}</div>
-                  <VerifiedBadge 
-                    verificationStatus={item.verificationStatus}
-                    badges={item.badges}
-                    size="md"
-                  />
-                </div>
-                <div className="mt-1 text-sm text-muted">
-                  {item.professionLabel}
-                  {item.organization ? ` • ${item.organization}` : ""}
-                </div>
-                {item.headline ? <div className="mt-2 text-sm text-text">{item.headline}</div> : null}
-                <div className="mt-1 text-xs text-muted">
-                  {item.city}, {item.country} • {item.languages.join(", ") || "—"}
-                </div>
+                <div className="text-base font-semibold text-navy">{item.fullName}</div>
+                <div className="mt-0.5 text-sm text-muted">{item.professionLabel}</div>
               </div>
+            </div>
+
+            <div className="mt-1 text-sm text-muted">
+              {item.professionLabel}
+              {item.organization ? ` • ${item.organization}` : ""}
+            </div>
+            {item.headline ? <div className="mt-2 text-sm text-text">{item.headline}</div> : null}
+            <div className="mt-1 text-xs text-muted">
+              {item.city}, {item.country} • {item.languages.join(", ") || "—"}
             </div>
 
             {item.bioShort ? <div className="mt-4 text-sm text-text">{item.bioShort}</div> : null}
@@ -295,13 +310,17 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
               <div>
                 <div className="text-xs font-semibold text-muted">Spécialités</div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {item.specialties.length ? item.specialties.map((s) => <span key={s}>{chip(s)}</span>) : chip("—")}
+                  {item.specialties.length
+                    ? item.specialties.map((s) => <span key={s}>{chip(s)}</span>)
+                    : chip("—")}
                 </div>
               </div>
               <div>
                 <div className="text-xs font-semibold text-muted">Services</div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {item.services.length ? item.services.map((s) => <span key={s}>{chip(s)}</span>) : chip("—")}
+                  {item.services.length
+                    ? item.services.map((s) => <span key={s}>{chip(s)}</span>)
+                    : chip("—")}
                 </div>
               </div>
             </div>
@@ -310,7 +329,9 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
               <div>
                 <div className="text-xs font-semibold text-muted">Thèmes</div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {item.themes.length ? item.themes.map((t) => <span key={t}>{chip(t)}</span>) : chip("—")}
+                  {item.themes.length
+                    ? item.themes.map((t) => <span key={t}>{chip(t)}</span>)
+                    : chip("—")}
                 </div>
               </div>
               <div>
@@ -339,10 +360,11 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
           </Card>
         </div>
 
-        <div className="space-y-4">
-          <Card className="p-4">
-            <div className="text-base font-semibold text-navy">Demander un rendez-vous</div>
-            <div className="mt-3 grid gap-3">
+        {canSendRequest ? (
+          <div className="space-y-4">
+            <Card className="p-4">
+              <div className="text-base font-semibold text-navy">Demander un rendez-vous</div>
+              <div className="mt-3 grid gap-3">
               <div>
                 <div className="text-xs font-semibold text-muted">Besoin principal</div>
                 <select
@@ -407,9 +429,10 @@ export function MarketplaceProfile({ professionalId }: { professionalId: string 
                 Envoyer la demande
               </Button>
               {error ? <div className="text-xs text-danger">{error}</div> : null}
-            </div>
-          </Card>
-        </div>
+              </div>
+            </Card>
+          </div>
+        ) : null}
       </div>
     </div>
   );

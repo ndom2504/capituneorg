@@ -4,10 +4,48 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/cn";
-import { NAV_ITEMS } from "@/components/dashboard/nav-items";
+import { NAV_ITEMS, type NavGroupItem, type NavItem, type NavLinkItem } from "@/components/dashboard/nav-items";
 import { EventsSidebarCard } from "@/components/events/events-sidebar-card";
 import { BrandMark } from "@/components/ui/brand-mark";
 import type { FeatureFlagsSetting } from "@/lib/feature-flags";
+
+function isGroup(item: NavItem): item is NavGroupItem {
+  return item.kind === "group";
+}
+
+function isLink(item: NavItem): item is NavLinkItem {
+  return !isGroup(item);
+}
+
+function isVisible(
+  item: NavItem,
+  isProfessional: boolean,
+  featureFlags: FeatureFlagsSetting,
+) {
+  if (item.professionalOnly && !isProfessional) return false;
+  if (isProfessional && item.hideForProfessionals) return false;
+  if (item.featureKey && featureFlags[item.featureKey] === false) return false;
+  return true;
+}
+
+function visibleItems(isProfessional: boolean, featureFlags: FeatureFlagsSetting) {
+  return NAV_ITEMS.reduce<NavItem[]>((acc, item) => {
+    if (isGroup(item)) {
+      if (!isVisible(item, isProfessional, featureFlags)) return acc;
+      const children = item.children.filter((c) => isVisible(c, isProfessional, featureFlags));
+      if (!children.length) return acc;
+      acc.push({ ...item, children });
+      return acc;
+    }
+
+    if (isVisible(item, isProfessional, featureFlags)) acc.push(item);
+    return acc;
+  }, []);
+}
+
+function allLinks(items: ReturnType<typeof visibleItems>) {
+  return items.flatMap((item) => (isGroup(item) ? item.children : [item]));
+}
 
 export function Sidebar({
   collapsed,
@@ -24,19 +62,14 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
 
-  const navItems = NAV_ITEMS.filter(
-    (item) =>
-      (!item.professionalOnly || isProfessional) &&
-      !(isProfessional && item.hideForProfessionals) &&
-      (!item.featureKey || featureFlags[item.featureKey] !== false),
-  );
+  const navItems = visibleItems(isProfessional, featureFlags);
 
   const showEventsCard = featureFlags.events !== false;
 
   // Highlight a single active item: choose the most specific match
   // (longest href that matches the current pathname).
   const activeHref =
-    navItems
+    allLinks(navItems)
       .filter((item) => pathname === item.href || pathname.startsWith(item.href + "/"))
       .sort((a, b) => b.href.length - a.href.length)[0]?.href ??
     null;
@@ -56,17 +89,56 @@ export function Sidebar({
         />
       </div>
 
-      <nav className="space-y-1">
+      <nav className="space-y-2">
         {navItems.map((item) => {
-          const active = activeHref === item.href;
+          if (isGroup(item)) {
+            return (
+              <div key={item.label} className="space-y-1">
+                {!collapsed ? (
+                  <div className="px-3 pt-1 text-xs font-semibold text-muted">
+                    {item.label}
+                  </div>
+                ) : null}
+                <div className="space-y-1">
+                  {item.children.map((child) => {
+                    const active = activeHref === child.href;
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={() => {
+                          if (mobileOpen) onCloseMobile();
+                        }}
+                        title={collapsed ? `${item.label} · ${child.label}` : undefined}
+                        className={cn(
+                          "flex items-center gap-3 rounded-(--radius-md) px-3 py-2 text-sm transition-colors",
+                          collapsed && "justify-center px-2",
+                          !collapsed && "pl-6",
+                          active
+                            ? "bg-primary/12 text-navy border border-primary/20"
+                            : "text-text hover:bg-black/5",
+                        )}
+                      >
+                        {child.icon({ className: active ? "text-primary" : "text-navy" })}
+                        {!collapsed ? <span className="truncate">{child.label}</span> : null}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+
+          const link = item;
+          const active = activeHref === link.href;
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={link.href}
+              href={link.href}
               onClick={() => {
                 if (mobileOpen) onCloseMobile();
               }}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? link.label : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-(--radius-md) px-3 py-2 text-sm transition-colors",
                 collapsed && "justify-center px-2",
@@ -75,8 +147,8 @@ export function Sidebar({
                   : "text-text hover:bg-black/5",
               )}
             >
-              {item.icon({ className: active ? "text-primary" : "text-navy" })}
-              {!collapsed ? <span className="truncate">{item.label}</span> : null}
+              {link.icon({ className: active ? "text-primary" : "text-navy" })}
+              {!collapsed ? <span className="truncate">{link.label}</span> : null}
             </Link>
           );
         })}
@@ -134,7 +206,7 @@ function SidebarDrawerContent({
 }: {
   activeHref: string | null;
   onCloseMobile: () => void;
-  navItems: typeof NAV_ITEMS;
+  navItems: ReturnType<typeof visibleItems>;
   showEventsCard: boolean;
 }) {
   return (
@@ -147,13 +219,44 @@ function SidebarDrawerContent({
         />
       </div>
 
-      <nav className="space-y-1">
+      <nav className="space-y-2">
         {navItems.map((item) => {
-          const active = activeHref === item.href;
+          if (isGroup(item)) {
+            return (
+              <div key={item.label} className="space-y-1">
+                <div className="px-3 pt-1 text-xs font-semibold text-muted">{item.label}</div>
+                <div className="space-y-1">
+                  {item.children.map((child) => {
+                    const active = activeHref === child.href;
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={onCloseMobile}
+                        className={cn(
+                          "flex items-center gap-3 rounded-(--radius-md) px-3 py-2 text-sm transition-colors",
+                          "pl-6",
+                          active
+                            ? "bg-primary/12 text-navy border border-primary/20"
+                            : "text-text hover:bg-black/5",
+                        )}
+                      >
+                        {child.icon({ className: active ? "text-primary" : "text-navy" })}
+                        <span className="truncate">{child.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+
+          const link = item;
+          const active = activeHref === link.href;
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={link.href}
+              href={link.href}
               onClick={onCloseMobile}
               className={cn(
                 "flex items-center gap-3 rounded-(--radius-md) px-3 py-2 text-sm transition-colors",
@@ -162,8 +265,8 @@ function SidebarDrawerContent({
                   : "text-text hover:bg-black/5",
               )}
             >
-              {item.icon({ className: active ? "text-primary" : "text-navy" })}
-              <span className="truncate">{item.label}</span>
+              {link.icon({ className: active ? "text-primary" : "text-navy" })}
+              <span className="truncate">{link.label}</span>
             </Link>
           );
         })}

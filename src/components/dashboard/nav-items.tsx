@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-export type NavItem = {
+export type NavLinkItem = {
+  kind?: "link";
   href: string;
   label: string;
   icon: (props: { className?: string }) => ReactNode;
@@ -8,6 +9,18 @@ export type NavItem = {
   hideForProfessionals?: boolean;
   featureKey?: "community" | "events" | "jobs" | "marketplace" | "messaging" | "notifications" | "proNetwork";
 };
+
+export type NavGroupItem = {
+  kind: "group";
+  label: string;
+  icon: (props: { className?: string }) => ReactNode;
+  professionalOnly?: boolean;
+  hideForProfessionals?: boolean;
+  featureKey?: "community" | "events" | "jobs" | "marketplace" | "messaging" | "notifications" | "proNetwork";
+  children: NavLinkItem[];
+};
+
+export type NavItem = NavLinkItem | NavGroupItem;
 
 function IconWrap({
   className,
@@ -195,13 +208,41 @@ export const icons = {
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/accueil", label: "Communauté", icon: icons.home, featureKey: "community" },
-  { href: "/marketplace", label: "Marketplace", icon: icons.marketplace, featureKey: "marketplace" },
   {
-    href: "/marketplace/mes-demandes",
-    label: "Mes demandes",
-    icon: icons.inbox,
-    hideForProfessionals: true,
+    kind: "group",
+    label: "Marketplace",
+    icon: icons.marketplace,
     featureKey: "marketplace",
+    children: [
+      {
+        href: "/marketplace/mon-profil-marketplace",
+        label: "Mon profil marketplace",
+        icon: icons.user,
+        professionalOnly: true,
+        featureKey: "marketplace",
+      },
+      {
+        href: "/marketplace/bassin-des-demandes",
+        label: "Bassin des demandes",
+        icon: icons.inbox,
+        professionalOnly: true,
+        featureKey: "marketplace",
+      },
+      {
+        href: "/marketplace",
+        label: "Marketplace",
+        icon: icons.marketplace,
+        hideForProfessionals: true,
+        featureKey: "marketplace",
+      },
+      {
+        href: "/marketplace/mes-demandes",
+        label: "Mes demandes",
+        icon: icons.inbox,
+        hideForProfessionals: true,
+        featureKey: "marketplace",
+      },
+    ],
   },
   {
     href: "/clients/demandes",
