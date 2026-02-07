@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { NAV_ITEMS } from "@/components/dashboard/nav-items";
 import { EventsSidebarCard } from "@/components/events/events-sidebar-card";
+import { BrandMark } from "@/components/ui/brand-mark";
 import type { FeatureFlagsSetting } from "@/lib/feature-flags";
 
 export function Sidebar({
@@ -48,14 +49,11 @@ export function Sidebar({
           collapsed ? "px-2" : "px-3",
         )}
       >
-        <div className={cn("text-sm font-semibold text-navy", collapsed && "text-center")}>
-          Capitune
-        </div>
-        {!collapsed ? (
-          <div className="text-xs text-muted">
-            Consulting & gestion administrative
-          </div>
-        ) : null}
+        <BrandMark
+          showText={!collapsed}
+          subtitle="Consulting & gestion administrative"
+          className={cn("flex items-center gap-3", collapsed && "justify-center")}
+        />
       </div>
 
       <nav className="space-y-1">
@@ -142,10 +140,11 @@ function SidebarDrawerContent({
   return (
     <div className="flex h-full flex-col">
       <div className="mb-4 rounded-(--radius-md) bg-surface px-3 py-3">
-        <div className="text-sm font-semibold text-navy">Capitune</div>
-        <div className="text-xs text-muted">
-          Consulting & gestion administrative
-        </div>
+        <BrandMark
+          showText
+          subtitle="Consulting & gestion administrative"
+          className="flex items-center gap-3"
+        />
       </div>
 
       <nav className="space-y-1">

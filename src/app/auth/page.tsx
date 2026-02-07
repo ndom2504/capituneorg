@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/cn";
+import { BrandMark } from "@/components/ui/brand-mark";
 import {
   consumeGoogleRedirectResult,
   formatFirebaseAuthError,
@@ -463,7 +464,12 @@ export default function AuthPage() {
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-4 py-10 sm:py-14 lg:grid-cols-2">
         <div className="space-y-5">
           <div>
-            <div className="text-sm font-semibold text-primary">CAPITUNE</div>
+            <BrandMark
+              showText
+              title="CAPITUNE"
+              subtitle="Consulting & gestion administrative"
+              className="flex items-center gap-3"
+            />
             <h1 className="mt-2 text-3xl font-semibold text-navy">
               Accès espace Demandeur / Professionnel
             </h1>

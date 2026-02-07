@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/cn";
+import { BrandMark } from "@/components/ui/brand-mark";
 import type { FeatureFlagsSetting } from "@/lib/feature-flags";
 
 type Item = { href: string; label: string };
@@ -39,8 +40,12 @@ export function AdminSidebar({ featureFlags }: { featureFlags: FeatureFlagsSetti
   return (
     <aside className="w-64 shrink-0 border-r bg-white">
       <div className="px-4 py-4">
-        <div className="text-sm font-semibold text-navy">CAPITUNE</div>
-        <div className="text-xs text-muted">Administration</div>
+        <BrandMark
+          showText
+          title="CAPITUNE"
+          subtitle="Administration"
+          className="flex items-center gap-3"
+        />
       </div>
 
       <nav className="px-2 pb-4">
