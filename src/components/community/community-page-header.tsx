@@ -7,7 +7,7 @@ import type { FeatureFlagsSetting } from "@/lib/feature-flags";
 
 export function CommunityPageHeader({
   pageName = "Capitune",
-  tagline = "Consulting & gestion administrative · Immigration Canada",
+  tagline = "Orientation & Accompagnement vers le Canada · Immigration Canada",
   avatarUrl,
   coverUrl,
   activeTab = "publications",

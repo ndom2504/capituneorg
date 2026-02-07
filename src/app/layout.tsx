@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Capitune — Consulting & gestion administrative",
+  title: "Capitune — Orientation & Accompagnement vers le Canada",
   description:
     "Plateforme Capitune: communauté, parcours, événements & formations, gestion de dossier d'immigration au Canada.",
 };

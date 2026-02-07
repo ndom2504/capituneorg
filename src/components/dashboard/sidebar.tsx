@@ -51,7 +51,7 @@ export function Sidebar({
       >
         <BrandMark
           showText={!collapsed}
-          subtitle="Consulting & gestion administrative"
+          subtitle="Orientation & Accompagnement vers le Canada"
           className={cn("flex items-center gap-3", collapsed && "justify-center")}
         />
       </div>
@@ -142,7 +142,7 @@ function SidebarDrawerContent({
       <div className="mb-4 rounded-(--radius-md) bg-surface px-3 py-3">
         <BrandMark
           showText
-          subtitle="Consulting & gestion administrative"
+          subtitle="Orientation & Accompagnement vers le Canada"
           className="flex items-center gap-3"
         />
       </div>

@@ -467,7 +467,7 @@ export default function AuthPage() {
             <BrandMark
               showText
               title="CAPITUNE"
-              subtitle="Consulting & gestion administrative"
+              subtitle="Orientation & Accompagnement vers le Canada"
               className="flex items-center gap-3"
             />
             <h1 className="mt-2 text-3xl font-semibold text-navy">
