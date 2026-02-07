@@ -10,7 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { AvatarBubble } from "@/components/ui/avatar-bubble";
 import { VerifiedBadgeInline } from "@/components/marketplace/verified-badge";
 import { cn } from "@/lib/cn";
-import { NEEDS, needLabel, serviceLabel, type NeedId } from "@/lib/taxonomy";
+import {
+  NEEDS,
+  SERVICE_CATEGORIES,
+  SERVICES_PICKER,
+  needLabel,
+  serviceLabel,
+  type NeedId,
+  type ServiceCategoryId,
+} from "@/lib/taxonomy";
 import type { VerificationStatus, ProfileBadgeType } from "@prisma/client";
 
 type MarketplaceItem = {
@@ -85,6 +93,10 @@ export function MarketplaceList() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [needs, setNeeds] = useState<NeedId[]>([]);
 
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [serviceCategory, setServiceCategory] = useState<ServiceCategoryId>(SERVICE_CATEGORIES[0]?.id);
+  const [serviceToAdd, setServiceToAdd] = useState<string>("");
+
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestTarget, setRequestTarget] = useState<MarketplaceItem | null>(null);
   const [primaryNeed, setPrimaryNeed] = useState<NeedId>("need.orientation");
@@ -98,6 +110,27 @@ export function MarketplaceList() {
 
   function toggleNeed(id: NeedId) {
     setNeeds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  const servicesForCategory = useMemo(() => {
+    return SERVICES_PICKER.filter((s) => s.category === serviceCategory);
+  }, [serviceCategory]);
+
+  useEffect(() => {
+    setServiceToAdd(servicesForCategory[0]?.id ?? "");
+  }, [servicesForCategory]);
+
+  function addService() {
+    if (!serviceToAdd) return;
+    setSelectedServices((prev) => {
+      if (prev.includes(serviceToAdd)) return prev;
+      if (prev.length >= 3) return prev;
+      return [...prev, serviceToAdd];
+    });
+  }
+
+  function removeService(id: string) {
+    setSelectedServices((prev) => prev.filter((x) => x !== id));
   }
 
   function needToTopic(n: NeedId): RequestTopic {
@@ -140,6 +173,7 @@ export function MarketplaceList() {
         if (profession) params.set("profession", profession);
         if (verifiedOnly) params.set("verified", "true");
         if (needs.length) params.set("needs", needs.join(","));
+        if (selectedServices.length) params.set("services", selectedServices.join(","));
         const res = await fetch(`/api/marketplace/professionals?${params.toString()}`);
         if (!res.ok) {
           const text = await res.text();
@@ -158,7 +192,7 @@ export function MarketplaceList() {
     return () => {
       canceled = true;
     };
-  }, [q, profession, verifiedOnly, needs]);
+  }, [q, profession, verifiedOnly, needs, selectedServices]);
 
   const professions = useMemo(() => {
     const set = new Map<string, string>();
@@ -312,6 +346,91 @@ export function MarketplaceList() {
           {needs.length ? (
             <div className="mt-2 text-xs text-muted">
               Vos besoins: {needs.map((id) => needLabel(id)).join(" • ")}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-xs font-semibold text-muted">Services (optionnel)</div>
+              <div className="text-xs text-muted">
+                Sélectionnez jusqu’à 3 services pour filtrer.
+              </div>
+            </div>
+            {selectedServices.length ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedServices([])}
+                className="w-full sm:w-auto"
+              >
+                Réinitialiser
+              </Button>
+            ) : null}
+          </div>
+
+          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_2fr_auto] sm:items-end">
+            <div>
+              <div className="text-xs font-semibold text-muted">Catégorie</div>
+              <select
+                aria-label="Catégorie de service"
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                value={serviceCategory}
+                onChange={(e) => setServiceCategory(e.target.value as ServiceCategoryId)}
+              >
+                {SERVICE_CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="text-xs font-semibold text-muted">Service</div>
+              <select
+                aria-label="Service"
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                value={serviceToAdd}
+                onChange={(e) => setServiceToAdd(e.target.value)}
+                disabled={!servicesForCategory.length}
+              >
+                {servicesForCategory.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Button
+                type="button"
+                onClick={addService}
+                disabled={!serviceToAdd || selectedServices.length >= 3}
+                className="w-full sm:w-auto"
+              >
+                Ajouter
+              </Button>
+            </div>
+          </div>
+
+          {selectedServices.length ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {selectedServices.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => removeService(id)}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-3 py-1 text-xs text-text hover:bg-white"
+                  aria-label={`Retirer ${serviceLabel(id)}`}
+                  title="Retirer"
+                >
+                  <span className="font-semibold text-navy">{serviceLabel(id)}</span>
+                  <span className="text-muted">✕</span>
+                </button>
+              ))}
             </div>
           ) : null}
         </div>
