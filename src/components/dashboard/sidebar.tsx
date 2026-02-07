@@ -92,13 +92,30 @@ export function Sidebar({
       <nav className="space-y-2">
         {navItems.map((item) => {
           if (isGroup(item)) {
+            const groupHref = item.children[0]?.href ?? "/accueil";
+            const groupActive = item.children.some((c) => {
+              const href = c.href;
+              return activeHref === href || (activeHref != null && activeHref.startsWith(href + "/"));
+            });
             return (
               <div key={item.label} className="space-y-1">
-                {!collapsed ? (
-                  <div className="px-3 pt-1 text-xs font-semibold text-muted">
-                    {item.label}
-                  </div>
-                ) : null}
+                <Link
+                  href={groupHref}
+                  onClick={() => {
+                    if (mobileOpen) onCloseMobile();
+                  }}
+                  title={collapsed ? item.label : undefined}
+                  className={cn(
+                    "flex items-center gap-3 rounded-(--radius-md) px-3 py-2 text-sm transition-colors",
+                    collapsed && "justify-center px-2",
+                    groupActive
+                      ? "bg-primary/12 text-navy border border-primary/20"
+                      : "text-text hover:bg-black/5",
+                  )}
+                >
+                  {item.icon({ className: groupActive ? "text-primary" : "text-navy" })}
+                  {!collapsed ? <span className="truncate">{item.label}</span> : null}
+                </Link>
                 <div className="space-y-1">
                   {item.children.map((child) => {
                     const active = activeHref === child.href;
@@ -222,9 +239,26 @@ function SidebarDrawerContent({
       <nav className="space-y-2">
         {navItems.map((item) => {
           if (isGroup(item)) {
+            const groupHref = item.children[0]?.href ?? "/accueil";
+            const groupActive = item.children.some((c) => {
+              const href = c.href;
+              return activeHref === href || (activeHref != null && activeHref.startsWith(href + "/"));
+            });
             return (
               <div key={item.label} className="space-y-1">
-                <div className="px-3 pt-1 text-xs font-semibold text-muted">{item.label}</div>
+                <Link
+                  href={groupHref}
+                  onClick={onCloseMobile}
+                  className={cn(
+                    "flex items-center gap-3 rounded-(--radius-md) px-3 py-2 text-sm transition-colors",
+                    groupActive
+                      ? "bg-primary/12 text-navy border border-primary/20"
+                      : "text-text hover:bg-black/5",
+                  )}
+                >
+                  {item.icon({ className: groupActive ? "text-primary" : "text-navy" })}
+                  <span className="truncate">{item.label}</span>
+                </Link>
                 <div className="space-y-1">
                   {item.children.map((child) => {
                     const active = activeHref === child.href;
