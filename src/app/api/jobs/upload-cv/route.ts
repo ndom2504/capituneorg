@@ -4,6 +4,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth/session";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,11 @@ function safeExt(filename: string, mimeType: string) {
  * Upload d'un CV pour candidature (V1 : PDF uniquement recommandé)
  */
 export async function POST(req: Request) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.jobs) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const form = await req.formData();
   const file = form.get("file");
 

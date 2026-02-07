@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,11 @@ export async function POST(
   _req: NextRequest,
   context: { params: Promise<{ eventId: string }> },
 ) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.events) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const viewer = await getViewer();
   if (!viewer) {
     return NextResponse.json(

@@ -7,18 +7,21 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { MessagingManager } from "@/components/messaging/messaging-manager";
 import { usePresence } from "@/lib/hooks/usePresence";
 import type { AppViewer } from "@/lib/auth/viewer";
+import type { FeatureFlagsSetting } from "@/lib/feature-flags";
 
 export function DashboardShell({
   children,
   isProfessional,
   viewer,
+  featureFlags,
 }: {
   children: React.ReactNode;
   isProfessional: boolean;
   viewer: AppViewer | null;
+  featureFlags: FeatureFlagsSetting;
 }) {
   // Envoyer automatiquement des heartbeats de présence
-  usePresence();
+  usePresence(featureFlags.presence !== false);
 
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
@@ -60,6 +63,7 @@ export function DashboardShell({
           mobileOpen={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
           isProfessional={isProfessional}
+          featureFlags={featureFlags}
         />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Topbar
@@ -68,6 +72,7 @@ export function DashboardShell({
             onOpenMobile={() => setMobileSidebarOpen(true)}
             viewer={viewer}
             isScrolled={isScrolled}
+            featureFlags={featureFlags}
           />
           <main 
             ref={mainRef}
@@ -83,7 +88,9 @@ export function DashboardShell({
       </div>
       
       {/* Messaging widget */}
-      {viewer && <MessagingManager currentUserId={viewer.id} />}
+      {viewer && featureFlags.messaging !== false ? (
+        <MessagingManager currentUserId={viewer.id} />
+      ) : null}
     </div>
   );
 }

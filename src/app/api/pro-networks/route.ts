@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getViewer } from "@/app/api/relationships/_viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 function normalizeText(value: string) {
   return value.replace(/\s+/g, " ").trim();
@@ -17,6 +18,11 @@ function ensureProfessional(viewer: Awaited<ReturnType<typeof getViewer>>) {
 }
 
 export async function GET() {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.proNetwork) {
+    return Response.json({ error: "Not found." }, { status: 404 });
+  }
+
   const viewer = await getViewer();
   const check = ensureProfessional(viewer);
   if (!check.ok) {
@@ -44,6 +50,11 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.proNetwork) {
+    return Response.json({ error: "Not found." }, { status: 404 });
+  }
+
   const viewer = await getViewer();
   const check = ensureProfessional(viewer);
   if (!check.ok) {

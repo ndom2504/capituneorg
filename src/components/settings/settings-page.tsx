@@ -146,7 +146,7 @@ function Toast({ message }: { message: string }) {
   );
 }
 
-export function SettingsPage({ viewer }: { viewer: AppViewer }) {
+export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppViewer; presenceEnabled?: boolean }) {
   const isPro = viewer.accountType === "PROFESSIONAL" || viewer.accountType === "ADMIN";
 
   const [activeTab, setActiveTab] = React.useState<TabKey>("compte");
@@ -167,6 +167,11 @@ export function SettingsPage({ viewer }: { viewer: AppViewer }) {
   const [deleteLoading, setDeleteLoading] = React.useState(false);
 
   const [manualStatus, setManualStatus] = React.useState<"" | "PAUSE" | "ABSENT" | "MUTE" | "MEETING">("");
+
+  React.useEffect(() => {
+    if (presenceEnabled) return;
+    setActiveTab((t) => (t === "presence" ? "compte" : t));
+  }, [presenceEnabled]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -210,6 +215,8 @@ export function SettingsPage({ viewer }: { viewer: AppViewer }) {
 
     async function loadPresenceStatus() {
       try {
+        if (!presenceEnabled) return;
+
         const res = await fetch(`/api/presence?userIds=${encodeURIComponent(viewer.id)}`, {
           cache: "no-store",
         });
@@ -236,7 +243,7 @@ export function SettingsPage({ viewer }: { viewer: AppViewer }) {
     return () => {
       cancelled = true;
     };
-  }, [viewer.id]);
+  }, [viewer.id, presenceEnabled]);
 
   React.useEffect(() => {
     if (!toast) return;
@@ -349,11 +356,15 @@ export function SettingsPage({ viewer }: { viewer: AppViewer }) {
 
   async function testHeartbeat() {
     try {
-      await fetch("/api/presence/heartbeat", {
+      const res = await fetch("/api/presence/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
+      if (!res.ok) {
+        setToast(res.status === 404 ? "Présence désactivée" : "Échec heartbeat");
+        return;
+      }
       setToast("Heartbeat envoyé ✅");
     } catch {
       setToast("Échec heartbeat");
@@ -425,7 +436,7 @@ export function SettingsPage({ viewer }: { viewer: AppViewer }) {
     { key: "compte", label: "Compte" },
     { key: "confidentialite", label: "Confidentialité" },
     { key: "notifications", label: "Notifications" },
-    { key: "presence", label: "Statut & présence" },
+    { key: "presence", label: "Statut & présence", show: presenceEnabled },
     { key: "marketplace", label: "Marketplace & performance", show: isPro },
     { key: "securite", label: "Sécurité" },
     { key: "donnees", label: "Données" },
@@ -440,7 +451,9 @@ export function SettingsPage({ viewer }: { viewer: AppViewer }) {
         <div>
           <h1 className="text-2xl font-semibold text-navy">Paramètres</h1>
           <div className="mt-1 text-sm text-muted">
-            Compte, confidentialité, notifications et présence.
+            {presenceEnabled
+              ? "Compte, confidentialité, notifications et présence."
+              : "Compte, confidentialité et notifications."}
           </div>
         </div>
       </div>
@@ -667,11 +680,15 @@ export function SettingsPage({ viewer }: { viewer: AppViewer }) {
                         const v = e.target.value as "" | "PAUSE" | "ABSENT" | "MUTE" | "MEETING";
                         setManualStatus(v);
                         const statusManual = v === "" ? null : v;
-                        await fetch("/api/presence/heartbeat", {
+                        const res = await fetch("/api/presence/heartbeat", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ statusManual }),
                         });
+                        if (!res.ok) {
+                          setToast(res.status === 404 ? "Présence désactivée" : "Échec mise à jour du statut");
+                          return;
+                        }
                         setToast("Statut mis à jour ✅");
                       }}
                     >

@@ -3,9 +3,11 @@ import type { ReactNode } from "react";
 import { CommunityPageHeader } from "@/components/community/community-page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAppViewer } from "@/lib/auth/viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export default async function AProposPage() {
   const viewer = await getAppViewer();
+  const featureFlags = await getFeatureFlagsFromDb();
 
   return (
     <div className="w-full space-y-4">
@@ -16,6 +18,7 @@ export default async function AProposPage() {
         activeTab="apropos"
         isOwner
         viewerAccountType={viewer?.accountType ?? null}
+        featureFlags={featureFlags}
       />
 
       <div className="grid gap-4 lg:grid-cols-12">

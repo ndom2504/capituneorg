@@ -7,6 +7,7 @@ import { EventsSidebarCard } from "@/components/events/events-sidebar-card";
 import { PerformanceCard } from "@/components/profile/performance-card";
 import { prisma } from "@/lib/db";
 import { getAppViewer } from "@/lib/auth/viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 function formatRelativeDate(date: Date) {
   const diffMs = Date.now() - date.getTime();
@@ -21,6 +22,7 @@ function formatRelativeDate(date: Date) {
 
 export default async function AccueilPage() {
   const viewer = await getAppViewer();
+  const featureFlags = await getFeatureFlagsFromDb();
 
   let directoryUsers: any[] = [];
   let following: any[] = [];
@@ -202,6 +204,7 @@ export default async function AccueilPage() {
         activeTab="publications"
         isOwner
         viewerAccountType={viewer?.accountType ?? null}
+        featureFlags={featureFlags}
       />
 
       <div className="grid gap-4 lg:grid-cols-12">
@@ -210,7 +213,7 @@ export default async function AccueilPage() {
             <div className="space-y-4">
               <AboutCard />
               {viewer && <PerformanceCard userId={viewer.id} isPro={!!viewer.marketplaceProfile} />}
-              <EventsSidebarCard />
+              {featureFlags.events ? <EventsSidebarCard /> : null}
               <ConnectionsCard users={connections} />
             </div>
           </div>

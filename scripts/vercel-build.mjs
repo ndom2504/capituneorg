@@ -87,9 +87,35 @@ function getFailedMigrationName(output) {
   return match?.[1] ?? null;
 }
 
+function getApplyingMigrationName(output) {
+  const text = String(output ?? "");
+
+  // Common prisma migrate deploy outputs
+  // - Applying migration `20260206223000_admin_v1`
+  // - Migration `20260206223000_admin_v1` failed
+  const m1 = text.match(/Applying migration `([^`]+)`/);
+  if (m1?.[1]) return m1[1];
+
+  const m2 = text.match(/Migration `([^`]+)` failed/);
+  if (m2?.[1]) return m2[1];
+
+  return null;
+}
+
+function isAlreadyExistsLikeError(output) {
+  const text = String(output ?? "");
+  return (
+    text.includes("already exists") ||
+    text.includes("duplicate_object") ||
+    text.includes("42710") ||
+    (text.includes("E42P07") && text.includes("already exists"))
+  );
+}
+
 const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
   "20260206_add_messaging_system",
   "20260206193000_add_user_settings",
+  "20260206223000_admin_v1",
 ]);
 
 function fileExists(p) {
@@ -246,6 +272,23 @@ if (isVercel) {
         } catch (error) {
           // fall through to normal failure handling
           deployResult = deployResult ?? { status: 1, stdout: "", stderr: String(error?.message ?? error) };
+        }
+      }
+
+      // Auto-heal when a migration was applied manually (SQL already in DB) but
+      // _prisma_migrations doesn't mark it as applied yet.
+      // Symptom: migrate deploy fails with "already exists" for types/tables/columns.
+      const applying = getApplyingMigrationName(combinedOutput);
+      if (applying && AUTO_RESOLVE_APPLIED_MIGRATIONS.has(applying) && isAlreadyExistsLikeError(combinedOutput)) {
+        log(
+          `Detected '${applying}' failing with an 'already exists' error; resolving as applied, then retrying prisma migrate deploy.`,
+        );
+
+        try {
+          runBin("prisma", ["migrate", "resolve", "--applied", applying]);
+          deployResult = deploy();
+        } catch {
+          // fall through to normal failure handling
         }
       }
 

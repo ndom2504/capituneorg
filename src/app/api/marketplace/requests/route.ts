@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getViewer } from "@/app/api/marketplace/_viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,11 @@ function isSafeUploadUrl(url: string | null) {
 }
 
 export async function POST(req: NextRequest) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.marketplace) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const viewer = await getViewer();
   if (!viewer) {
     return NextResponse.json(

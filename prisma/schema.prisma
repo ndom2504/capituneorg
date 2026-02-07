@@ -1,11 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -95,6 +95,68 @@ enum AccountType {
   USER
   PROFESSIONAL
   ADMIN
+}
+
+// Rôle interne d'administration (uniquement si accountType=ADMIN)
+enum AdminRole {
+  ADMIN
+  MODERATOR
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum AuditAction {
+  VERIFY_PRO
+  REJECT_PRO
+  SUSPEND_USER
+  SUSPEND_PROFILE
+  REACTIVATE_PROFILE
+  REACTIVATE_USER
+  FORCE_LOGOUT
+  ADD_ADMIN_NOTE
+  REPORT_REVIEW
+  REPORT_RESOLVE
+  REPORT_DISMISS
+  FEATURE_EVENT
+  UNFEATURE_EVENT
+  PUBLISH_JOB
+  CLOSE_JOB
+  UPDATE_PLATFORM_SETTING
+  CREATE_NOTIFICATION_TEMPLATE
+  UPDATE_NOTIFICATION_TEMPLATE
+  ARCHIVE_NOTIFICATION_TEMPLATE
+  RESTORE_NOTIFICATION_TEMPLATE
+  SEND_NOTIFICATION
+  HIDE_POST
+  RESTORE_POST
+  DELETE_COMMENT
+  LOCK_COMMENTS
+  UNLOCK_COMMENTS
+  PIN_POST
+  UNPIN_POST
+  BAN_COMMUNITY
+  UNBAN_COMMUNITY
+}
+
+enum ReportTargetType {
+  POST
+  COMMENT
+  PROFILE
+  OFFER
+  PRO
+  DOSSIER
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
 }
 
 enum MarketplaceProfession {
@@ -278,18 +340,18 @@ enum NotificationPriority {
 }
 
 model Notification {
-  id        String               @id @default(cuid())
-  userId    String
+  id     String @id @default(cuid())
+  userId String
 
-  role      NotificationRole
-  type      String
-  title     String
-  message   String
-  link      String
-  priority  NotificationPriority @default(INFO)
+  role     NotificationRole
+  type     String
+  title    String
+  message  String
+  link     String
+  priority NotificationPriority @default(INFO)
 
   readAt    DateTime?
-  createdAt DateTime             @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -297,73 +359,186 @@ model Notification {
   @@index([userId, readAt])
 }
 
+model NotificationTemplate {
+  id String @id @default(cuid())
+
+  role     NotificationRole
+  type     String
+  title    String
+  message  String
+  link     String
+  priority NotificationPriority @default(INFO)
+
+  archivedAt DateTime?
+
+  createdByAdminId String
+  updatedByAdminId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([archivedAt, createdAt])
+  @@index([role, priority, createdAt])
+  @@index([type])
+  @@index([createdByAdminId, createdAt])
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  passwordHash String?
-  fullName  String
-  avatarUrl String?
-  coverUrl  String?
-  accountType AccountType @default(USER)
-  isCertified Boolean @default(false)
-  
+  id            String        @id @default(cuid())
+  email         String        @unique
+  passwordHash  String?
+  fullName      String
+  avatarUrl     String?
+  coverUrl      String?
+  accountType   AccountType   @default(USER)
+  adminRole     AdminRole     @default(ADMIN)
+  accountStatus AccountStatus @default(ACTIVE)
+  isCertified   Boolean       @default(false)
+
   // Presence / Online status
-  lastSeenAt DateTime?
+  lastSeenAt   DateTime?
   statusManual String? // "busy", "away", etc. (facultatif)
-  
+
+  suspendedAt          DateTime?
+  deletedAt            DateTime?
+  communityBannedAt    DateTime?
+  sessionInvalidBefore DateTime?
+
   createdAt DateTime @default(now())
 
-  settings  UserSettings?
+  settings UserSettings?
 
-  dossiers  Dossier[]
+  dossiers        Dossier[]
   preRegistration PreRegistration?
-  posts     UserPost[]
-  postComments UserPostComment[]
-  postLikes UserPostLike[]
+  posts           UserPost[]
+  postComments    UserPostComment[]
+  postLikes       UserPostLike[]
 
   following Follow[] @relation("FollowFollower")
   followers Follow[] @relation("FollowFollowing")
 
-  contactSent ContactRequest[] @relation("ContactFrom")
+  contactSent     ContactRequest[] @relation("ContactFrom")
   contactReceived ContactRequest[] @relation("ContactTo")
 
-  partnershipSent PartnershipRequest[] @relation("PartnershipFrom")
+  partnershipSent     PartnershipRequest[] @relation("PartnershipFrom")
   partnershipReceived PartnershipRequest[] @relation("PartnershipTo")
 
-  proNetworksOwned ProfessionalNetwork[] @relation("ProNetworkOwner")
+  proNetworksOwned      ProfessionalNetwork[]       @relation("ProNetworkOwner")
   proNetworkMemberships ProfessionalNetworkMember[]
 
   eventRegistrations EventRegistration[]
-  eventLikes EventLike[]
+  eventLikes         EventLike[]
 
   assignedPreRegistrationReviews PreRegistrationReview[]
-  meetingsAsClient Meeting[] @relation("MeetingClient")
-  meetingsAsPro Meeting[] @relation("MeetingPro")
+  meetingsAsClient               Meeting[]               @relation("MeetingClient")
+  meetingsAsPro                  Meeting[]               @relation("MeetingPro")
 
-  marketplaceProfile MarketplaceProfile?
-  marketplaceRequestsSent MarketplaceRequest[] @relation("MarketplaceRequester")
+  marketplaceProfile          MarketplaceProfile?
+  marketplaceRequestsSent     MarketplaceRequest[] @relation("MarketplaceRequester")
   marketplaceRequestsReceived MarketplaceRequest[] @relation("MarketplaceProfessional")
-  
+
   // Vérification de profils marketplace en tant qu'admin
   verifiedProfiles MarketplaceProfile[] @relation("ProfileVerifier")
 
-  paymentServices PaymentService[]
-  paymentOrdersBought PaymentOrder[] @relation("PaymentOrderBuyer")
-  paymentOrdersProvided PaymentOrder[] @relation("PaymentOrderProvider")
+  paymentServices       PaymentService[]
+  paymentOrdersBought   PaymentOrder[]   @relation("PaymentOrderBuyer")
+  paymentOrdersProvided PaymentOrder[]   @relation("PaymentOrderProvider")
 
-  jobPostings JobPosting[] @relation("JobPoster")
+  jobPostings     JobPosting[]     @relation("JobPoster")
   jobApplications JobApplication[] @relation("JobApplicant")
 
   notifications Notification[]
-  
+
+  auditLogs          AuditLog[]      @relation("AuditActor")
+  adminNotesAuthored UserAdminNote[] @relation("AdminNoteAuthor")
+  adminNotesReceived UserAdminNote[] @relation("AdminNoteUser")
+  reportsCreated     Report[]        @relation("ReportReporter")
+  reportsResolved    Report[]        @relation("ReportResolvedBy")
+
   // Performance: reviews given and received
-  reviewsGiven Review[] @relation("ReviewAuthor")
+  reviewsGiven    Review[] @relation("ReviewAuthor")
   reviewsReceived Review[] @relation("ReviewProfessional")
-  
+
   // Messaging
   conversationsInitiated Conversation[] @relation("ConversationInitiator")
-  conversationsReceived Conversation[] @relation("ConversationRecipient")
-  messagesSent Message[] @relation("MessageSender")
+  conversationsReceived  Conversation[] @relation("ConversationRecipient")
+  messagesSent           Message[]      @relation("MessageSender")
+
+  platformSettingsUpdated PlatformSetting[] @relation("PlatformSettingUpdatedBy")
+}
+
+model PlatformSetting {
+  key String @id
+
+  value Json
+
+  updatedByAdminId String?
+  updatedByAdmin   User?   @relation("PlatformSettingUpdatedBy", fields: [updatedByAdminId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedByAdminId, updatedAt])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  adminId String
+  admin   User   @relation("AuditActor", fields: [adminId], references: [id], onDelete: Cascade)
+
+  action     AuditAction
+  objectType String?
+  objectId   String?
+  beforeJson Json?
+  afterJson  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+}
+
+model UserAdminNote {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("AdminNoteUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  adminId String
+  admin   User   @relation("AdminNoteAuthor", fields: [adminId], references: [id], onDelete: Cascade)
+
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([adminId, createdAt])
+}
+
+model Report {
+  id String @id @default(cuid())
+
+  targetType ReportTargetType
+  targetId   String?
+  status     ReportStatus     @default(OPEN)
+
+  reason      String?
+  detailsJson Json?
+
+  reporterId String?
+  reporter   User?   @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+
+  resolvedById   String?
+  resolvedBy     User?     @relation("ReportResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt     DateTime?
+  resolutionNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([targetType, createdAt])
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
 }
 
 model UserSettings {
@@ -371,37 +546,37 @@ model UserSettings {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Compte
-  language String @default("FR")
-  timezone String @default("UTC")
+  language String  @default("FR")
+  timezone String  @default("UTC")
   country  String?
 
   // Confidentialité
-  showOnlineStatus    Boolean @default(true)
-  showLastSeen        Boolean @default(true)
+  showOnlineStatus     Boolean @default(true)
+  showLastSeen         Boolean @default(true)
   showCountryOnProfile Boolean @default(true)
-  communityVisible    Boolean @default(true)
+  communityVisible     Boolean @default(true)
 
   // Statut & présence
   autoAwayMinutes Int @default(30)
 
   // Notifications
-  notifyInApp     Boolean @default(true)
-  notifyEmail     Boolean @default(false)
-  notifyRequests  Boolean @default(true)
-  notifyDocuments Boolean @default(true)
-  notifyPayments  Boolean @default(true)
-  notifyMeetings  Boolean @default(true)
-  notifyEvents    Boolean @default(true)
-  notifyMarketplace Boolean @default(true)
-  notificationFrequency String @default("IMMEDIATE")
+  notifyInApp           Boolean @default(true)
+  notifyEmail           Boolean @default(false)
+  notifyRequests        Boolean @default(true)
+  notifyDocuments       Boolean @default(true)
+  notifyPayments        Boolean @default(true)
+  notifyMeetings        Boolean @default(true)
+  notifyEvents          Boolean @default(true)
+  notifyMarketplace     Boolean @default(true)
+  notificationFrequency String  @default("IMMEDIATE")
 
   // Marketplace / Performance (PRO)
-  allowFollow          Boolean @default(true)
-  showFollowersCount   Boolean @default(true)
-  showBadges           Boolean @default(true)
-  allowReviews         Boolean @default(true)
-  showRatingPublicly   Boolean @default(true)
-  showReviewComments   Boolean @default(true)
+  allowFollow        Boolean @default(true)
+  showFollowersCount Boolean @default(true)
+  showBadges         Boolean @default(true)
+  allowReviews       Boolean @default(true)
+  showRatingPublicly Boolean @default(true)
+  showReviewComments Boolean @default(true)
 
   // Données
   deletionRequestedAt DateTime?
@@ -411,10 +586,10 @@ model UserSettings {
 }
 
 model PreRegistration {
-  id        String @id @default(cuid())
-  userId    String @unique
+  id     String @id @default(cuid())
+  userId String @unique
 
-  status    PreRegistrationStatus @default(DRAFT)
+  status PreRegistrationStatus @default(DRAFT)
 
   firstName String?
   lastName  String?
@@ -423,8 +598,8 @@ model PreRegistration {
   language  CommunicationLanguage?
 
   countryOfResidence String?
-  city              String?
-  nationality       String?
+  city               String?
+  nationality        String?
   residenceSituation ResidenceSituation?
 
   mainObjective MainObjective?
@@ -435,8 +610,8 @@ model PreRegistration {
   educationLevel        EducationLevel?
   experienceRange       ExperienceRange?
 
-  budgetRange BudgetRange?
-  constraintsJson Json?
+  budgetRange      BudgetRange?
+  constraintsJson  Json?
   constraintsOther String?
 
   message String?
@@ -449,7 +624,7 @@ model PreRegistration {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  review PreRegistrationReview?
+  review   PreRegistrationReview?
   meetings Meeting[]
 
   @@index([userId])
@@ -458,16 +633,16 @@ model PreRegistration {
 model PreRegistrationReview {
   id String @id @default(cuid())
 
-  preRegistrationId String @unique
-  preRegistration PreRegistration @relation(fields: [preRegistrationId], references: [id], onDelete: Cascade)
+  preRegistrationId String          @unique
+  preRegistration   PreRegistration @relation(fields: [preRegistrationId], references: [id], onDelete: Cascade)
 
-  status PreRegistrationReviewStatus @default(NEW)
-  feasibility ReviewFeasibility?
+  status           PreRegistrationReviewStatus @default(NEW)
+  feasibility      ReviewFeasibility?
   recommendedTrack String?
-  internalNotes String?
+  internalNotes    String?
 
   assignedProId String?
-  assignedPro User? @relation(fields: [assignedProId], references: [id], onDelete: SetNull)
+  assignedPro   User?   @relation(fields: [assignedProId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -480,22 +655,22 @@ model Meeting {
   id String @id @default(cuid())
 
   clientId String
-  client User @relation("MeetingClient", fields: [clientId], references: [id], onDelete: Cascade)
+  client   User   @relation("MeetingClient", fields: [clientId], references: [id], onDelete: Cascade)
 
   proId String
-  pro User @relation("MeetingPro", fields: [proId], references: [id], onDelete: Cascade)
+  pro   User   @relation("MeetingPro", fields: [proId], references: [id], onDelete: Cascade)
 
   preRegistrationId String?
-  preRegistration PreRegistration? @relation(fields: [preRegistrationId], references: [id], onDelete: SetNull)
+  preRegistration   PreRegistration? @relation(fields: [preRegistrationId], references: [id], onDelete: SetNull)
 
-  title String
-  type MeetingType @default(OTHER)
+  title  String
+  type   MeetingType   @default(OTHER)
   status MeetingStatus @default(SCHEDULED)
 
-  startsAt DateTime
-  durationMin Int @default(30)
+  startsAt    DateTime
+  durationMin Int      @default(30)
 
-  locationUrl String?
+  locationUrl   String?
   notesInternal String?
 
   marketplaceRequest MarketplaceRequest? @relation("MarketplaceRequestMeeting")
@@ -512,50 +687,50 @@ model MarketplaceProfile {
   id String @id @default(cuid())
 
   userId String @unique
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  status MarketplaceProfileStatus @default(DRAFT)
-  isVerified Boolean @default(false) // Gardé pour compatibilité, à déprécier
-  
+  status     MarketplaceProfileStatus @default(DRAFT)
+  isVerified Boolean                  @default(false) // Gardé pour compatibilité, à déprécier
+
   // Nouveau système de vérification
   verificationStatus VerificationStatus @default(DRAFT)
-  verifiedAt DateTime?
-  verifiedById String?
-  verifiedBy User? @relation("ProfileVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
-  rejectionReason String?
-  
+  verifiedAt         DateTime?
+  verifiedById       String?
+  verifiedBy         User?              @relation("ProfileVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  rejectionReason    String?
+
   // Badges attribués manuellement par admin
   badgesJson Json? // ["VERIFIED", "PARTNER", "TOP_CONTRIBUTOR"]
 
-  profession MarketplaceProfession
-  headline String?
+  profession   MarketplaceProfession
+  headline     String?
   organization String?
 
   country String
-  city String
+  city    String
 
-  languagesJson Json?
-  themesJson Json?
-  specialtiesJson Json?
-  servicesJson Json?
+  languagesJson       Json?
+  themesJson          Json?
+  specialtiesJson     Json?
+  servicesJson        Json?
   targetAudiencesJson Json?
-  availabilityJson Json?
+  availabilityJson    Json?
 
-  format MarketplaceFormat @default(VISIO)
+  format       MarketplaceFormat        @default(VISIO)
   responseTime MarketplaceResponseTime?
 
-  licenseNumber String?
+  licenseNumber    String?
   licenseAuthority String?
-  proofUrl String?
+  proofUrl         String?
 
   bioShort String?
-  bioLong String?
+  bioLong  String?
 
   employerDetails String?
 
   pricingMode MarketplacePricingMode @default(FREE)
-  price30Min Int?
-  price60Min Int?
+  price30Min  Int?
+  price60Min  Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -572,38 +747,38 @@ model MarketplaceRequest {
   id String @id @default(cuid())
 
   requesterId String
-  requester User @relation("MarketplaceRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requester   User   @relation("MarketplaceRequester", fields: [requesterId], references: [id], onDelete: Cascade)
 
   professionalId String
-  professional User @relation("MarketplaceProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
+  professional   User   @relation("MarketplaceProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
 
   profileId String?
-  profile MarketplaceProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  profile   MarketplaceProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
-  status MarketplaceRequestStatus @default(PENDING)
-  topic MarketplaceNeedTopic?
-  urgency MarketplaceUrgency?
+  status             MarketplaceRequestStatus @default(PENDING)
+  topic              MarketplaceNeedTopic?
+  urgency            MarketplaceUrgency?
   preferredTimeframe String?
-  message String?
+  message            String?
 
   proNote String?
-  
+
   // Performance tracking (V1)
-  acceptedAt DateTime?
+  acceptedAt         DateTime?
   firstProResponseAt DateTime?
-  closedByClientAt DateTime?
+  closedByClientAt   DateTime?
 
-  meetingId String? @unique
-  meeting Meeting? @relation("MarketplaceRequestMeeting", fields: [meetingId], references: [id], onDelete: SetNull)
+  meetingId String?  @unique
+  meeting   Meeting? @relation("MarketplaceRequestMeeting", fields: [meetingId], references: [id], onDelete: SetNull)
 
-  requesterLastReadAt DateTime?
+  requesterLastReadAt    DateTime?
   professionalLastReadAt DateTime?
-  lastActivityAt DateTime @default(now())
+  lastActivityAt         DateTime  @default(now())
 
   messages MarketplaceRequestMessage[]
 
   paymentOrders PaymentOrder[]
-  
+
   reviews Review[]
 
   createdAt DateTime @default(now())
@@ -619,13 +794,13 @@ model MarketplaceRequestMessage {
   id String @id @default(cuid())
 
   requestId String
-  request MarketplaceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  request   MarketplaceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   senderRole MarketplaceMessageSenderRole
-  kind MarketplaceMessageKind @default(TEXT)
+  kind       MarketplaceMessageKind       @default(TEXT)
 
-  body String?
-  fileUrl String?
+  body     String?
+  fileUrl  String?
   fileName String?
 
   createdAt DateTime @default(now())
@@ -637,15 +812,15 @@ model Review {
   id String @id @default(cuid())
 
   professionalId String
-  professional User @relation("ReviewProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
+  professional   User   @relation("ReviewProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
 
   authorId String
-  author User @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  author   User   @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   marketplaceRequestId String
-  marketplaceRequest MarketplaceRequest @relation(fields: [marketplaceRequestId], references: [id], onDelete: Cascade)
+  marketplaceRequest   MarketplaceRequest @relation(fields: [marketplaceRequestId], references: [id], onDelete: Cascade)
 
-  rating Int // 1-5
+  rating  Int // 1-5
   comment String?
 
   createdAt DateTime @default(now())
@@ -664,8 +839,8 @@ model ProfessionalNetwork {
   ownerId     String
   createdAt   DateTime @default(now())
 
-  owner       User     @relation("ProNetworkOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members     ProfessionalNetworkMember[]
+  owner   User                        @relation("ProNetworkOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members ProfessionalNetworkMember[]
 
   @@index([ownerId])
 }
@@ -676,15 +851,15 @@ model ProfessionalNetworkMember {
   role      ProNetworkRole @default(MEMBER)
   createdAt DateTime       @default(now())
 
-  network   ProfessionalNetwork @relation(fields: [networkId], references: [id], onDelete: Cascade)
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  network ProfessionalNetwork @relation(fields: [networkId], references: [id], onDelete: Cascade)
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([networkId, userId])
   @@index([userId])
 }
 
 model Event {
-  id            String      @id @default(cuid())
+  id            String  @id @default(cuid())
   title         String
   description   String
   objectives    String?
@@ -692,17 +867,17 @@ model Event {
   prerequisites String?
   durationMin   Int?
 
-  type          EventType
-  theme         EventTheme
-  level         EventLevel
-  format        EventFormat
-  startsAt      DateTime?
+  type     EventType
+  theme    EventTheme
+  level    EventLevel
+  format   EventFormat
+  startsAt DateTime?
 
-  liveUrl       String?
-  replayUrl     String?
-  isFeatured    Boolean     @default(false)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  liveUrl    String?
+  replayUrl  String?
+  isFeatured Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   speakers      EventSpeaker[]
   registrations EventRegistration[]
@@ -717,15 +892,15 @@ model Speaker {
   avatarUrl String?
   createdAt DateTime @default(now())
 
-  events    EventSpeaker[]
+  events EventSpeaker[]
 }
 
 model EventSpeaker {
   eventId   String
   speakerId String
 
-  event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  speaker   Speaker @relation(fields: [speakerId], references: [id], onDelete: Cascade)
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  speaker Speaker @relation(fields: [speakerId], references: [id], onDelete: Cascade)
 
   @@id([eventId, speakerId])
   @@index([speakerId])
@@ -736,8 +911,8 @@ model EventRegistration {
   userId    String
   createdAt DateTime @default(now())
 
-  event     Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([eventId, userId])
   @@index([userId])
@@ -748,8 +923,8 @@ model EventLike {
   userId    String
   createdAt DateTime @default(now())
 
-  event     Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([eventId, userId])
   @@index([userId])
@@ -760,8 +935,8 @@ model Follow {
   followingId String
   createdAt   DateTime @default(now())
 
-  follower    User @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  follower  User @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followingId])
   @@index([followingId])
@@ -775,12 +950,12 @@ model ContactRequest {
   message   String?
   createdAt DateTime      @default(now())
 
-  from      User @relation("ContactFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  to        User @relation("ContactTo", fields: [toId], references: [id], onDelete: Cascade)
+  from User @relation("ContactFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("ContactTo", fields: [toId], references: [id], onDelete: Cascade)
 
+  @@unique([fromId, toId])
   @@index([fromId])
   @@index([toId])
-  @@unique([fromId, toId])
 }
 
 model PartnershipRequest {
@@ -791,27 +966,30 @@ model PartnershipRequest {
   message   String?
   createdAt DateTime      @default(now())
 
-  from      User @relation("PartnershipFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  to        User @relation("PartnershipTo", fields: [toId], references: [id], onDelete: Cascade)
+  from User @relation("PartnershipFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("PartnershipTo", fields: [toId], references: [id], onDelete: Cascade)
 
+  @@unique([fromId, toId])
   @@index([fromId])
   @@index([toId])
-  @@unique([fromId, toId])
 }
 
 model UserPost {
-  id        String        @id @default(cuid())
-  userId    String
-  content   String
-  mediaUrl  String?
-  mediaType UserMediaType @default(NONE)
-  likes     Int           @default(0)
-  shares    Int           @default(0)
-  createdAt DateTime      @default(now())
+  id             String        @id @default(cuid())
+  userId         String
+  content        String
+  mediaUrl       String?
+  mediaType      UserMediaType @default(NONE)
+  isHidden       Boolean       @default(false)
+  commentsLocked Boolean       @default(false)
+  pinnedAt       DateTime?
+  likes          Int           @default(0)
+  shares         Int           @default(0)
+  createdAt      DateTime      @default(now())
 
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comments  UserPostComment[]
-  likesRel  UserPostLike[]
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments UserPostComment[]
+  likesRel UserPostLike[]
 
   @@index([userId])
 }
@@ -823,8 +1001,8 @@ model UserPostComment {
   message   String
   createdAt DateTime @default(now())
 
-  post      UserPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post UserPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([userId])
@@ -835,32 +1013,35 @@ model UserPostLike {
   userId    String
   createdAt DateTime @default(now())
 
-  post      UserPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post UserPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([postId, userId])
   @@index([userId])
 }
 
 model AdminPost {
-  id        String         @id @default(cuid())
-  adminLabel String
-  content   String
-  likes     Int            @default(0)
-  shares    Int            @default(0)
-  createdAt DateTime       @default(now())
+  id             String    @id @default(cuid())
+  adminLabel     String
+  content        String
+  isHidden       Boolean   @default(false)
+  commentsLocked Boolean   @default(false)
+  pinnedAt       DateTime?
+  likes          Int       @default(0)
+  shares         Int       @default(0)
+  createdAt      DateTime  @default(now())
 
-  comments  AdminComment[]
+  comments AdminComment[]
 }
 
 model AdminComment {
-  id         String    @id @default(cuid())
-  postId     String
+  id          String   @id @default(cuid())
+  postId      String
   authorLabel String
-  message    String
-  createdAt  DateTime  @default(now())
+  message     String
+  createdAt   DateTime @default(now())
 
-  post       AdminPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post AdminPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
 }
@@ -872,7 +1053,7 @@ model Dossier {
   status    DossierStatus @default(LOCAL)
   createdAt DateTime      @default(now())
 
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   documents Document[]
 
   @@index([userId])
@@ -885,7 +1066,7 @@ model Document {
   status    DocumentStatus @default(A_FOURNIR)
   note      String?
 
-  dossier   Dossier        @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
 
   @@index([dossierId])
 }
@@ -894,14 +1075,14 @@ model PaymentService {
   id String @id @default(cuid())
 
   providerUserId String?
-  providerUser User? @relation(fields: [providerUserId], references: [id], onDelete: SetNull)
+  providerUser   User?   @relation(fields: [providerUserId], references: [id], onDelete: SetNull)
 
-  title String
-  description String?
-  priceCents Int
-  currency String @default("cad")
+  title           String
+  description     String?
+  priceCents      Int
+  currency        String  @default("cad")
   durationMinutes Int?
-  active Boolean @default(true)
+  active          Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -916,22 +1097,22 @@ model PaymentOrder {
   id String @id @default(cuid())
 
   marketplaceRequestId String?
-  marketplaceRequest MarketplaceRequest? @relation(fields: [marketplaceRequestId], references: [id], onDelete: SetNull)
+  marketplaceRequest   MarketplaceRequest? @relation(fields: [marketplaceRequestId], references: [id], onDelete: SetNull)
 
   buyerUserId String
-  buyerUser User @relation("PaymentOrderBuyer", fields: [buyerUserId], references: [id], onDelete: Cascade)
+  buyerUser   User   @relation("PaymentOrderBuyer", fields: [buyerUserId], references: [id], onDelete: Cascade)
 
   providerUserId String
-  providerUser User @relation("PaymentOrderProvider", fields: [providerUserId], references: [id], onDelete: Cascade)
+  providerUser   User   @relation("PaymentOrderProvider", fields: [providerUserId], references: [id], onDelete: Cascade)
 
   serviceId String
-  service PaymentService @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  service   PaymentService @relation(fields: [serviceId], references: [id], onDelete: Restrict)
 
-  status PaymentOrderStatus @default(DRAFT)
+  status      PaymentOrderStatus @default(DRAFT)
   amountCents Int
-  currency String @default("cad")
+  currency    String             @default("cad")
 
-  paidAt DateTime?
+  paidAt     DateTime?
   canceledAt DateTime?
 
   createdAt DateTime @default(now())
@@ -950,14 +1131,14 @@ model Payment {
   id String @id @default(cuid())
 
   orderId String
-  order PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order   PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   stripeCheckoutSessionId String? @unique
-  stripePaymentIntentId String? @unique
+  stripePaymentIntentId   String? @unique
 
-  status PaymentStatus @default(CREATED)
-  paidAt DateTime?
-  createdAt DateTime @default(now())
+  status    PaymentStatus @default(CREATED)
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
 
   @@index([orderId])
   @@index([status])
@@ -1002,37 +1183,37 @@ model JobPosting {
   id String @id @default(cuid())
 
   posterId String
-  poster User @relation("JobPoster", fields: [posterId], references: [id], onDelete: Cascade)
+  poster   User   @relation("JobPoster", fields: [posterId], references: [id], onDelete: Cascade)
 
-  title String
-  description String
+  title        String
+  description  String
   requirements String?
-  
-  jobType JobType @default(CDI)
-  domain MainDomain @default(AUTRE)
+
+  jobType         JobType         @default(CDI)
+  domain          MainDomain      @default(AUTRE)
   experienceLevel ExperienceLevel @default(INTERMEDIATE)
-  
-  city String?
+
+  city     String?
   province String?
-  remote Boolean @default(false)
-  
+  remote   Boolean @default(false)
+
   languages JobLanguage @default(FR)
-  
+
   startDate DateTime?
-  deadline DateTime?
-  
+  deadline  DateTime?
+
   salaryMin Int?
   salaryMax Int?
-  currency String @default("CAD")
-  
+  currency  String @default("CAD")
+
   status JobPostingStatus @default(DRAFT)
-  
+
   applications JobApplication[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
-  closedAt DateTime?
+  closedAt    DateTime?
 
   @@index([posterId])
   @@index([status])
@@ -1044,15 +1225,15 @@ model JobApplication {
   id String @id @default(cuid())
 
   jobId String
-  job JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job   JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   applicantId String
-  applicant User @relation("JobApplicant", fields: [applicantId], references: [id], onDelete: Cascade)
+  applicant   User   @relation("JobApplicant", fields: [applicantId], references: [id], onDelete: Cascade)
 
   cvUrl String
-  
+
   status JobApplicationStatus @default(RECUE)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1069,19 +1250,19 @@ model JobApplication {
 
 model Conversation {
   id String @id @default(cuid())
-  
+
   // Participants (always 2: initiator and recipient)
   initiatorId String
-  initiator User @relation("ConversationInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
-  
+  initiator   User   @relation("ConversationInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+
   recipientId String
-  recipient User @relation("ConversationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  
+  recipient   User   @relation("ConversationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
   messages Message[]
-  
+
   lastMessageAt DateTime @default(now())
-  createdAt DateTime @default(now())
-  
+  createdAt     DateTime @default(now())
+
   // Ensure unique conversation between two users (bidirectional)
   @@unique([initiatorId, recipientId])
   @@index([initiatorId])
@@ -1091,20 +1272,20 @@ model Conversation {
 
 model Message {
   id String @id @default(cuid())
-  
+
   conversationId String
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
   senderId String
-  sender User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
   content String @db.Text
-  
-  isRead Boolean @default(false)
+
+  isRead Boolean   @default(false)
   readAt DateTime?
-  
+
   createdAt DateTime @default(now())
-  
+
   @@index([conversationId])
   @@index([senderId])
   @@index([createdAt])

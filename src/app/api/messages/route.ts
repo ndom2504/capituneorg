@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAppViewer } from "@/lib/auth/viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 // POST /api/messages - Envoyer un message dans une conversation
 export async function POST(request: Request) {
   try {
+    const flags = await getFeatureFlagsFromDb();
+    if (!flags.messaging) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const viewer = await getAppViewer();
     if (!viewer) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });

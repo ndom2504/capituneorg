@@ -31,6 +31,11 @@ async function saveStatusManual(statusManual: PresenceStatusManual) {
     body: JSON.stringify({ statusManual }),
   });
 
+  if (res.status === 404) {
+    // Feature masquée (presence désactivée) → no-op
+    return;
+  }
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(text || `HTTP ${res.status}`);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 /**
  * GET /api/presence?userIds=id1,id2,id3
@@ -14,6 +15,11 @@ import { db } from "@/lib/db";
  */
 export async function GET(req: NextRequest) {
   try {
+    const flags = await getFeatureFlagsFromDb();
+    if (flags.presence === false) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const { searchParams } = new URL(req.url);
     const userIdsParam = searchParams.get("userIds");
 

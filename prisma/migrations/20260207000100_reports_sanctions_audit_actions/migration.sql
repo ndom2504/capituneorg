@@ -1,0 +1,4 @@
+-- Add sanction-related audit actions
+
+ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'SUSPEND_PROFILE';
+ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'DELETE_COMMENT';

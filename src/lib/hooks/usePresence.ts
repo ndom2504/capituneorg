@@ -21,10 +21,12 @@ import { useEffect, useRef, useState } from "react";
  * Note: Ce hook doit être utilisé uniquement dans des composants
  * protégés par auth (comme DashboardShell).
  */
-export function usePresence() {
+export function usePresence(enabled: boolean = true) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     // Fonction d'envoi heartbeat
     const sendHeartbeat = async () => {
       // Ne pas envoyer si l'onglet est caché
@@ -53,7 +55,7 @@ export function usePresence() {
         clearInterval(intervalRef.current);
       }
     };
-  }, []);
+  }, [enabled]);
 }
 
 /**
@@ -85,9 +87,19 @@ export function usePresenceStatus(userIds: string[]) {
       return;
     }
 
+    let interval: ReturnType<typeof setInterval> | null = null;
+
     const fetchPresence = async () => {
       try {
         const res = await fetch(`/api/presence?userIds=${userIds.join(",")}`);
+        if (res.status === 404) {
+          setPresenceData(null);
+          if (interval) {
+            clearInterval(interval);
+            interval = null;
+          }
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           setPresenceData(data);
@@ -99,10 +111,12 @@ export function usePresenceStatus(userIds: string[]) {
 
     fetchPresence();
     
-    // Refresh toutes les 30s
-    const interval = setInterval(fetchPresence, 30 * 1000);
+    // Refresh toutes les 30s (si endpoint disponible)
+    interval = setInterval(fetchPresence, 30 * 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [userIds.join(",")]);
 
   return presenceData;

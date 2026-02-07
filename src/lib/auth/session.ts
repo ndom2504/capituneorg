@@ -50,6 +50,28 @@ export async function getSessionUserId(): Promise<string | null> {
     const { payload } = await jwtVerify(token, secretKey());
     const sub = payload.sub;
     if (typeof sub !== "string" || !sub) return null;
+
+    // Server-side checks: suspended/deleted users, and forced logout.
+    // Note: this intentionally hits the DB so the server can invalidate sessions.
+    try {
+      const { prisma } = await import("@/lib/db");
+      const user = await prisma.user.findUnique({
+        where: { id: sub },
+        select: { accountStatus: true, sessionInvalidBefore: true },
+      });
+      if (!user) return null;
+      if (user.accountStatus === "SUSPENDED" || user.accountStatus === "DELETED") return null;
+
+      const iat = typeof payload.iat === "number" ? payload.iat : null;
+      if (iat && user.sessionInvalidBefore) {
+        const invalidBeforeSec = Math.floor(user.sessionInvalidBefore.getTime() / 1000);
+        if (iat < invalidBeforeSec) return null;
+      }
+    } catch {
+      // If DB is unavailable, fail closed for authenticated routes.
+      return null;
+    }
+
     return sub;
   } catch {
     return null;
@@ -68,6 +90,8 @@ export async function getSessionUser() {
       email: true,
       fullName: true,
       accountType: true,
+      adminRole: true,
+      accountStatus: true,
       avatarUrl: true,
     },
   });

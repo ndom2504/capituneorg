@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SafeImg } from "@/components/ui/safe-img";
 import { cn } from "@/lib/cn";
+import type { FeatureFlagsSetting } from "@/lib/feature-flags";
 
 export function CommunityPageHeader({
   pageName = "Capitune",
@@ -12,6 +13,7 @@ export function CommunityPageHeader({
   activeTab = "publications",
   isOwner = true,
   viewerAccountType,
+  featureFlags,
 }: {
   pageName?: string;
   tagline?: string;
@@ -20,10 +22,16 @@ export function CommunityPageHeader({
   activeTab?: "publications" | "apropos" | "evenements";
   isOwner?: boolean;
   viewerAccountType?: "USER" | "PROFESSIONAL" | "ADMIN" | null;
+  featureFlags?: FeatureFlagsSetting;
 }) {
+  const marketplaceEnabled = featureFlags?.marketplace !== false;
+  const eventsEnabled = featureFlags?.events !== false;
+
   const startHref =
     viewerAccountType === "PROFESSIONAL" || viewerAccountType === "ADMIN"
-      ? "/clients/marketplace-profil"
+      ? marketplaceEnabled
+        ? "/clients/marketplace-profil"
+        : "/mon-parcours"
       : "/mon-parcours";
 
   return (
@@ -117,9 +125,11 @@ export function CommunityPageHeader({
             <Tab href="/a-propos" active={activeTab === "apropos"}>
               À propos
             </Tab>
-            <Tab href="/evenements-formations" active={activeTab === "evenements"}>
-              Événements & formations
-            </Tab>
+            {eventsEnabled ? (
+              <Tab href="/evenements-formations" active={activeTab === "evenements"}>
+                Événements & formations
+              </Tab>
+            ) : null}
           </div>
         </div>
       </div>

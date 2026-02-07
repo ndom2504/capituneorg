@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ postId: string }> },
 ) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.community) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const { postId } = await params;
 
   const viewer = await getViewer();
@@ -73,6 +79,11 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ postId: string }> },
 ) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.community) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const { postId } = await params;
 
   const viewer = await getViewer();
@@ -100,6 +111,5 @@ export async function DELETE(
   }
 
   await prisma.userPost.delete({ where: { id: postId } });
-
   return NextResponse.json({ ok: true });
 }

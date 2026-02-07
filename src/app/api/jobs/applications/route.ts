@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,11 @@ export const dynamic = "force-dynamic";
  * Liste des candidatures reçues (uniquement pour les Pros sur leurs offres)
  */
 export async function GET() {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.jobs) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const user = await getSessionUser();
 
   if (!user) {
@@ -74,6 +80,11 @@ export async function GET() {
  * Mettre à jour le statut d'une candidature (Pro uniquement)
  */
 export async function PATCH(req: Request) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.jobs) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const user = await getSessionUser();
 
   if (!user) {

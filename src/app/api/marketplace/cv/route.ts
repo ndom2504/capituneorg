@@ -4,6 +4,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 
 import { getViewer } from "@/app/api/marketplace/_viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,11 @@ function safeExt(filename: string, mime: string) {
 }
 
 export async function POST(req: Request) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.marketplace) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const viewer = await getViewer();
   if (!viewer) {
     return NextResponse.json({ error: "Non authentifié." }, { status: 401 });

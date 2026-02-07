@@ -4,9 +4,18 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+async function rejectIfCommunityDisabled() {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.community) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+  return null;
+}
+
 
 const MAX_BYTES_IMAGE = 5 * 1024 * 1024; // 5MB
 const MAX_BYTES_VIDEO = 25 * 1024 * 1024; // 25MB
@@ -79,6 +88,9 @@ function toApiPost(p: {
 }
 
 export async function GET() {
+  const rejected = await rejectIfCommunityDisabled();
+  if (rejected) return rejected;
+
   const viewer = await getViewer();
   if (!viewer) {
     return NextResponse.json(
@@ -109,6 +121,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const rejected = await rejectIfCommunityDisabled();
+  if (rejected) return rejected;
+
   const viewer = await getViewer();
   if (!viewer) {
     return NextResponse.json(

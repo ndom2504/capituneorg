@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getViewer } from "@/app/api/relationships/_viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 function ensureProfessional(viewer: Awaited<ReturnType<typeof getViewer>>) {
   if (!viewer) return { ok: false as const, error: "Viewer introuvable." };
@@ -16,6 +17,11 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ networkId: string }> },
 ) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.proNetwork) {
+    return Response.json({ error: "Not found." }, { status: 404 });
+  }
+
   const { networkId } = await params;
 
   const viewer = await getViewer();

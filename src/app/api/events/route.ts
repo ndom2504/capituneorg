@@ -3,11 +3,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
 import { getAppViewer } from "@/lib/auth/viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.events) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const viewer = await getSessionUser();
   
   const events = await prisma.event.findMany({
@@ -52,6 +58,11 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.events) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const viewer = await getAppViewer();
   
   if (!viewer) {

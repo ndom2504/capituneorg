@@ -1,0 +1,4 @@
+-- Add event audit actions
+
+ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'FEATURE_EVENT';
+ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'UNFEATURE_EVENT';

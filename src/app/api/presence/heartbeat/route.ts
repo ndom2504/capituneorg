@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 /**
  * POST /api/presence/heartbeat
@@ -15,6 +16,11 @@ import { db } from "@/lib/db";
  */
 export async function POST(req: NextRequest) {
   try {
+    const flags = await getFeatureFlagsFromDb();
+    if (flags.presence === false) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const userId = await getSessionUserId();
     
     if (!userId) {

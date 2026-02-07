@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 import { jsonStringArray } from "@/app/api/marketplace/_viewer";
 import {
   isNeedId,
@@ -39,6 +40,11 @@ function professionLabel(p: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.marketplace) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
   const profession = url.searchParams.get("profession");

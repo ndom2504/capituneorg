@@ -6,6 +6,7 @@ export type NavItem = {
   icon: (props: { className?: string }) => ReactNode;
   professionalOnly?: boolean;
   hideForProfessionals?: boolean;
+  featureKey?: "community" | "events" | "jobs" | "marketplace" | "messaging" | "notifications" | "proNetwork";
 };
 
 function IconWrap({
@@ -193,13 +194,14 @@ export const icons = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/accueil", label: "Communauté", icon: icons.home },
-  { href: "/marketplace", label: "Marketplace", icon: icons.marketplace },
+  { href: "/accueil", label: "Communauté", icon: icons.home, featureKey: "community" },
+  { href: "/marketplace", label: "Marketplace", icon: icons.marketplace, featureKey: "marketplace" },
   {
     href: "/marketplace/mes-demandes",
     label: "Mes demandes",
     icon: icons.inbox,
     hideForProfessionals: true,
+    featureKey: "marketplace",
   },
   {
     href: "/clients/demandes",
@@ -218,6 +220,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Réseau pro",
     icon: icons.network,
     professionalOnly: true,
+    featureKey: "proNetwork",
   },
   {
     href: "/mon-parcours",
@@ -229,6 +232,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/evenements-formations",
     label: "Événements & formations",
     icon: icons.calendar,
+    featureKey: "events",
   },
   // Pôle emploi - Professionnel
   {
@@ -236,12 +240,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Mes offres d'emploi",
     icon: icons.briefcase,
     professionalOnly: true,
+    featureKey: "jobs",
   },
   {
     href: "/emploi/candidatures",
     label: "Candidatures reçues",
     icon: icons.inbox,
     professionalOnly: true,
+    featureKey: "jobs",
   },
   // Pôle emploi - Demandeur
   {
@@ -249,12 +255,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Offres d'emploi",
     icon: icons.briefcase,
     hideForProfessionals: true,
+    featureKey: "jobs",
   },
   {
     href: "/emploi/mes-candidatures",
     label: "Mes candidatures",
     icon: icons.folder,
     hideForProfessionals: true,
+    featureKey: "jobs",
   },
   { href: "/mon-dossier", label: "Mon dossier", icon: icons.folder },
   { href: "/profil", label: "Profil", icon: icons.user },

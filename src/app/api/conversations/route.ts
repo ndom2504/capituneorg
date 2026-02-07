@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAppViewer } from "@/lib/auth/viewer";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 // GET /api/conversations - Récupérer toutes les conversations de l'utilisateur connecté
 export async function GET() {
   try {
+    const flags = await getFeatureFlagsFromDb();
+    if (!flags.messaging) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const viewer = await getAppViewer();
     if (!viewer) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
@@ -84,6 +90,11 @@ export async function GET() {
 // POST /api/conversations - Créer ou récupérer une conversation avec un utilisateur
 export async function POST(request: Request) {
   try {
+    const flags = await getFeatureFlagsFromDb();
+    if (!flags.messaging) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const viewer = await getAppViewer();
     if (!viewer) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });

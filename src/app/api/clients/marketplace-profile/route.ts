@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 import { requireProfessionalViewer } from "@/app/api/clients/_auth";
 
 export const runtime = "nodejs";
@@ -61,6 +62,11 @@ function stringArray(value: unknown, maxItems: number) {
 }
 
 export async function GET() {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.marketplace) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const auth = await requireProfessionalViewer();
   if (!auth.ok) return auth.response;
 
@@ -125,6 +131,11 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.marketplace) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const auth = await requireProfessionalViewer();
   if (!auth.ok) return auth.response;
 

@@ -8,6 +8,7 @@ import { NotificationsBell } from "@/components/notifications/notifications-bell
 import { PresenceStatusMenu } from "@/components/presence/presence-status-menu";
 import { cn } from "@/lib/cn";
 import type { AppViewer } from "@/lib/auth/viewer";
+import type { FeatureFlagsSetting } from "@/lib/feature-flags";
 
 function TopbarTab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
@@ -31,15 +32,19 @@ export function Topbar({
   onOpenMobile,
   viewer,
   isScrolled,
+  featureFlags,
 }: {
   sidebarCollapsed: boolean;
   onToggleCollapse: () => void;
   onOpenMobile: () => void;
   viewer: AppViewer | null;
   isScrolled: boolean;
+  featureFlags: FeatureFlagsSetting;
 }) {
   const pathname = usePathname();
   const showClientsTab = viewer?.accountType === "PROFESSIONAL" || viewer?.accountType === "ADMIN";
+  const showNotifications = featureFlags.notifications !== false;
+  const showPresence = featureFlags.presence !== false;
 
   return (
     <header className="relative z-50 shrink-0 border-b border-border bg-purple-50/60 backdrop-blur">
@@ -85,26 +90,34 @@ export function Topbar({
         {/* Onglets */}
         <nav className="hidden shrink-0 items-center gap-0.5 md:flex" aria-label="Navigation principale">
           <TopbarTab href="/mon-dossier" active={pathname.startsWith("/mon-dossier")}>Mon dossier</TopbarTab>
-          <TopbarTab href="/emploi" active={pathname.startsWith("/emploi")}>Emploi</TopbarTab>
+          {featureFlags.jobs !== false ? (
+            <TopbarTab href="/emploi" active={pathname.startsWith("/emploi")}>Emploi</TopbarTab>
+          ) : null}
           {showClientsTab ? (
             <TopbarTab href="/clients" active={pathname.startsWith("/clients")}>Clients</TopbarTab>
           ) : null}
-          <TopbarTab
-            href="/marketplace"
-            active={pathname.startsWith("/marketplace") && !pathname.startsWith("/marketplace/mes-demandes")}
-          >
-            Marketplace
-          </TopbarTab>
-          {viewer?.accountType === "USER" ? (
-            <TopbarTab
-              href="/marketplace/mes-demandes"
-              active={pathname.startsWith("/marketplace/mes-demandes")}
-            >
-              Mes demandes
-            </TopbarTab>
+          {featureFlags.marketplace !== false ? (
+            <>
+              <TopbarTab
+                href="/marketplace"
+                active={pathname.startsWith("/marketplace") && !pathname.startsWith("/marketplace/mes-demandes")}
+              >
+                Marketplace
+              </TopbarTab>
+              {viewer?.accountType === "USER" ? (
+                <TopbarTab
+                  href="/marketplace/mes-demandes"
+                  active={pathname.startsWith("/marketplace/mes-demandes")}
+                >
+                  Mes demandes
+                </TopbarTab>
+              ) : null}
+            </>
           ) : null}
           <TopbarTab href="/mon-parcours" active={pathname.startsWith("/mon-parcours")}>Mon parcours</TopbarTab>
-          <TopbarTab href="/evenements-formations" active={pathname.startsWith("/evenements-formations")}>Événements</TopbarTab>
+          {featureFlags.events !== false ? (
+            <TopbarTab href="/evenements-formations" active={pathname.startsWith("/evenements-formations")}>Événements</TopbarTab>
+          ) : null}
         </nav>
 
         {/* Spacer pour pousser les actions à droite */}
@@ -112,7 +125,7 @@ export function Topbar({
 
         {/* Droite: Actions compactes */}
         <div className="flex shrink-0 items-center gap-2 rounded-(--radius-md) border border-border bg-muted/60 px-2 py-1">
-          {viewer ? (
+          {viewer && showPresence ? (
             <PresenceStatusMenu
               userId={viewer.id}
               fullName={viewer.fullName}
@@ -121,7 +134,7 @@ export function Topbar({
             />
           ) : null}
 
-          <NotificationsBell />
+          {showNotifications ? <NotificationsBell /> : null}
 
           <Link href="/profil">
             <Button className="bg-navy hover:bg-navy/90">Mon profil</Button>

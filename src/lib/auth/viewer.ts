@@ -6,6 +6,8 @@ export type AppViewer = {
   fullName: string;
   email: string;
   accountType: "USER" | "PROFESSIONAL" | "ADMIN";
+  adminRole: "ADMIN" | "MODERATOR";
+  accountStatus: "ACTIVE" | "SUSPENDED" | "DELETED";
   isCertified: boolean;
   avatarUrl: string | null;
   coverUrl: string | null;
@@ -30,6 +32,8 @@ export async function getAppViewer(): Promise<AppViewer | null> {
           fullName: true,
           email: true,
           accountType: true,
+          adminRole: true,
+          accountStatus: true,
           isCertified: true,
           avatarUrl: true,
           coverUrl: true,
@@ -53,6 +57,8 @@ export async function getAppViewer(): Promise<AppViewer | null> {
         fullName: true,
         email: true,
         accountType: true,
+        adminRole: true,
+        accountStatus: true,
         isCertified: true,
         avatarUrl: true,
         coverUrl: true,

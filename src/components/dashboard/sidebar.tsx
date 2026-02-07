@@ -6,25 +6,31 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { NAV_ITEMS } from "@/components/dashboard/nav-items";
 import { EventsSidebarCard } from "@/components/events/events-sidebar-card";
+import type { FeatureFlagsSetting } from "@/lib/feature-flags";
 
 export function Sidebar({
   collapsed,
   mobileOpen,
   onCloseMobile,
   isProfessional,
+  featureFlags,
 }: {
   collapsed: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   isProfessional: boolean;
+  featureFlags: FeatureFlagsSetting;
 }) {
   const pathname = usePathname();
 
   const navItems = NAV_ITEMS.filter(
     (item) =>
       (!item.professionalOnly || isProfessional) &&
-      !(isProfessional && item.hideForProfessionals),
+      !(isProfessional && item.hideForProfessionals) &&
+      (!item.featureKey || featureFlags[item.featureKey] !== false),
   );
+
+  const showEventsCard = featureFlags.events !== false;
 
   // Highlight a single active item: choose the most specific match
   // (longest href that matches the current pathname).
@@ -80,7 +86,7 @@ export function Sidebar({
 
       {!collapsed ? (
         <div className="mt-auto">
-          <EventsSidebarCard />
+          {showEventsCard ? <EventsSidebarCard /> : null}
         </div>
       ) : null}
     </div>
@@ -115,6 +121,7 @@ export function Sidebar({
           activeHref={activeHref}
           onCloseMobile={onCloseMobile}
           navItems={navItems}
+          showEventsCard={showEventsCard}
         />
       </aside>
     </>
@@ -125,10 +132,12 @@ function SidebarDrawerContent({
   activeHref,
   onCloseMobile,
   navItems,
+  showEventsCard,
 }: {
   activeHref: string | null;
   onCloseMobile: () => void;
   navItems: typeof NAV_ITEMS;
+  showEventsCard: boolean;
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -162,7 +171,7 @@ function SidebarDrawerContent({
       </nav>
 
       <div className="mt-auto">
-        <EventsSidebarCard />
+        {showEventsCard ? <EventsSidebarCard /> : null}
       </div>
     </div>
   );

@@ -1,0 +1,4 @@
+-- Add job audit actions
+
+ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'PUBLISH_JOB';
+ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'CLOSE_JOB';

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 /**
  * GET /api/jobs
@@ -12,6 +13,11 @@ import { getSessionUser } from "@/lib/auth/session";
  */
 export async function GET(req: NextRequest) {
   try {
+    const flags = await getFeatureFlagsFromDb();
+    if (!flags.jobs) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const user = await getSessionUser();
     if (!user) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
@@ -71,6 +77,11 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const flags = await getFeatureFlagsFromDb();
+    if (!flags.jobs) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const user = await getSessionUser();
     if (!user) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });

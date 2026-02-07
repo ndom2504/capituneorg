@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 import { jsonStringArray } from "@/app/api/marketplace/_viewer";
 
 export const runtime = "nodejs";
@@ -35,6 +36,11 @@ export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ professionalId: string }> },
 ) {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.marketplace) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const { professionalId } = await context.params;
 
   const profile = await prisma.marketplaceProfile.findFirst({

@@ -1,5 +1,6 @@
 import { getAppViewer } from "@/lib/auth/viewer";
 import { SettingsPage } from "@/components/settings/settings-page";
+import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -15,5 +16,7 @@ export default async function ParametresPage() {
     );
   }
 
-  return <SettingsPage viewer={viewer} />;
+  const flags = await getFeatureFlagsFromDb();
+
+  return <SettingsPage viewer={viewer} presenceEnabled={flags.presence !== false} />;
 }
