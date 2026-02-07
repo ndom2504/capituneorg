@@ -330,7 +330,7 @@ export function MarketplaceProfileEditor() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
         <h2 className="text-xl font-semibold text-navy">Mon profil Marketplace</h2>
         <p className="mt-1 text-sm text-muted">
@@ -369,238 +369,258 @@ export function MarketplaceProfileEditor() {
       ) : null}
 
       <Card className="p-4">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="space-y-3">
-            <div>
-              <div className="text-xs font-semibold text-muted">Statut</div>
-              <select
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ProfileStatus)}
-              >
-                <option value="DRAFT">Brouillon</option>
-                <option value="PUBLISHED">Publié</option>
-                <option value="SUSPENDED">Suspendu</option>
-              </select>
-            </div>
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs font-semibold text-muted">Statut</div>
+            <select
+              className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as ProfileStatus)}
+            >
+              <option value="DRAFT">Brouillon</option>
+              <option value="PUBLISHED">Publié</option>
+              <option value="SUSPENDED">Suspendu</option>
+            </select>
+          </div>
 
-            <div>
-              <div className="text-xs font-semibold text-muted">Métier</div>
-              <select
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
-                value={profession}
-                onChange={(e) => setProfession(e.target.value as Profession)}
-              >
-                {(
-                  [
-                    "IMMIGRATION_CONSULTANT",
-                    "IMMIGRATION_LAWYER",
-                    "ORIENTATION_COUNSELOR",
-                    "ACADEMIC_COUNSELOR",
-                    "EMPLOYMENT_COUNSELOR",
-                    "CASE_MANAGER",
-                    "CERTIFIED_TRANSLATOR",
-                    "INTEGRATION_COACH",
-                    "COMMUNITY_ORG",
-                  ] as Profession[]
-                ).map((p) => (
-                  <option key={p} value={p}>
-                    {professionLabel(p)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <div className="text-xs font-semibold text-muted">Métier</div>
+            <select
+              className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+              value={profession}
+              onChange={(e) => setProfession(e.target.value as Profession)}
+            >
+              {(
+                [
+                  "IMMIGRATION_CONSULTANT",
+                  "IMMIGRATION_LAWYER",
+                  "ORIENTATION_COUNSELOR",
+                  "ACADEMIC_COUNSELOR",
+                  "EMPLOYMENT_COUNSELOR",
+                  "CASE_MANAGER",
+                  "CERTIFIED_TRANSLATOR",
+                  "INTEGRATION_COACH",
+                  "COMMUNITY_ORG",
+                ] as Profession[]
+              ).map((p) => (
+                <option key={p} value={p}>
+                  {professionLabel(p)}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            <div>
-              <div className="text-xs font-semibold text-muted">Accroche</div>
-              <Input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="Ex: Spécialiste permis d’études" />
-            </div>
+          <div>
+            <div className="text-xs font-semibold text-muted">Accroche</div>
+            <Input
+              value={headline}
+              onChange={(e) => setHeadline(e.target.value)}
+              placeholder="Ex: Spécialiste permis d’études"
+            />
+          </div>
 
-            <div>
-              <div className="text-xs font-semibold text-muted">Organisation (optionnel)</div>
-              <Input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="Ex: Cabinet ABC" />
-            </div>
+          <div>
+            <div className="text-xs font-semibold text-muted">Organisation (optionnel)</div>
+            <Input
+              value={organization}
+              onChange={(e) => setOrganization(e.target.value)}
+              placeholder="Ex: Cabinet ABC"
+            />
+          </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <div className="text-xs font-semibold text-muted">Pays</div>
-                <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Canada" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-muted">Ville</div>
-                <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Montréal" />
-              </div>
-            </div>
-
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <div className="text-xs font-semibold text-muted">Langues (séparées par virgules)</div>
-              <Input value={languagesText} onChange={(e) => setLanguagesText(e.target.value)} placeholder="Français, Anglais" />
+              <div className="text-xs font-semibold text-muted">Pays</div>
+              <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Canada" />
             </div>
-
             <div>
-              <div className="text-xs font-semibold text-muted">Format</div>
-              <select
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
-                value={format}
-                onChange={(e) => setFormat(e.target.value as Format)}
-              >
-                <option value="VISIO">Visio</option>
-                <option value="IN_PERSON">Présentiel</option>
-                <option value="BOTH">Visio + présentiel</option>
-              </select>
-            </div>
-
-            <div>
-              <div className="text-xs font-semibold text-muted">Délai de réponse (optionnel)</div>
-              <select
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
-                value={responseTime}
-                onChange={(e) => setResponseTime(e.target.value as ResponseTime | "")}
-              >
-                <option value="">—</option>
-                <option value="H24">24h</option>
-                <option value="H48">48h</option>
-                <option value="H72">72h</option>
-              </select>
+              <div className="text-xs font-semibold text-muted">Ville</div>
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Montréal" />
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div>
-              <div className="text-xs font-semibold text-muted">Thèmes (virgules)</div>
-              <Input value={themesText} onChange={(e) => setThemesText(e.target.value)} placeholder="Études, permis, installation" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-muted">Spécialités (virgules)</div>
-              <Input value={specialtiesText} onChange={(e) => setSpecialtiesText(e.target.value)} placeholder="CAQ, permis d’études…" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-muted">Services CAPITUNE (tags)</div>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {SERVICES.map((svc) => {
-                  const checked = servicesSelected.includes(svc.id);
-                  return (
-                    <label
-                      key={svc.id}
-                      className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border bg-white/60 px-3 py-2 text-sm text-text"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => {
-                          const next = e.target.checked
-                            ? Array.from(new Set([...servicesSelected, svc.id]))
-                            : servicesSelected.filter((id) => id !== svc.id);
-                          setServicesSelected(next);
-                        }}
-                      />
-                      <span>
-                        <span className="font-semibold text-navy">{serviceLabel(svc.id)}</span>
-                        {svc.description ? (
-                          <span className="mt-0.5 block text-xs text-muted">{svc.description}</span>
-                        ) : null}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              <div className="mt-2 text-xs text-muted">
-                Utilisez ces tags pour améliorer le matching automatique.
-              </div>
+          <div>
+            <div className="text-xs font-semibold text-muted">Langues (séparées par virgules)</div>
+            <Input
+              value={languagesText}
+              onChange={(e) => setLanguagesText(e.target.value)}
+              placeholder="Français, Anglais"
+            />
+          </div>
 
+          <div>
+            <div className="text-xs font-semibold text-muted">Format</div>
+            <select
+              className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+              value={format}
+              onChange={(e) => setFormat(e.target.value as Format)}
+            >
+              <option value="VISIO">Visio</option>
+              <option value="IN_PERSON">Présentiel</option>
+              <option value="BOTH">Visio + présentiel</option>
+            </select>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-muted">Délai de réponse (optionnel)</div>
+            <select
+              className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+              value={responseTime}
+              onChange={(e) => setResponseTime(e.target.value as ResponseTime | "")}
+            >
+              <option value="">—</option>
+              <option value="H24">24h</option>
+              <option value="H48">48h</option>
+              <option value="H72">72h</option>
+            </select>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-muted">Thèmes (virgules)</div>
+            <Input
+              value={themesText}
+              onChange={(e) => setThemesText(e.target.value)}
+              placeholder="Études, permis, installation"
+            />
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-muted">Spécialités (virgules)</div>
+            <Input
+              value={specialtiesText}
+              onChange={(e) => setSpecialtiesText(e.target.value)}
+              placeholder="CAQ, permis d’études…"
+            />
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-muted">Services CAPITUNE (tags)</div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {SERVICES.map((svc) => {
+                const checked = servicesSelected.includes(svc.id);
+                return (
+                  <label
+                    key={svc.id}
+                    className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border bg-white/60 px-3 py-2 text-sm text-text"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? Array.from(new Set([...servicesSelected, svc.id]))
+                          : servicesSelected.filter((id) => id !== svc.id);
+                        setServicesSelected(next);
+                      }}
+                    />
+                    <span>
+                      <span className="font-semibold text-navy">{serviceLabel(svc.id)}</span>
+                      {svc.description ? (
+                        <span className="mt-0.5 block text-xs text-muted">{svc.description}</span>
+                      ) : null}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="mt-2 text-xs text-muted">Utilisez ces tags pour améliorer le matching automatique.</div>
+
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-muted">Autres services (optionnel, virgules)</div>
+              <Input
+                value={servicesOtherText}
+                onChange={(e) => setServicesOtherText(e.target.value)}
+                placeholder="Ex: relecture dossier, stratégie…"
+              />
+            </div>
+
+            {servicesSelected.includes("service.employeur") ? (
               <div className="mt-3">
-                <div className="text-xs font-semibold text-muted">Autres services (optionnel, virgules)</div>
-                <Input
-                  value={servicesOtherText}
-                  onChange={(e) => setServicesOtherText(e.target.value)}
-                  placeholder="Ex: relecture dossier, stratégie…"
-                />
-              </div>
-
-              {servicesSelected.includes("service.employeur") ? (
-                <div className="mt-3">
-                  <div className="text-xs font-semibold text-muted">
-                    Détails emploi (visible sur votre profil)
-                  </div>
-                  <div className="mt-1 text-xs text-muted">
-                    Décrivez les postes, conditions, prérequis, localisation, processus, etc.
-                  </div>
-                  <Textarea
-                    value={employerDetails}
-                    onChange={(e) => setEmployerDetails(e.target.value)}
-                    rows={5}
-                    placeholder="Ex: Postes ouverts, NOC/TEER, langue, remote/présentiel, salaire indicatif…"
-                  />
+                <div className="text-xs font-semibold text-muted">Détails emploi (visible sur votre profil)</div>
+                <div className="mt-1 text-xs text-muted">
+                  Décrivez les postes, conditions, prérequis, localisation, processus, etc.
                 </div>
-              ) : null}
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-muted">Publics (virgules)</div>
-              <Input value={targetAudiencesText} onChange={(e) => setTargetAudiencesText(e.target.value)} placeholder="Étudiants, familles…" />
-            </div>
-
-            <div>
-              <div className="text-xs font-semibold text-muted">Bio courte (max ~300)</div>
-              <Textarea value={bioShort} onChange={(e) => setBioShort(e.target.value)} rows={3} />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-muted">Bio longue (max ~1000)</div>
-              <Textarea value={bioLong} onChange={(e) => setBioLong(e.target.value)} rows={6} />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <div className="text-xs font-semibold text-muted">Tarification</div>
-                <select
-                  className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
-                  value={pricingMode}
-                  onChange={(e) => setPricingMode(e.target.value as PricingMode)}
-                >
-                  <option value="FREE">Gratuit</option>
-                  <option value="PAID">Payant</option>
-                </select>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-muted">Prix 30 min (CAD)</div>
-                <Input
-                  type="number"
-                  min={0}
-                  value={price30Min}
-                  onChange={(e) => setPrice30Min(e.target.value)}
-                  disabled={pricingMode !== "PAID"}
+                <Textarea
+                  value={employerDetails}
+                  onChange={(e) => setEmployerDetails(e.target.value)}
+                  rows={5}
+                  placeholder="Ex: Postes ouverts, NOC/TEER, langue, remote/présentiel, salaire indicatif…"
                 />
               </div>
-              <div>
-                <div className="text-xs font-semibold text-muted">Prix 60 min (CAD)</div>
-                <Input
-                  type="number"
-                  min={0}
-                  value={price60Min}
-                  onChange={(e) => setPrice60Min(e.target.value)}
-                  disabled={pricingMode !== "PAID"}
-                />
-              </div>
-            </div>
+            ) : null}
+          </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <div className="text-xs font-semibold text-muted">Numéro de licence (optionnel)</div>
-                <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-muted">Autorité (optionnel)</div>
-                <Input value={licenseAuthority} onChange={(e) => setLicenseAuthority(e.target.value)} />
-              </div>
-            </div>
+          <div>
+            <div className="text-xs font-semibold text-muted">Publics (virgules)</div>
+            <Input
+              value={targetAudiencesText}
+              onChange={(e) => setTargetAudiencesText(e.target.value)}
+              placeholder="Étudiants, familles…"
+            />
+          </div>
 
+          <div>
+            <div className="text-xs font-semibold text-muted">Bio courte (max ~300)</div>
+            <Textarea value={bioShort} onChange={(e) => setBioShort(e.target.value)} rows={3} />
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-muted">Bio longue (max ~1000)</div>
+            <Textarea value={bioLong} onChange={(e) => setBioLong(e.target.value)} rows={6} />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <div className="text-xs font-semibold text-muted">Lien justificatif (optionnel)</div>
-              <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} placeholder="https://…" />
+              <div className="text-xs font-semibold text-muted">Tarification</div>
+              <select
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                value={pricingMode}
+                onChange={(e) => setPricingMode(e.target.value as PricingMode)}
+              >
+                <option value="FREE">Gratuit</option>
+                <option value="PAID">Payant</option>
+              </select>
             </div>
+            <div>
+              <div className="text-xs font-semibold text-muted">Prix 30 min (CAD)</div>
+              <Input
+                type="number"
+                min={0}
+                value={price30Min}
+                onChange={(e) => setPrice30Min(e.target.value)}
+                disabled={pricingMode !== "PAID"}
+              />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-muted">Prix 60 min (CAD)</div>
+              <Input
+                type="number"
+                min={0}
+                value={price60Min}
+                onChange={(e) => setPrice60Min(e.target.value)}
+                disabled={pricingMode !== "PAID"}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <div className="text-xs font-semibold text-muted">Numéro de licence (optionnel)</div>
+              <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-muted">Autorité (optionnel)</div>
+              <Input value={licenseAuthority} onChange={(e) => setLicenseAuthority(e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-muted">Lien justificatif (optionnel)</div>
+            <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} placeholder="https://…" />
           </div>
         </div>
 
-        <div className="mt-4 rounded-[var(--radius-md)] border border-border bg-white/60 p-3 text-xs text-muted">
+        <div className="mt-3 rounded-[var(--radius-md)] border border-border bg-white/60 p-3 text-xs text-muted">
           <div className="font-semibold text-text">Conformité</div>
           <label className="mt-2 flex items-start gap-2">
             <input
@@ -622,7 +642,7 @@ export function MarketplaceProfileEditor() {
           </label>
         </div>
 
-        <div className="mt-4 flex items-center justify-end gap-2">
+        <div className="mt-3 flex items-center justify-end gap-2">
           {profileId ? (
             <Button
               variant="outline"
