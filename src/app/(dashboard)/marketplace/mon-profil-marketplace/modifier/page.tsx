@@ -17,7 +17,7 @@ export default async function ModifierProfilMarketplacePage() {
     redirect("/auth");
   }
 
-  if (viewer.accountType !== "PROFESSIONAL") {
+  if (viewer.accountType !== "PROFESSIONAL" && viewer.accountType !== "ADMIN") {
     redirect("/marketplace");
   }
 

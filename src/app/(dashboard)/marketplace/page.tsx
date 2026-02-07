@@ -9,7 +9,8 @@ export default async function MarketplacePage() {
   const viewer = await getAppViewer();
   
   let hasMarketplaceProfile = false;
-  const isProfessional = viewer?.accountType === "PROFESSIONAL";
+  const isProfessional =
+    viewer?.accountType === "PROFESSIONAL" || viewer?.accountType === "ADMIN";
 
   // Côté PRO, l'entrée Marketplace est un centre de gestion (profil + bassin)
   if (viewer && isProfessional) {

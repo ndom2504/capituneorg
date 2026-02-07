@@ -10,7 +10,8 @@ export default async function MarketplaceProfessionalPage({
 
   const viewer = await getAppViewer();
   const isSelfProfessional =
-    viewer?.accountType === "PROFESSIONAL" && viewer.id === professionalId;
+    (viewer?.accountType === "PROFESSIONAL" || viewer?.accountType === "ADMIN") &&
+    viewer.id === professionalId;
 
   return (
     <div className="space-y-4">
