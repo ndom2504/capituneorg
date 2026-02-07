@@ -7,7 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileMediaUploader } from "@/components/profile/profile-media-uploader";
-import { SERVICES, type ServiceId, isServiceId, serviceLabel } from "@/lib/taxonomy";
+import {
+  SERVICE_CATEGORIES,
+  SERVICES_PICKER,
+  type ServiceId,
+  isServiceId,
+  serviceLabel,
+} from "@/lib/taxonomy";
 
 type ProfileStatus = "DRAFT" | "PUBLISHED" | "SUSPENDED";
 
@@ -142,6 +148,25 @@ export function MarketplaceProfileEditor() {
   const [viewer, setViewer] = useState<ViewerInfo | null>(null);
 
   const languages = useMemo(() => parseList(languagesText), [languagesText]);
+  const hasEmployerService = useMemo(
+    () =>
+      servicesSelected.some(
+        (id) => id === "service.employeur" || id.startsWith("service.employeur."),
+      ),
+    [servicesSelected],
+  );
+
+  const pickerServicesByCategory = useMemo(() => {
+    type PickerService = (typeof SERVICES_PICKER)[number];
+    const byCategory = new Map<string, PickerService[]>();
+    for (const svc of SERVICES_PICKER) {
+      const key = svc.category ?? "__UNCATEGORIZED__";
+      const arr = byCategory.get(key);
+      if (arr) arr.push(svc);
+      else byCategory.set(key, [svc]);
+    }
+    return byCategory;
+  }, []);
 
   useEffect(() => {
     let canceled = false;
@@ -247,10 +272,7 @@ export function MarketplaceProfileEditor() {
           proofUrl: proofUrl.trim() || null,
           bioShort: bioShort.trim() || null,
           bioLong: bioLong.trim() || null,
-          employerDetails:
-            servicesSelected.includes("service.employeur")
-              ? employerDetails.trim() || null
-              : null,
+          employerDetails: hasEmployerService ? employerDetails.trim() || null : null,
           pricingMode,
           price30Min: pricingMode === "PAID" && price30Min ? Number(price30Min) : null,
           price60Min: pricingMode === "PAID" && price60Min ? Number(price60Min) : null,
@@ -373,6 +395,7 @@ export function MarketplaceProfileEditor() {
           <div>
             <div className="text-xs font-semibold text-muted">Statut</div>
             <select
+              aria-label="Statut du profil"
               className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
               value={status}
               onChange={(e) => setStatus(e.target.value as ProfileStatus)}
@@ -386,6 +409,7 @@ export function MarketplaceProfileEditor() {
           <div>
             <div className="text-xs font-semibold text-muted">Métier</div>
             <select
+              aria-label="Métier"
               className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
               value={profession}
               onChange={(e) => setProfession(e.target.value as Profession)}
@@ -451,6 +475,7 @@ export function MarketplaceProfileEditor() {
           <div>
             <div className="text-xs font-semibold text-muted">Format</div>
             <select
+              aria-label="Format de rendez-vous"
               className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
               value={format}
               onChange={(e) => setFormat(e.target.value as Format)}
@@ -464,6 +489,7 @@ export function MarketplaceProfileEditor() {
           <div>
             <div className="text-xs font-semibold text-muted">Délai de réponse (optionnel)</div>
             <select
+              aria-label="Délai de réponse"
               className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
               value={responseTime}
               onChange={(e) => setResponseTime(e.target.value as ResponseTime | "")}
@@ -495,31 +521,47 @@ export function MarketplaceProfileEditor() {
 
           <div>
             <div className="text-xs font-semibold text-muted">Services CAPITUNE (tags)</div>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {SERVICES.map((svc) => {
-                const checked = servicesSelected.includes(svc.id);
+            <div className="mt-2 space-y-3">
+              {SERVICE_CATEGORIES.map((cat) => {
+                const items = pickerServicesByCategory.get(cat.id) ?? [];
+                if (!items.length) return null;
+
                 return (
-                  <label
-                    key={svc.id}
-                    className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border bg-white/60 px-3 py-2 text-sm text-text"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => {
-                        const next = e.target.checked
-                          ? Array.from(new Set([...servicesSelected, svc.id]))
-                          : servicesSelected.filter((id) => id !== svc.id);
-                        setServicesSelected(next);
-                      }}
-                    />
-                    <span>
-                      <span className="font-semibold text-navy">{serviceLabel(svc.id)}</span>
-                      {svc.description ? (
-                        <span className="mt-0.5 block text-xs text-muted">{svc.description}</span>
-                      ) : null}
-                    </span>
-                  </label>
+                  <div key={cat.id}>
+                    <div className="text-xs font-semibold text-muted">{cat.label}</div>
+                    {cat.description ? (
+                      <div className="mt-1 text-xs text-muted">{cat.description}</div>
+                    ) : null}
+
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {items.map((svc) => {
+                        const checked = servicesSelected.includes(svc.id as ServiceId);
+                        return (
+                          <label
+                            key={svc.id}
+                            className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border bg-white/60 px-3 py-2 text-sm text-text"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? Array.from(new Set([...servicesSelected, svc.id as ServiceId]))
+                                  : servicesSelected.filter((id) => id !== (svc.id as ServiceId));
+                                setServicesSelected(next);
+                              }}
+                            />
+                            <span>
+                              <span className="font-semibold text-navy">{serviceLabel(svc.id)}</span>
+                              {svc.description ? (
+                                <span className="mt-0.5 block text-xs text-muted">{svc.description}</span>
+                              ) : null}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -534,7 +576,7 @@ export function MarketplaceProfileEditor() {
               />
             </div>
 
-            {servicesSelected.includes("service.employeur") ? (
+            {hasEmployerService ? (
               <div className="mt-3">
                 <div className="text-xs font-semibold text-muted">Détails emploi (visible sur votre profil)</div>
                 <div className="mt-1 text-xs text-muted">
@@ -573,6 +615,7 @@ export function MarketplaceProfileEditor() {
             <div>
               <div className="text-xs font-semibold text-muted">Tarification</div>
               <select
+                aria-label="Mode de tarification"
                 className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
                 value={pricingMode}
                 onChange={(e) => setPricingMode(e.target.value as PricingMode)}

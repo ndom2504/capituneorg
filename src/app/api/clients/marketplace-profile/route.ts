@@ -61,6 +61,53 @@ function stringArray(value: unknown, maxItems: number) {
     .slice(0, maxItems);
 }
 
+function normalizeMarketplaceServices(values: unknown) {
+  const MAX = 60;
+  const raw = stringArray(values, MAX);
+
+  // Domaine = utilisé pour le matching "needs" (ancien mécanisme).
+  const domains = [
+    "service.orientation",
+    "service.immigration",
+    "service.etudes",
+    "service.travail",
+    "service.employeur",
+    "service.entrepreneuriat",
+    "service.documents",
+    "service.budget",
+    "service.famille",
+    "service.integration",
+    "service.formation",
+  ] as const;
+
+  const domainSet = new Set<string>();
+  for (const v of raw) {
+    for (const d of domains) {
+      if (v === d || v.startsWith(`${d}.`)) domainSet.add(d);
+    }
+  }
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  // On met les domaines en premier, pour garantir le matching même si MAX est atteint.
+  for (const d of domains) {
+    if (domainSet.has(d) && !seen.has(d)) {
+      out.push(d);
+      seen.add(d);
+    }
+  }
+
+  for (const v of raw) {
+    if (!seen.has(v)) {
+      out.push(v);
+      seen.add(v);
+    }
+  }
+
+  return out.slice(0, MAX);
+}
+
 export async function GET() {
   const flags = await getFeatureFlagsFromDb();
   if (!flags.marketplace) {
@@ -180,6 +227,8 @@ export async function POST(req: NextRequest) {
   const availabilityJson =
     body.availability === undefined ? undefined : body.availability ?? Prisma.DbNull;
 
+  const services = normalizeMarketplaceServices(body.services);
+
   const profile = await prisma.marketplaceProfile.upsert({
     where: { userId: auth.viewer.id },
     update: {
@@ -192,7 +241,7 @@ export async function POST(req: NextRequest) {
       languagesJson: languages,
       themesJson: stringArray(body.themes, 12),
       specialtiesJson: stringArray(body.specialties, 24),
-      servicesJson: stringArray(body.services, 24),
+      servicesJson: services,
       targetAudiencesJson: stringArray(body.targetAudiences, 12),
       availabilityJson,
       format: body.format ?? "VISIO",
@@ -219,7 +268,7 @@ export async function POST(req: NextRequest) {
       languagesJson: languages,
       themesJson: stringArray(body.themes, 12),
       specialtiesJson: stringArray(body.specialties, 24),
-      servicesJson: stringArray(body.services, 24),
+      servicesJson: services,
       targetAudiencesJson: stringArray(body.targetAudiences, 12),
       availabilityJson,
       format: body.format ?? "VISIO",
