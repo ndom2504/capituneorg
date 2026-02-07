@@ -109,6 +109,8 @@ export function MarketplaceProfileEditor() {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
+  const [profileId, setProfileId] = useState<string | null>(null);
+
   const [status, setStatus] = useState<ProfileStatus>("DRAFT");
   const [profession, setProfession] = useState<Profession>("ORIENTATION_COUNSELOR");
   const [headline, setHeadline] = useState("");
@@ -166,6 +168,7 @@ export function MarketplaceProfileEditor() {
 
         if (data.profile) {
           const p = data.profile;
+          setProfileId(p.id);
           setStatus(p.status);
           setProfession(p.profession);
           setHeadline(p.headline ?? "");
@@ -190,6 +193,8 @@ export function MarketplaceProfileEditor() {
           setPricingMode(p.pricingMode ?? "FREE");
           setPrice30Min(p.price30Min != null ? String(p.price30Min) : "");
           setPrice60Min(p.price60Min != null ? String(p.price60Min) : "");
+        } else {
+          setProfileId(null);
         }
       } catch (e) {
         if (!canceled) setError(e instanceof Error ? e.message : "Erreur");
@@ -261,6 +266,62 @@ export function MarketplaceProfileEditor() {
 
       const payload = (await res.json()) as SaveResponse;
       setOk(payload.profile?.updatedAt ?? "OK");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeProfile() {
+    if (!profileId) return;
+    const confirmed = window.confirm(
+      "Supprimer définitivement votre profil Marketplace ? Cette action est irréversible.",
+    );
+    if (!confirmed) return;
+
+    setSaving(true);
+    setOk(null);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/clients/marketplace-profile", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+
+      setProfileId(null);
+      setStatus("DRAFT");
+      setProfession("ORIENTATION_COUNSELOR");
+      setHeadline("");
+      setOrganization("");
+      setCountry("Canada");
+      setCity("");
+      setLanguagesText("Français");
+      setThemesText("");
+      setSpecialtiesText("");
+      setServicesSelected([]);
+      setServicesOtherText("");
+      setTargetAudiencesText("");
+      setFormat("VISIO");
+      setResponseTime("H48");
+      setLicenseNumber("");
+      setLicenseAuthority("");
+      setProofUrl("");
+      setBioShort("");
+      setBioLong("");
+      setEmployerDetails("");
+      setPricingMode("FREE");
+      setPrice30Min("");
+      setPrice60Min("");
+      setComplianceAccepted(false);
+      setAccuracyConfirmed(false);
+
+      setOk("Profil supprimé");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -562,6 +623,16 @@ export function MarketplaceProfileEditor() {
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2">
+          {profileId ? (
+            <Button
+              variant="outline"
+              className="mr-auto border-danger/30 text-danger hover:bg-danger/5"
+              onClick={removeProfile}
+              disabled={saving}
+            >
+              Supprimer définitivement mon profil
+            </Button>
+          ) : null}
           <Button onClick={save} disabled={saving}>
             Enregistrer
           </Button>

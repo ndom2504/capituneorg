@@ -243,3 +243,25 @@ export async function POST(req: NextRequest) {
     profile: { id: profile.id, status: profile.status, updatedAt: profile.updatedAt.toISOString() },
   });
 }
+
+export async function DELETE() {
+  const flags = await getFeatureFlagsFromDb();
+  if (!flags.marketplace) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  const auth = await requireProfessionalViewer();
+  if (!auth.ok) return auth.response;
+
+  try {
+    await prisma.marketplaceProfile.delete({ where: { userId: auth.viewer.id } });
+  } catch (e) {
+    // Profil déjà supprimé : ok (idempotent)
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ ok: true });
+    }
+    throw e;
+  }
+
+  return NextResponse.json({ ok: true });
+}

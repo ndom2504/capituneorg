@@ -8,8 +8,9 @@ export default async function MarketplacePage() {
   const viewer = await getAppViewer();
   
   let hasMarketplaceProfile = false;
+  const isProfessional = viewer?.accountType === "PROFESSIONAL";
   
-  if (viewer) {
+  if (viewer && isProfessional) {
     const profile = await prisma.marketplaceProfile.findUnique({
       where: { userId: viewer.id },
       select: { id: true },
@@ -17,7 +18,7 @@ export default async function MarketplacePage() {
     hasMarketplaceProfile = !!profile;
   }
 
-  const canCreateProfile = viewer?.accountType === "PROFESSIONAL" && viewer.isCertified && !hasMarketplaceProfile;
+  const canManageProfile = isProfessional;
 
   return (
     <div className="space-y-4">
@@ -28,13 +29,20 @@ export default async function MarketplacePage() {
             Découvrez des professionnels certifiés. Les échanges passent uniquement par une demande de rendez-vous encadrée.
           </p>
         </div>
-        {canCreateProfile && (
-          <Link href="/clients/marketplace-profil">
-            <Button className="bg-navy hover:bg-navy/90">
-              + Créer mon profil marketplace
-            </Button>
-          </Link>
-        )}
+        {canManageProfile ? (
+          <div className="flex items-center gap-2">
+            <Link href="/clients/marketplace-profil">
+              <Button>
+                {hasMarketplaceProfile ? "Modifier mon profil marketplace" : "+ Créer mon profil marketplace"}
+              </Button>
+            </Link>
+            {hasMarketplaceProfile ? (
+              <Link href={`/marketplace/${viewer?.id ?? ""}`}>
+                <Button variant="outline">Voir mon profil</Button>
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <MarketplaceList />
