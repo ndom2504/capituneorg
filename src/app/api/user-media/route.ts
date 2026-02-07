@@ -1,7 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
+import admin from "firebase-admin";
 
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
@@ -18,7 +20,12 @@ function getFirebaseBucketName(): string | null {
     process.env.FIREBASE_STORAGE_BUCKET ??
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
     null;
-  const name = raw?.trim();
+  let name = raw?.trim();
+  if (!name) return null;
+
+  // Accepte aussi les formats gs://bucket-name
+  if (name.startsWith("gs://")) name = name.slice("gs://".length);
+
   return name ? name : null;
 }
 
@@ -32,14 +39,14 @@ async function uploadToFirebaseStorage(args: {
     throw new Error("Firebase Storage bucket non configuré.");
   }
 
-  const adminApp = getFirebaseAdminApp();
-  const admin = await import("firebase-admin");
-  const bucket = (admin.default ?? admin).storage(adminApp).bucket(bucketName);
+  // Initialise l'app Admin (credentials) et récupère un bucket explicitement.
+  getFirebaseAdminApp();
+  const bucket = admin.storage().bucket(bucketName);
 
   const ext = safeExt(args.file.name);
-  const objectPath = `uploads/users/${args.userId}/${args.kind}-${crypto.randomUUID()}${ext}`;
+  const objectPath = `uploads/users/${args.userId}/${args.kind}-${randomUUID()}${ext}`;
 
-  const token = crypto.randomUUID();
+  const token = randomUUID();
   const arrayBuffer = await args.file.arrayBuffer();
 
   await bucket.file(objectPath).save(Buffer.from(arrayBuffer), {
@@ -162,7 +169,7 @@ export async function POST(req: Request) {
         file,
       });
     } else {
-      const filename = `${kind}-${user.id}-${crypto.randomUUID()}${ext}`;
+      const filename = `${kind}-${user.id}-${randomUUID()}${ext}`;
       const uploadsDir = path.join(process.cwd(), "public", "uploads");
       await mkdir(uploadsDir, { recursive: true });
       const arrayBuffer = await file.arrayBuffer();
@@ -173,6 +180,12 @@ export async function POST(req: Request) {
     await updateUserMediaUrl(user.id, kind as "avatar" | "cover", url);
     return NextResponse.json({ url });
   } catch (e) {
+    const isProd = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+    const rawMessage = e instanceof Error ? e.message : String(e);
+    const safeMessage = rawMessage
+      .replace(/-----BEGIN[\s\S]*?PRIVATE KEY-----/g, "[REDACTED]")
+      .replace(/-----END[\s\S]*?PRIVATE KEY-----/g, "[REDACTED]");
+
     console.error("[user-media] Upload failed", {
       kind,
       fileName: file instanceof File ? file.name : undefined,
@@ -182,7 +195,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { error: "Erreur serveur pendant le téléversement. Réessaie dans quelques secondes." },
+      {
+        error: isProd
+          ? `Erreur serveur pendant le téléversement: ${safeMessage}`
+          : "Erreur serveur pendant le téléversement. Réessaie dans quelques secondes.",
+      },
       { status: 500 },
     );
   }

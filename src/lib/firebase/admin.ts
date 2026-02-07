@@ -35,12 +35,15 @@ export function getFirebaseAdminApp(): admin.app.App {
   if (admin.apps.length) return admin.app();
 
   const sa = readServiceAccount();
+  const storageBucketRaw = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  const storageBucket = storageBucketRaw?.trim()?.replace(/^gs:\/\//, "");
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: sa.project_id,
       clientEmail: sa.client_email,
       privateKey: sa.private_key,
     }),
+    ...(storageBucket ? { storageBucket } : {}),
   });
 
   return admin.app();
