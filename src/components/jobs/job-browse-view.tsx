@@ -3,11 +3,81 @@
 import * as React from "react";
 import { Search, Filter, X, Star } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+
+type Job = {
+  id: string;
+  title: string;
+  description: string;
+  requirements?: string | null;
+  publishedAt?: string | null;
+  domain: string;
+  province?: string | null;
+  city?: string | null;
+  jobType: string;
+  remote?: boolean | null;
+  languages?: string | null;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  experienceLevel: string;
+  poster?: {
+    fullName?: string | null;
+  } | null;
+};
+
+type UserProfile = {
+  preRegistrationData?: {
+    mainDomain?: string | null;
+  } | null;
+};
+
+type SavedCv = {
+  url: string;
+  fileName: string;
+  savedAt: string;
+};
+
+const CV_STORAGE_KEY = "capitune.userCv.v1";
+
+function loadSavedCv(): SavedCv | null {
+  try {
+    const raw = window.localStorage.getItem(CV_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedCv>;
+    if (!parsed.url || !parsed.fileName) return null;
+    return {
+      url: String(parsed.url),
+      fileName: String(parsed.fileName),
+      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistSavedCv(cv: SavedCv | null) {
+  try {
+    if (!cv) {
+      window.localStorage.removeItem(CV_STORAGE_KEY);
+      return;
+    }
+    window.localStorage.setItem(CV_STORAGE_KEY, JSON.stringify(cv));
+  } catch {
+    // ignore
+  }
+}
+
 export function JobBrowseView() {
-  const [jobs, setJobs] = React.useState<any[]>([]);
+  const [jobs, setJobs] = React.useState<Job[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [selectedJob, setSelectedJob] = React.useState<any>(null);
-  const [userProfile, setUserProfile] = React.useState<any>(null);
+  const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+
+  const [savedCv, setSavedCv] = React.useState<SavedCv | null>(null);
+  const [cvBusy, setCvBusy] = React.useState(false);
+  const [cvError, setCvError] = React.useState<string | null>(null);
+  const [cvOk, setCvOk] = React.useState<string | null>(null);
   
   // États des filtres
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -18,23 +88,64 @@ export function JobBrowseView() {
   const [showFilters, setShowFilters] = React.useState(false);
 
   React.useEffect(() => {
+    setSavedCv(loadSavedCv());
+
     // Récupérer le profil utilisateur
     fetch("/api/user-profile")
       .then((res) => res.json())
-      .then((data) => {
-        setUserProfile(data.user);
+      .then((data: unknown) => {
+        const payload = data as { user?: UserProfile | null };
+        setUserProfile(payload.user ?? null);
       })
       .catch(() => {});
 
     // Récupérer les offres
     fetch("/api/jobs")
       .then((res) => res.json())
-      .then((data) => {
-        setJobs(data.jobs || []);
+      .then((data: unknown) => {
+        const payload = data as { jobs?: Job[] };
+        setJobs(Array.isArray(payload.jobs) ? payload.jobs : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
+
+  async function uploadAndSaveCv(file: File) {
+    setCvBusy(true);
+    setCvError(null);
+    setCvOk(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/jobs/upload-cv", { method: "POST", body: form });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+      const payload = (await res.json()) as { url?: string };
+      if (!payload.url) throw new Error("Upload impossible.");
+
+      const next: SavedCv = {
+        url: payload.url,
+        fileName: file.name,
+        savedAt: new Date().toISOString(),
+      };
+      setSavedCv(next);
+      persistSavedCv(next);
+      setCvOk("CV importé");
+    } catch (e) {
+      setCvError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setCvBusy(false);
+    }
+  }
+
+  function removeSavedCv() {
+    setSavedCv(null);
+    persistSavedCv(null);
+    setCvOk("CV retiré");
+    setCvError(null);
+  }
 
   // Filtrage des offres
   const filteredJobs = jobs.filter((job) => {
@@ -80,7 +191,7 @@ export function JobBrowseView() {
   }
 
   // Identifier les offres recommandées (match avec le domaine de l'utilisateur)
-  function isRecommendedForUser(job: any): boolean {
+  function isRecommendedForUser(job: Job): boolean {
     if (!userProfile?.preRegistrationData?.mainDomain) return false;
     return job.domain === userProfile.preRegistrationData.mainDomain;
   }
@@ -92,11 +203,69 @@ export function JobBrowseView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Offres d'emploi</h1>
+        <h1 className="text-2xl font-bold">Offres d’emploi</h1>
         <p className="mt-1 text-sm text-muted">
           Parcourez les offres et postulez avec votre CV
         </p>
       </div>
+
+      <Card className="p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-navy">Mon CV</div>
+            <div className="mt-1 text-xs text-muted">
+              Importez votre CV une fois, puis utilisez-le pour postuler plus vite.
+            </div>
+            {savedCv ? (
+              <div className="mt-2 text-xs text-muted">
+                Actuel: {" "}
+                <a
+                  className="underline"
+                  href={savedCv.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {savedCv.fileName}
+                </a>
+              </div>
+            ) : (
+              <div className="mt-2 text-xs text-muted">Aucun CV importé.</div>
+            )}
+            {cvError ? (
+              <div className="mt-2 whitespace-pre-wrap text-xs text-danger">{cvError}</div>
+            ) : null}
+            {cvOk ? <div className="mt-2 text-xs text-muted">{cvOk}</div> : null}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                disabled={cvBusy}
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null;
+                  if (!f) return;
+                  void uploadAndSaveCv(f);
+                  e.currentTarget.value = "";
+                }}
+                className="w-full text-sm"
+              />
+              <span className="mt-1 block text-xs text-muted">PDF recommandé, max 10MB.</span>
+            </label>
+            {savedCv ? (
+              <Button
+                variant="outline"
+                className="border-danger/30 text-danger hover:bg-danger/5"
+                onClick={removeSavedCv}
+                disabled={cvBusy}
+              >
+                Retirer mon CV
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </Card>
 
       {/* Barre de recherche et filtres */}
       <div className="space-y-3">
@@ -151,10 +320,14 @@ export function JobBrowseView() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Domaine */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted">
+                <label
+                  htmlFor="filterDomain"
+                  className="mb-1 block text-xs font-medium text-muted"
+                >
                   Domaine
                 </label>
                 <select
+                  id="filterDomain"
                   value={filterDomain}
                   onChange={(e) => setFilterDomain(e.target.value)}
                   className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -171,10 +344,14 @@ export function JobBrowseView() {
 
               {/* Province */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted">
+                <label
+                  htmlFor="filterProvince"
+                  className="mb-1 block text-xs font-medium text-muted"
+                >
                   Province
                 </label>
                 <select
+                  id="filterProvince"
                   value={filterProvince}
                   onChange={(e) => setFilterProvince(e.target.value)}
                   className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -195,10 +372,14 @@ export function JobBrowseView() {
 
               {/* Type de contrat */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted">
+                <label
+                  htmlFor="filterJobType"
+                  className="mb-1 block text-xs font-medium text-muted"
+                >
                   Type de contrat
                 </label>
                 <select
+                  id="filterJobType"
                   value={filterJobType}
                   onChange={(e) => setFilterJobType(e.target.value)}
                   className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -214,10 +395,14 @@ export function JobBrowseView() {
 
               {/* Remote */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted">
+                <label
+                  htmlFor="filterRemote"
+                  className="mb-1 block text-xs font-medium text-muted"
+                >
                   Travail à distance
                 </label>
                 <select
+                  id="filterRemote"
                   value={filterRemote}
                   onChange={(e) => setFilterRemote(e.target.value)}
                   className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -258,7 +443,7 @@ export function JobBrowseView() {
             <rect x="2" y="7" width="20" height="14" rx="2" />
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
           </svg>
-          <p className="font-medium text-muted">Aucune offre d'emploi disponible</p>
+          <p className="font-medium text-muted">Aucune offre d’emploi disponible</p>
           <p className="mt-1 text-sm text-muted">
             Revenez plus tard pour découvrir de nouvelles opportunités
           </p>
@@ -293,7 +478,7 @@ export function JobBrowseView() {
                 {recommendedJobs.map((job) => (
                   <div
                     key={job.id}
-                    className="rounded-lg border-2 border-amber-200 bg-gradient-to-br from-amber-50/50 to-white p-5 transition-shadow hover:shadow-md"
+                    className="rounded-lg border-2 border-amber-200 bg-linear-to-br from-amber-50/50 to-white p-5 transition-shadow hover:shadow-md"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -303,7 +488,7 @@ export function JobBrowseView() {
                             <Star className="h-3 w-3" />
                             Recommandé
                           </span>
-                          {isNewJob(job.publishedAt) && (
+                          {isNewJob(job.publishedAt ?? null) && (
                             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                               Nouveau
                             </span>
@@ -337,7 +522,7 @@ export function JobBrowseView() {
                           )}
                           {(job.salaryMin || job.salaryMax) && (
                             <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-navy">
-                              💰 {formatSalary(job.salaryMin, job.salaryMax)}
+                              💰 {formatSalary(job.salaryMin ?? null, job.salaryMax ?? null)}
                             </span>
                           )}
                         </div>
@@ -374,7 +559,7 @@ export function JobBrowseView() {
                       <div className="flex-1">
                         <div className="flex items-start gap-2">
                           <h3 className="font-semibold text-lg">{job.title}</h3>
-                          {isNewJob(job.publishedAt) && (
+                          {isNewJob(job.publishedAt ?? null) && (
                             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                               Nouveau
                             </span>
@@ -408,7 +593,7 @@ export function JobBrowseView() {
                           )}
                           {(job.salaryMin || job.salaryMax) && (
                             <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-navy">
-                              💰 {formatSalary(job.salaryMin, job.salaryMax)}
+                              💰 {formatSalary(job.salaryMin ?? null, job.salaryMax ?? null)}
                             </span>
                           )}
                         </div>
@@ -435,51 +620,72 @@ export function JobBrowseView() {
         <JobApplicationModal
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
+          savedCv={savedCv}
         />
       )}
     </div>
   );
 }
 
-function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }) {
+function JobApplicationModal({
+  job,
+  onClose,
+  savedCv,
+}: {
+  job: Job;
+  onClose: () => void;
+  savedCv: SavedCv | null;
+}) {
   const [submitting, setSubmitting] = React.useState(false);
   const [cvFile, setCvFile] = React.useState<File | null>(null);
+  const [cvMode, setCvMode] = React.useState<"saved" | "upload">(savedCv ? "saved" : "upload");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    if (!cvFile) {
-      alert("Veuillez sélectionner un CV (obligatoire)");
-      return;
+
+    if (cvMode === "saved") {
+      if (!savedCv?.url) {
+        alert("Aucun CV importé. Veuillez téléverser un CV.");
+        return;
+      }
+    } else {
+      if (!cvFile) {
+        alert("Veuillez sélectionner un CV (obligatoire)");
+        return;
+      }
     }
     
     setSubmitting(true);
 
     // Upload CV (obligatoire en V1)
-    let cvUrl = null;
-    const uploadFormData = new FormData();
-    uploadFormData.append("file", cvFile);
-    
-    try {
-      const uploadRes = await fetch("/api/jobs/upload-cv", {
-        method: "POST",
-        body: uploadFormData,
-      });
-      
-      if (!uploadRes.ok) {
-        const errorData = await uploadRes.json();
-        alert(errorData.error || "Erreur lors de l'upload du CV");
+    let cvUrl: string | null = null;
+    if (cvMode === "saved") {
+      cvUrl = savedCv?.url ?? null;
+    } else {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", cvFile as File);
+
+      try {
+        const uploadRes = await fetch("/api/jobs/upload-cv", {
+          method: "POST",
+          body: uploadFormData,
+        });
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json();
+          alert(errorData.error || "Erreur lors de l'upload du CV");
+          setSubmitting(false);
+          return;
+        }
+
+        const uploadData = await uploadRes.json();
+        cvUrl = uploadData.url;
+      } catch (error) {
+        console.error("Erreur lors de l'upload du CV:", error);
+        alert("Erreur lors de l'upload du CV");
         setSubmitting(false);
         return;
       }
-      
-      const uploadData = await uploadRes.json();
-      cvUrl = uploadData.url;
-    } catch (error) {
-      console.error("Erreur lors de l'upload du CV:", error);
-      alert("Erreur lors de l'upload du CV");
-      setSubmitting(false);
-      return;
     }
 
     const data = {
@@ -517,6 +723,7 @@ function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }
           <h2 className="text-xl font-semibold">{job.title}</h2>
           <button
             onClick={onClose}
+            aria-label="Fermer"
             className="text-muted hover:text-text"
           >
             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -578,11 +785,38 @@ function JobApplicationModal({ job, onClose }: { job: any; onClose: () => void }
             <label htmlFor="cv" className="block text-sm font-medium">
               CV (obligatoire) *
             </label>
+
+            {savedCv ? (
+              <div className="mt-2 space-y-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="cvMode"
+                    checked={cvMode === "saved"}
+                    onChange={() => setCvMode("saved")}
+                  />
+                  <span>
+                    Utiliser mon CV importé: <span className="font-medium">{savedCv.fileName}</span>
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="cvMode"
+                    checked={cvMode === "upload"}
+                    onChange={() => setCvMode("upload")}
+                  />
+                  <span>Téléverser un autre CV pour cette candidature</span>
+                </label>
+              </div>
+            ) : null}
+
             <input
               type="file"
               id="cv"
               accept=".pdf,.doc,.docx"
-              required
+              required={cvMode === "upload"}
+              disabled={cvMode === "saved"}
               onChange={(e) => setCvFile(e.target.files?.[0] || null)}
               className="mt-1 w-full text-sm"
             />
