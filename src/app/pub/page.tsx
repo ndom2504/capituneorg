@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 
 import { PubContactForm } from "@/app/pub/pub-contact-form";
+import { PubFaq } from "@/app/pub/pub-faq";
+import { PubChatbot } from "@/app/pub/pub-chatbot";
 
 export const metadata: Metadata = {
   title: "CAPITUNE — Orientation & accompagnement vers le Canada",
@@ -94,10 +96,10 @@ fbq('track', 'PageView');
             }}
           />
           <noscript>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               height="1"
               width="1"
-              style={{ display: "none" }}
               src={`https://www.facebook.com/tr?id=${encodeURIComponent(fbPixelId)}&ev=PageView&noscript=1`}
               alt=""
             />
@@ -118,6 +120,9 @@ fbq('track', 'PageView');
             </a>
             <a href="#temoignages" className="text-sm font-semibold text-muted hover:text-primary">
               Témoignages
+            </a>
+            <a href="#faq" className="text-sm font-semibold text-muted hover:text-primary">
+              FAQ
             </a>
             <a href="#contact" className="text-sm font-semibold text-muted hover:text-primary">
               Contact
@@ -317,6 +322,8 @@ fbq('track', 'PageView');
           </div>
         </section>
 
+        <PubFaq />
+
         <section id="contact" className="bg-linear-to-br from-primary/5 via-background to-primary/5 py-16 md:py-24">
           <div className="mx-auto grid w-full max-w-6xl items-center gap-6 px-4 lg:grid-cols-2">
             <div>
@@ -375,6 +382,7 @@ fbq('track', 'PageView');
                   <li><a href="#comment-ca-marche" className="hover:text-primary">Comment ça marche</a></li>
                   <li><a href="#avantages" className="hover:text-primary">Avantages</a></li>
                   <li><a href="#temoignages" className="hover:text-primary">Témoignages</a></li>
+                  <li><a href="#faq" className="hover:text-primary">FAQ</a></li>
                   <li><a href="#contact" className="hover:text-primary">Contact</a></li>
                 </ul>
               </div>
@@ -406,6 +414,8 @@ fbq('track', 'PageView');
           </div>
         </footer>
       </main>
+
+      <PubChatbot />
     </div>
   );
 }
