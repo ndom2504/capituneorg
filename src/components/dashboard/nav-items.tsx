@@ -263,10 +263,32 @@ export const NAV_ITEMS: NavItem[] = [
     hideForProfessionals: true,
   },
   {
-    href: "/evenements-formations",
+    kind: "group",
     label: "Événements & formations",
     icon: icons.calendar,
     featureKey: "events",
+    children: [
+      {
+        href: "/evenements-formations",
+        label: "Explorer",
+        icon: icons.calendar,
+        featureKey: "events",
+      },
+      {
+        href: "/evenements-formations/pro/mes-evenements",
+        label: "Mes événements",
+        icon: icons.folder,
+        professionalOnly: true,
+        featureKey: "events",
+      },
+      {
+        href: "/evenements-formations/pro/mes-formations",
+        label: "Mes formations",
+        icon: icons.folder,
+        professionalOnly: true,
+        featureKey: "events",
+      },
+    ],
   },
   // Pôle emploi - Professionnel
   {

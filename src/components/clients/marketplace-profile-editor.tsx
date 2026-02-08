@@ -247,12 +247,40 @@ export function MarketplaceProfileEditor() {
     };
   }, []);
 
-  async function save() {
+  async function readApiError(res: Response) {
+    try {
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        const data = (await res.json()) as { error?: string };
+        return data?.error || `HTTP ${res.status}`;
+      }
+
+      const text = await res.text();
+      if (!text) return `HTTP ${res.status}`;
+      try {
+        const parsed = JSON.parse(text) as { error?: string };
+        return parsed?.error || text;
+      } catch {
+        return text;
+      }
+    } catch {
+      return `HTTP ${res.status}`;
+    }
+  }
+
+  async function submit(nextStatus: ProfileStatus) {
     setSaving(true);
     setOk(null);
     setError(null);
 
     try {
+      if (!complianceAccepted) {
+        throw new Error("Vous devez accepter l’engagement de transparence.");
+      }
+      if (!accuracyConfirmed) {
+        throw new Error("Vous devez confirmer l’exactitude des informations.");
+      }
+
       if (!languages.length) {
         throw new Error("Au moins une langue est requise.");
       }
@@ -266,7 +294,7 @@ export function MarketplaceProfileEditor() {
         throw new Error("Métier principal requis.");
       }
 
-      if (hasRegulatedProfession && status === "PUBLISHED") {
+      if (hasRegulatedProfession && nextStatus === "PUBLISHED") {
         if (!licenseNumber.trim() || !licenseAuthority.trim() || !proofUrl.trim()) {
           throw new Error(
             "Métier réglementé : licence + autorité + preuve sont requises. La publication est bloquée jusqu’à validation admin.",
@@ -278,7 +306,7 @@ export function MarketplaceProfileEditor() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          status,
+          status: nextStatus,
           primaryProfessionId,
           secondaryProfessionIds,
           headline: headline.trim() || null,
@@ -307,17 +335,26 @@ export function MarketplaceProfileEditor() {
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
+        throw new Error(await readApiError(res));
       }
 
       const payload = (await res.json()) as SaveResponse;
+      if (payload.profile?.id) setProfileId(payload.profile.id);
+      if (payload.profile?.status) setStatus(payload.profile.status);
       setOk(payload.profile?.updatedAt ?? "OK");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveDraft() {
+    await submit("DRAFT");
+  }
+
+  async function publish() {
+    await submit("PUBLISHED");
   }
 
   async function removeProfile() {
@@ -425,14 +462,15 @@ export function MarketplaceProfileEditor() {
             <div className="text-xs font-semibold text-muted">Statut</div>
             <select
               aria-label="Statut du profil"
-              className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+              className="h-10 w-full rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
               value={status}
-              onChange={(e) => setStatus(e.target.value as ProfileStatus)}
+              disabled
             >
               <option value="DRAFT">Brouillon</option>
               <option value="PUBLISHED">Publié</option>
               <option value="SUSPENDED">Suspendu</option>
             </select>
+            <div className="mt-1 text-xs text-muted">Pour publier, utilisez le bouton “Publier”.</div>
           </div>
 
           <div>
@@ -441,7 +479,7 @@ export function MarketplaceProfileEditor() {
             <div className="mt-1 grid gap-2 sm:grid-cols-2">
               <select
                 aria-label="Catégorie de métier principal"
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                className="h-10 w-full rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
                 value={primaryProfessionCategory}
                 onChange={(e) => {
                   const nextCat = e.target.value as ProfessionCategoryId;
@@ -459,7 +497,7 @@ export function MarketplaceProfileEditor() {
 
               <select
                 aria-label="Métier principal"
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                className="h-10 w-full rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
                 value={primaryProfessionId}
                 onChange={(e) => {
                   const next = e.target.value;
@@ -486,7 +524,7 @@ export function MarketplaceProfileEditor() {
             <div className="mt-1 grid gap-2 sm:grid-cols-2">
               <select
                 aria-label="Catégorie de métiers secondaires"
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                className="h-10 w-full rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
                 value={secondaryProfessionCategory}
                 onChange={(e) => setSecondaryProfessionCategory(e.target.value as ProfessionCategoryId)}
               >
@@ -499,7 +537,7 @@ export function MarketplaceProfileEditor() {
 
               <select
                 aria-label="Métier secondaire"
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                className="h-10 w-full rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
                 value={secondaryProfessionToAdd}
                 onChange={(e) => setSecondaryProfessionToAdd(e.target.value)}
               >
@@ -567,7 +605,7 @@ export function MarketplaceProfileEditor() {
           </div>
 
           {hasRegulatedProfession ? (
-            <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3 text-xs text-muted">
+            <div className="rounded-(--radius-md) border border-border bg-white/60 p-3 text-xs text-muted">
               <div className="font-semibold text-text">Métier réglementé</div>
               <div className="mt-1">
                 La soumission/représentation officielle n’est autorisée que pour les métiers réglementés. Licence +
@@ -618,7 +656,7 @@ export function MarketplaceProfileEditor() {
             <div className="text-xs font-semibold text-muted">Format</div>
             <select
               aria-label="Format de rendez-vous"
-              className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+              className="h-10 w-full rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
               value={format}
               onChange={(e) => setFormat(e.target.value as Format)}
             >
@@ -632,7 +670,7 @@ export function MarketplaceProfileEditor() {
             <div className="text-xs font-semibold text-muted">Délai de réponse (optionnel)</div>
             <select
               aria-label="Délai de réponse"
-              className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+              className="h-10 w-full rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
               value={responseTime}
               onChange={(e) => setResponseTime(e.target.value as ResponseTime | "")}
             >
@@ -681,7 +719,7 @@ export function MarketplaceProfileEditor() {
                         return (
                           <label
                             key={svc.id}
-                            className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border bg-white/60 px-3 py-2 text-sm text-text"
+                            className="flex items-start gap-2 rounded-(--radius-md) border border-border bg-white/60 px-3 py-2 text-sm text-text"
                           >
                             <input
                               type="checkbox"
@@ -758,7 +796,7 @@ export function MarketplaceProfileEditor() {
               <div className="text-xs font-semibold text-muted">Tarification</div>
               <select
                 aria-label="Mode de tarification"
-                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/70 px-3 text-sm text-text"
+                className="h-10 w-full rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
                 value={pricingMode}
                 onChange={(e) => setPricingMode(e.target.value as PricingMode)}
               >
@@ -811,7 +849,7 @@ export function MarketplaceProfileEditor() {
           </div>
         </div>
 
-        <div className="mt-3 rounded-[var(--radius-md)] border border-border bg-white/60 p-3 text-xs text-muted">
+        <div className="mt-3 rounded-(--radius-md) border border-border bg-white/60 p-3 text-xs text-muted">
           <div className="font-semibold text-text">Conformité</div>
           <label className="mt-2 flex items-start gap-2">
             <input
@@ -833,7 +871,7 @@ export function MarketplaceProfileEditor() {
           </label>
         </div>
 
-        <div className="mt-3 flex items-center justify-end gap-2">
+        <div className="mt-3 flex items-center gap-2">
           {profileId ? (
             <Button
               variant="outline"
@@ -844,9 +882,19 @@ export function MarketplaceProfileEditor() {
               Supprimer définitivement mon profil
             </Button>
           ) : null}
-          <Button onClick={save} disabled={saving}>
-            Enregistrer
-          </Button>
+          <div className="ml-auto flex flex-col items-end gap-2">
+            <div className="text-xs text-muted">
+              “Enregistrer” crée un brouillon : vous pourrez revenir le modifier plus tard.
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={saveDraft} disabled={saving || !complianceAccepted || !accuracyConfirmed}>
+                Enregistrer
+              </Button>
+              <Button onClick={publish} disabled={saving || !complianceAccepted || !accuracyConfirmed}>
+                Publier
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
     </div>

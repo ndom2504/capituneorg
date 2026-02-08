@@ -11,7 +11,6 @@ type ChatMessage = {
   id: string;
   from: "user" | "bot";
   text: string;
-  ts: number;
 };
 
 function track(eventName: string, params?: Record<string, unknown>) {
@@ -52,12 +51,12 @@ function findAnswer(userText: string) {
 export function PubChatbot() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const messageIdRef = useRef(1);
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: "welcome",
       from: "bot",
       text: "Bonjour ! Posez-moi une question sur les programmes, délais, coûts ou documents.",
-      ts: Date.now(),
     },
   ]);
 
@@ -82,10 +81,9 @@ export function PubChatbot() {
     if (!trimmed) return;
 
     const userMsg: ChatMessage = {
-      id: `u_${Date.now()}`,
+      id: `u_${messageIdRef.current++}`,
       from: "user",
       text: trimmed,
-      ts: Date.now(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setValue("");
@@ -94,10 +92,9 @@ export function PubChatbot() {
 
     const answer = findAnswer(trimmed);
     const botMsg: ChatMessage = {
-      id: `b_${Date.now()}`,
+      id: `b_${messageIdRef.current++}`,
       from: "bot",
       text: answer,
-      ts: Date.now(),
     };
 
     // petit délai pour un effet naturel

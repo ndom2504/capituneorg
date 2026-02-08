@@ -339,6 +339,53 @@ enum EventTheme {
   BUDGET
 }
 
+// --- PRO : Événements & Formations (V1) ---
+
+enum ProContentType {
+  EVENT
+  TRAINING
+}
+
+enum ProPublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ProEventStatus {
+  DRAFT
+  PUBLISHED
+  FULL
+  ENDED
+  CANCELLED
+}
+
+enum ProEventType {
+  LIVE
+  ATELIER
+  QA
+}
+
+enum EnrollmentPaymentStatus {
+  FREE
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum ContentTargetRole {
+  ALL
+  DEMANDEUR
+  PRO
+}
+
+enum TrainingFormat {
+  VIDEO
+  RESOURCES
+  MIXED
+}
+
 enum EventLevel {
   DEBUTANT
   INTERMEDIAIRE
@@ -489,9 +536,84 @@ model User {
   conversationsReceived  Conversation[] @relation("ConversationRecipient")
   messagesSent           Message[]      @relation("MessageSender")
 
+  // PRO content (événements / formations)
+  contentItemsOwned ContentItem[] @relation("ContentOwner")
+  contentEnrollments Enrollment[]
+
   platformSettingsUpdated PlatformSetting[] @relation("PlatformSettingUpdatedBy")
 
   communityRulesUpdated CommunityRules[] @relation("CommunityRulesUpdatedBy")
+}
+
+model ContentItem {
+  id      String         @id @default(cuid())
+  type    ProContentType
+
+  ownerId String
+  owner   User           @relation("ContentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  language    String      @default("fr")
+
+  // Event fields
+  eventStatus ProEventStatus?
+  eventType   ProEventType?
+  startsAt    DateTime?
+  durationMin Int?
+  timezone    String?
+  liveUrl     String?
+  replayUrl   String?
+  capacity    Int?
+  imageUrl    String?
+
+  // Training fields
+  publishStatus ProPublishStatus @default(DRAFT)
+  trainingFormat TrainingFormat?
+  level         String?
+  videoUrl       String?
+  objectivesJson Json?
+  resourcesJson  Json?
+
+  // Monetization
+  isPaid        Boolean  @default(false)
+  priceCents    Int?
+  currency      String   @default("cad")
+  stripePriceId String?
+
+  // Visibility
+  targetRole ContentTargetRole?
+
+  isPinned Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments Enrollment[]
+
+  @@index([ownerId, type, createdAt])
+  @@index([type, publishStatus])
+  @@index([type, eventStatus])
+  @@index([startsAt])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  contentId String
+  userId    String
+
+  paymentStatus    EnrollmentPaymentStatus @default(PENDING)
+  stripeSessionId  String?
+  paymentOrderId   String?
+
+  createdAt DateTime @default(now())
+
+  content ContentItem @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, userId])
+  @@index([userId, createdAt])
+  @@index([contentId, createdAt])
 }
 
 enum EmploymentAvailability {
