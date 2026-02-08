@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 type ApiComment = {
   id: string;
+  authorName: string;
   message: string;
   createdAt: string;
   createdAtLabel?: string;
@@ -19,6 +20,12 @@ type ApiPost = {
   userId: string;
   authorName: string;
   authorAvatarUrl: string | null;
+  title?: string | null;
+  targetAccountType?: "USER" | "PROFESSIONAL" | "ADMIN" | null;
+  isAdminPost?: boolean;
+  isHidden?: boolean;
+  commentsLocked?: boolean;
+  pinnedAt?: string | null;
   createdAt: string;
   createdAtLabel?: string;
   content: string;
@@ -189,7 +196,7 @@ export function UserPostsFeed({ initialPosts }: { initialPosts: ApiPost[] }) {
       </Card>
 
       {posts.length === 0 ? (
-        <div className="rounded-[var(--radius-md)] border border-border bg-white/70 p-4 text-sm text-muted">
+        <div className="rounded-(--radius-md) border border-border bg-white/70 p-4 text-sm text-muted">
           Aucune publication utilisateur pour le moment.
         </div>
       ) : null}
@@ -230,6 +237,14 @@ function UserPostCard({
   const [saving, setSaving] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const createdLabel = post.createdAtLabel ?? formatRelativeDateFromIso(post.createdAt);
+  const audienceLabel =
+    post.targetAccountType === "PROFESSIONAL"
+      ? "Pros"
+      : post.targetAccountType === "USER"
+        ? "Demandeurs"
+        : post.targetAccountType === "ADMIN"
+          ? "Admins"
+          : null;
 
   React.useEffect(() => {
     setDraftContent(post.content);
@@ -307,7 +322,10 @@ function UserPostCard({
   }
 
   return (
-    <Card id={`post-${post.id}`}> 
+    <Card
+      id={`post-${post.id}`}
+      className={post.isAdminPost ? "bg-primary/5" : undefined}
+    >
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 h-10 w-10 rounded-full border border-border bg-white p-1">
@@ -331,9 +349,35 @@ function UserPostCard({
             <div className="mt-1 flex items-center gap-2 text-xs text-muted">
               <span>{createdLabel}</span>
               <span aria-hidden>·</span>
-              <span className="rounded-full border border-border bg-white/60 px-2 py-0.5">
-                Utilisateur
-              </span>
+              {post.isAdminPost ? (
+                <span className="rounded-full border border-border bg-white/60 px-2 py-0.5">
+                  Annonce CAPITUNE
+                </span>
+              ) : (
+                <span className="rounded-full border border-border bg-white/60 px-2 py-0.5">
+                  Utilisateur
+                </span>
+              )}
+              {audienceLabel ? (
+                <span className="rounded-full border border-border bg-white/60 px-2 py-0.5">
+                  Pour : {audienceLabel}
+                </span>
+              ) : null}
+              {post.pinnedAt ? (
+                <span className="rounded-full border border-border bg-white/60 px-2 py-0.5">
+                  Épinglé
+                </span>
+              ) : null}
+              {post.commentsLocked ? (
+                <span className="rounded-full border border-border bg-white/60 px-2 py-0.5">
+                  Commentaires verrouillés
+                </span>
+              ) : null}
+              {post.isHidden ? (
+                <span className="rounded-full border border-border bg-white/60 px-2 py-0.5">
+                  Masqué
+                </span>
+              ) : null}
               {post.isMine ? (
                 <span className="rounded-full border border-border bg-white/60 px-2 py-0.5">
                   Vous
@@ -345,7 +389,7 @@ function UserPostCard({
 
         <details ref={menuRef} className="relative">
           <summary
-            className="list-none inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-[var(--radius-md)] border border-border bg-white/60 text-muted hover:bg-white"
+            className="list-none inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-(--radius-md) border border-border bg-white/60 text-muted hover:bg-white"
             aria-label="Options"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
@@ -355,7 +399,7 @@ function UserPostCard({
             </svg>
           </summary>
 
-          <div className="absolute right-0 top-10 z-10 w-56 overflow-hidden rounded-[var(--radius-md)] border border-border bg-white shadow-lg">
+          <div className="absolute right-0 top-10 z-10 w-56 overflow-hidden rounded-(--radius-md) border border-border bg-white shadow-lg">
             <MenuItem
               onClick={async () => {
                 closeMenu();
@@ -426,6 +470,7 @@ function UserPostCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {post.title ? <div className="text-sm font-semibold text-text">{post.title}</div> : null}
         {editing ? (
           <div className="space-y-2">
             <Textarea
@@ -463,7 +508,7 @@ function UserPostCard({
           <img
             src={post.mediaUrl}
             alt="Média"
-            className="max-h-[520px] w-full rounded-[var(--radius-md)] object-cover"
+            className="max-h-130 w-full rounded-(--radius-md) object-cover"
           />
         ) : null}
 
@@ -471,7 +516,7 @@ function UserPostCard({
           <video
             src={post.mediaUrl}
             controls
-            className="max-h-[520px] w-full rounded-[var(--radius-md)] bg-black"
+            className="max-h-130 w-full rounded-(--radius-md) bg-black"
           />
         ) : null}
 
@@ -504,21 +549,15 @@ function UserPostCard({
               const el = document.getElementById(`user-comment-${post.id}`);
               el?.focus();
             }}
-            disabled={!post.isMine}
-            title={!post.isMine ? "Commentaires désactivés (pas d’interaction)" : undefined}
+            disabled={!!post.commentsLocked}
+            title={post.commentsLocked ? "Commentaires verrouillés" : undefined}
           >
             Commenter
           </ActionButton>
-          <ActionButton
-            onClick={onShare}
-            disabled={!post.isMine}
-            title={!post.isMine ? "Partage désactivé (pas d’interaction)" : undefined}
-          >
-            Partager
-          </ActionButton>
+          <ActionButton onClick={onShare}>Partager</ActionButton>
         </div>
 
-        {post.isMine ? (
+        {!post.commentsLocked ? (
           <div className="border-t border-border pt-2">
             <div className="flex gap-2">
               <Input
@@ -543,7 +582,7 @@ function UserPostCard({
                 {post.comments.map((c) => (
                   <div key={c.id} className="py-2">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-xs font-medium text-navy">Vous</div>
+                      <div className="text-xs font-medium text-navy">{c.authorName}</div>
                       <div className="text-xs text-muted">
                         {c.createdAtLabel ?? formatRelativeDateFromIso(c.createdAt)}
                       </div>

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const existing = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, accountType: true },
+    select: { id: true, accountType: true, roleLocked: true },
   });
 
   const isNewUser = !existing;
@@ -59,9 +59,6 @@ export async function POST(req: NextRequest) {
           fullName,
           avatarUrl: decoded.picture ?? undefined,
           // passwordHash reste null: on force Microsoft pour ce compte sauf ajout ultérieur
-          ...(desiredAccountType === "PROFESSIONAL" && existing.accountType === "USER"
-            ? { accountType: "PROFESSIONAL" as const }
-            : {}),
         },
         select: { id: true, accountType: true },
       })
@@ -73,6 +70,7 @@ export async function POST(req: NextRequest) {
           avatarUrl: decoded.picture ?? null,
           coverUrl: null,
           accountType: desiredAccountType ?? "USER",
+          roleLocked: true,
           isCertified: false,
         },
         select: { id: true, accountType: true },

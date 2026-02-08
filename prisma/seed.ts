@@ -11,11 +11,36 @@ import {
   EventLevel,
   EventTheme,
   EventType,
+  CommunityPublishMode,
+  CommunityCommentMode,
+  CommunityBannedWordsAction,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.communityRules.upsert({
+    where: { singleton: 1 },
+    update: {},
+    create: {
+      singleton: 1,
+      publishMode: CommunityPublishMode.ADMIN_ONLY,
+      commentMode: CommunityCommentMode.ALL_USERS,
+      allowLinks: true,
+      allowImages: true,
+      spamPostCooldownSeconds: 3600,
+      maxPostsPerDay: 3,
+      bannedWords: JSON.stringify([
+        "arnaque",
+        "visa garanti",
+        "garanti",
+        "paiement en dehors",
+        "whatsapp",
+      ]),
+      bannedWordsAction: CommunityBannedWordsAction.HIDE,
+    },
+  });
+
   await prisma.user.upsert({
     where: { email: "admin@capitune.local" },
     update: { accountType: AccountType.ADMIN, isCertified: true },

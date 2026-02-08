@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/cn";
 import { BrandMark } from "@/components/ui/brand-mark";
+import { PhoneAuthProvider, RecaptchaVerifier, linkWithCredential, type ConfirmationResult } from "firebase/auth";
 import {
   consumeGoogleRedirectResult,
   formatFirebaseAuthError,
+  getFirebaseAuth,
   shouldFallbackToRedirect,
   signInWithGooglePopup,
   startGoogleRedirect,
@@ -85,6 +87,7 @@ type AuthApiResponse = {
   isNewUser?: boolean;
   hasMarketplaceProfile?: boolean;
   preRegistrationStatus?: "DRAFT" | "SUBMITTED" | null;
+  code?: string;
   error?: string;
 };
 
@@ -106,6 +109,15 @@ export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [googlePhoneGate, setGooglePhoneGate] = useState<{
+    accountType?: "USER" | "PROFESSIONAL";
+  } | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
+  const [smsCode, setSmsCode] = useState("");
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -155,9 +167,16 @@ export default function AuthPage() {
     });
     const data = (await res.json().catch(() => ({}))) as AuthApiResponse;
     if (!res.ok) {
+      if (res.status === 403 && data.code === "PHONE_VERIFICATION_REQUIRED") {
+        setError(null);
+        setGooglePhoneGate({ accountType });
+        return;
+      }
       setError(data.error ?? "Connexion Google impossible.");
       return;
     }
+
+    setGooglePhoneGate(null);
 
     const resolvedAccountType = data.accountType ?? "USER";
     const isNewUser = data.isNewUser ?? false;
@@ -177,6 +196,110 @@ export default function AuthPage() {
 
     window.location.assign(target);
   }, []);
+
+  const ensureRecaptchaVerifier = useCallback(() => {
+    const auth = getFirebaseAuth();
+    const container = recaptchaContainerRef.current;
+    if (!container) {
+      throw new Error("reCAPTCHA indisponible. Réessayez.");
+    }
+    if (recaptchaVerifierRef.current) return recaptchaVerifierRef.current;
+
+    const verifier = new RecaptchaVerifier(auth, container, {
+      size: "normal",
+    });
+    recaptchaVerifierRef.current = verifier;
+    return verifier;
+  }, []);
+
+  const resetPhoneGate = useCallback(async () => {
+    setGooglePhoneGate(null);
+    setConfirmation(null);
+    setPhoneNumber("");
+    setSmsCode("");
+    setError(null);
+
+    try {
+      recaptchaVerifierRef.current?.clear();
+    } catch {
+      // ignore
+    } finally {
+      recaptchaVerifierRef.current = null;
+    }
+  }, []);
+
+  const sendSms = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const auth = getFirebaseAuth();
+      if (!auth.currentUser) {
+        setError("Session Google introuvable. Reconnectez-vous avec Google puis réessayez.");
+        return;
+      }
+
+      const verifier = ensureRecaptchaVerifier();
+      const provider = new PhoneAuthProvider(auth);
+      const result = await provider.verifyPhoneNumber(phoneNumber.trim(), verifier);
+      setConfirmation({
+        verificationId: result,
+        confirm: async (verificationCode: string) => {
+          const credential = PhoneAuthProvider.credential(result, verificationCode);
+          const user = auth.currentUser;
+          if (!user) throw new Error("Session Google introuvable.");
+          return linkWithCredential(user, credential);
+        },
+      });
+    } catch (e) {
+      setError(formatFirebaseAuthError(e));
+      try {
+        recaptchaVerifierRef.current?.clear();
+      } catch {
+        // ignore
+      }
+      recaptchaVerifierRef.current = null;
+    } finally {
+      setLoading(false);
+    }
+  }, [ensureRecaptchaVerifier, phoneNumber]);
+
+  const confirmSms = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const auth = getFirebaseAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        setError("Session Google introuvable. Reconnectez-vous avec Google puis réessayez.");
+        return;
+      }
+
+      if (!confirmation) {
+        setError("Veuillez d’abord envoyer le code SMS.");
+        return;
+      }
+
+      await confirmation.confirm(smsCode.trim());
+      const freshIdToken = await user.getIdToken(true);
+      await exchangeGoogleToken(freshIdToken, googlePhoneGate?.accountType);
+    } catch (e) {
+      setError(formatFirebaseAuthError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [confirmation, exchangeGoogleToken, googlePhoneGate?.accountType, smsCode]);
+
+  useEffect(() => {
+    if (!googlePhoneGate) return;
+    return () => {
+      try {
+        recaptchaVerifierRef.current?.clear();
+      } catch {
+        // ignore
+      }
+      recaptchaVerifierRef.current = null;
+    };
+  }, [googlePhoneGate]);
 
   const exchangeMicrosoftToken = useCallback(async (idToken: string, accountType?: "USER" | "PROFESSIONAL") => {
     const res = await fetch("/api/auth/microsoft", {
@@ -544,105 +667,168 @@ export default function AuthPage() {
           </CardHeader>
 
           <CardContent>
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full" onClick={onGoogle} disabled={loading}>
-                Continuer avec Google
-              </Button>
-              <Button variant="outline" className="w-full" onClick={onMicrosoft} disabled={loading}>
-                Continuer avec Microsoft
-              </Button>
-              <Button variant="outline" className="w-full" onClick={onLinkedIn} disabled={loading}>
-                Continuer avec LinkedIn
-              </Button>
-              {mode === "signup" && signup.accountType === "PROFESSIONAL" ? (
-                <div className="text-xs text-muted">
-                  L’authentification sociale est activée pour les demandeurs. Pour un compte professionnel, utilisez l’inscription par email
-                  (vérification requise).
+            {googlePhoneGate ? (
+              <div className="space-y-4">
+                <div className="rounded-(--radius-md) border border-border bg-white/70 px-3 py-2 text-sm text-muted">
+                  Pour continuer avec Google, vous devez d’abord vérifier votre numéro par SMS.
                 </div>
-              ) : null}
-              <div className="my-2 flex items-center gap-3">
-                <div className="h-px flex-1 bg-border/70" />
-                <div className="text-xs text-muted">ou</div>
-                <div className="h-px flex-1 bg-border/70" />
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-navy">Numéro de téléphone</label>
+                  <Input
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Ex: +15145551234"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    required
+                  />
+                  <div className="text-xs text-muted">Format international (E.164) requis: commence par +</div>
+                </div>
+
+                <div ref={recaptchaContainerRef} className="min-h-[78px]" />
+
+                {confirmation ? (
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-navy">Code SMS</label>
+                      <Input
+                        value={smsCode}
+                        onChange={(e) => setSmsCode(e.target.value)}
+                        placeholder="123456"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        required
+                      />
+                    </div>
+                    <Button className="w-full" onClick={confirmSms} disabled={loading || !smsCode.trim()}>
+                      {loading ? "Vérification…" : "Vérifier et continuer"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setConfirmation(null);
+                        setSmsCode("");
+                        setError(null);
+                      }}
+                      disabled={loading}
+                    >
+                      Renvoyer un code
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button className="w-full" onClick={sendSms} disabled={loading || !phoneNumber.trim()}>
+                      {loading ? "Envoi…" : "Envoyer le code SMS"}
+                    </Button>
+                    <Button variant="outline" className="w-full" onClick={resetPhoneGate} disabled={loading}>
+                      Annuler
+                    </Button>
+                  </div>
+                )}
               </div>
-            </div>
-
-            {mode === "login" ? (
-              <form onSubmit={onLoginSubmit} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-navy">Email</label>
-                  <Input
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    type="email"
-                    autoComplete="email"
-                    placeholder="vous@exemple.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-navy">Mot de passe</label>
-                  <Input
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? "Connexion…" : "Connexion"}
-                </Button>
-              </form>
             ) : (
-              <form onSubmit={onSignupSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-navy">Prénom</label>
-                    <Input
-                      value={signup.firstName}
-                      onChange={(e) => setSignup((s) => ({ ...s, firstName: e.target.value }))}
-                      placeholder="Prénom"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-navy">Nom</label>
-                    <Input
-                      value={signup.lastName}
-                      onChange={(e) => setSignup((s) => ({ ...s, lastName: e.target.value }))}
-                      placeholder="Nom"
-                      required
-                    />
+              <>
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full" onClick={onGoogle} disabled={loading}>
+                    Continuer avec Google
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={onMicrosoft} disabled={loading}>
+                    Continuer avec Microsoft
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={onLinkedIn} disabled={loading}>
+                    Continuer avec LinkedIn
+                  </Button>
+                  {mode === "signup" && signup.accountType === "PROFESSIONAL" ? (
+                    <div className="text-xs text-muted">
+                      L’authentification sociale est activée pour les demandeurs. Pour un compte professionnel, utilisez l’inscription par
+                      email (vérification requise).
+                    </div>
+                  ) : null}
+                  <div className="my-2 flex items-center gap-3">
+                    <div className="h-px flex-1 bg-border/70" />
+                    <div className="text-xs text-muted">ou</div>
+                    <div className="h-px flex-1 bg-border/70" />
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-navy">Email</label>
-                  <Input
-                    value={signup.email}
-                    onChange={(e) => setSignup((s) => ({ ...s, email: e.target.value }))}
-                    type="email"
-                    autoComplete="email"
-                    placeholder="vous@exemple.com"
-                    required
-                  />
-                </div>
+                {mode === "login" ? (
+                  <form onSubmit={onLoginSubmit} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-navy">Email</label>
+                      <Input
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        type="email"
+                        autoComplete="email"
+                        placeholder="vous@exemple.com"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-navy">Mot de passe</label>
+                      <Input
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-navy">Mot de passe</label>
-                  <Input
-                    value={signup.password}
-                    onChange={(e) => setSignup((s) => ({ ...s, password: e.target.value }))}
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="8 caractères minimum"
-                    required
-                  />
-                  <div className="text-xs text-muted">Astuce: 12+ caractères recommandé.</div>
-                </div>
+                    <Button type="submit" disabled={loading} className="w-full">
+                      {loading ? "Connexion…" : "Connexion"}
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={onSignupSubmit} className="space-y-5">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-navy">Prénom</label>
+                        <Input
+                          value={signup.firstName}
+                          onChange={(e) => setSignup((s) => ({ ...s, firstName: e.target.value }))}
+                          placeholder="Prénom"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-navy">Nom</label>
+                        <Input
+                          value={signup.lastName}
+                          onChange={(e) => setSignup((s) => ({ ...s, lastName: e.target.value }))}
+                          placeholder="Nom"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-navy">Email</label>
+                      <Input
+                        value={signup.email}
+                        onChange={(e) => setSignup((s) => ({ ...s, email: e.target.value }))}
+                        type="email"
+                        autoComplete="email"
+                        placeholder="vous@exemple.com"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-navy">Mot de passe</label>
+                      <Input
+                        value={signup.password}
+                        onChange={(e) => setSignup((s) => ({ ...s, password: e.target.value }))}
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="8 caractères minimum"
+                        required
+                      />
+                      <div className="text-xs text-muted">Astuce: 12+ caractères recommandé.</div>
+                    </div>
 
                 <div className="space-y-2">
                   <div className="text-sm font-medium text-navy">Type de compte</div>
@@ -960,6 +1146,8 @@ export default function AuthPage() {
                   {loading ? "Création…" : "Créer mon compte"}
                 </Button>
               </form>
+            )}
+              </>
             )}
           </CardContent>
         </Card>

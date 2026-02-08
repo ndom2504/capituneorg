@@ -2,17 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
+import { getCommunityViewer } from "@/app/api/user-posts/_community";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function getViewer() {
-  const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
-  return prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-}
 
 export async function POST(
   _req: NextRequest,
@@ -23,29 +16,34 @@ export async function POST(
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
-  const viewer = await getViewer();
+  const viewer = await getCommunityViewer();
   if (!viewer) {
-    return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  }
+
+  if (viewer.accountStatus !== "ACTIVE") {
+    return NextResponse.json({ error: "Compte indisponible." }, { status: 403 });
+  }
+  if (viewer.communityBannedAt) {
+    return NextResponse.json({ error: "Accès communauté suspendu." }, { status: 403 });
   }
 
   const { postId } = await context.params;
   const post = await prisma.userPost.findUnique({
     where: { id: postId },
-    select: { userId: true },
+    select: { id: true, isHidden: true, targetAccountType: true },
   });
 
   if (!post) {
     return NextResponse.json({ error: "Publication introuvable." }, { status: 404 });
   }
 
-  if (post.userId !== viewer.id) {
-    return NextResponse.json(
-      { error: "Vous ne pouvez partager que vos propres publications." },
-      { status: 403 },
-    );
+  const isAdmin = viewer.accountType === "ADMIN";
+  if (!isAdmin && post.isHidden) {
+    return NextResponse.json({ error: "Publication introuvable." }, { status: 404 });
+  }
+  if (!isAdmin && post.targetAccountType && post.targetAccountType !== viewer.accountType) {
+    return NextResponse.json({ error: "Accès non autorisé." }, { status: 403 });
   }
 
   const updated = await prisma.userPost.update({

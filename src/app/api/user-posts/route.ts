@@ -5,6 +5,13 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
+import {
+  contentContainsLink,
+  findBannedWord,
+  getCommunityRules,
+  getCommunityViewer,
+  roleCanPublish,
+} from "@/app/api/user-posts/_community";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,13 +36,8 @@ function safeExt(filename: string, fallbackExt: string) {
   return fallbackExt;
 }
 
-async function getViewer() {
-  const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
-  const viewer = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-  return viewer;
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function formatRelativeDate(date: Date) {
@@ -52,22 +54,34 @@ function formatRelativeDate(date: Date) {
 function toApiPost(p: {
   id: string;
   userId: string;
+  title: string | null;
   content: string;
   mediaUrl: string | null;
   mediaType: "NONE" | "IMAGE" | "VIDEO";
+  targetAccountType: "USER" | "PROFESSIONAL" | "ADMIN" | null;
+  isAdminPost: boolean;
+  isHidden: boolean;
+  commentsLocked: boolean;
+  pinnedAt: Date | null;
   likes: number;
   shares: number;
   createdAt: Date;
   user: { fullName: string; avatarUrl: string | null };
   _count: { comments: number };
   likesRel: { userId: string }[];
-  comments: { id: string; message: string; createdAt: Date }[];
+  comments: { id: string; message: string; createdAt: Date; user: { fullName: string } }[];
 }, viewerId: string) {
   return {
     id: p.id,
     userId: p.userId,
     authorName: p.user.fullName,
     authorAvatarUrl: p.user.avatarUrl,
+    title: p.title,
+    targetAccountType: p.targetAccountType,
+    isAdminPost: p.isAdminPost,
+    isHidden: p.isHidden,
+    commentsLocked: p.commentsLocked,
+    pinnedAt: p.pinnedAt ? p.pinnedAt.toISOString() : null,
     createdAt: p.createdAt.toISOString(),
     createdAtLabel: formatRelativeDate(p.createdAt),
     content: p.content,
@@ -80,6 +94,7 @@ function toApiPost(p: {
     isMine: p.userId === viewerId,
     comments: p.comments.map((c) => ({
       id: c.id,
+      authorName: c.user.fullName,
       message: c.message,
       createdAt: c.createdAt.toISOString(),
       createdAtLabel: formatRelativeDate(c.createdAt),
@@ -91,25 +106,39 @@ export async function GET() {
   const rejected = await rejectIfCommunityDisabled();
   if (rejected) return rejected;
 
-  const viewer = await getViewer();
+  const viewer = await getCommunityViewer();
   if (!viewer) {
-    return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   }
 
+  if (viewer.accountStatus !== "ACTIVE") {
+    return NextResponse.json({ error: "Compte indisponible." }, { status: 403 });
+  }
+  if (viewer.communityBannedAt) {
+    return NextResponse.json({ error: "Accès communauté suspendu." }, { status: 403 });
+  }
+
+  const canSeeAll = viewer.accountType === "ADMIN";
+
   const posts = await prisma.userPost.findMany({
-    orderBy: { createdAt: "desc" },
+    where: {
+      isHidden: false,
+      ...(canSeeAll
+        ? {}
+        : {
+            OR: [{ targetAccountType: null }, { targetAccountType: viewer.accountType }],
+          }),
+    },
+    orderBy: [{ pinnedAt: "desc" }, { createdAt: "desc" }],
     include: {
       user: { select: { fullName: true, avatarUrl: true } },
-      _count: { select: { comments: true } },
+      _count: { select: { comments: { where: { isHidden: false } } } },
       likesRel: { where: { userId: viewer.id }, select: { userId: true } },
       comments: {
-        where: { userId: viewer.id },
+        where: { isHidden: false },
         orderBy: { createdAt: "desc" },
         take: 5,
-        select: { id: true, message: true, createdAt: true },
+        select: { id: true, message: true, createdAt: true, user: { select: { fullName: true } } },
       },
     },
   });
@@ -124,12 +153,21 @@ export async function POST(req: Request) {
   const rejected = await rejectIfCommunityDisabled();
   if (rejected) return rejected;
 
-  const viewer = await getViewer();
+  const viewer = await getCommunityViewer();
   if (!viewer) {
-    return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  }
+
+  if (viewer.accountStatus !== "ACTIVE") {
+    return NextResponse.json({ error: "Compte indisponible." }, { status: 403 });
+  }
+  if (viewer.communityBannedAt) {
+    return NextResponse.json({ error: "Accès communauté suspendu." }, { status: 403 });
+  }
+
+  const rules = await getCommunityRules();
+  if (!roleCanPublish(rules.publishMode, viewer.accountType)) {
+    return NextResponse.json({ error: "Vous ne pouvez pas publier pour le moment." }, { status: 403 });
   }
 
   const form = await req.formData();
@@ -147,6 +185,10 @@ export async function POST(req: Request) {
   let mediaType: "NONE" | "IMAGE" | "VIDEO" = "NONE";
 
   if (file && file instanceof File && file.size > 0) {
+    if (!rules.allowImages) {
+      return NextResponse.json({ error: "Les images/vidéos sont désactivées." }, { status: 403 });
+    }
+
     const isImage = ALLOWED_IMAGE_MIME.has(file.type);
     const isVideo = ALLOWED_VIDEO_MIME.has(file.type);
 
@@ -184,22 +226,52 @@ export async function POST(req: Request) {
     mediaUrl = `/uploads/posts/${filename}`;
   }
 
+  if (!rules.allowLinks && contentContainsLink(content)) {
+    return NextResponse.json({ error: "Les liens sont désactivés." }, { status: 403 });
+  }
+
+  if (viewer.accountType !== "ADMIN") {
+    const now = new Date();
+    const cooldownStart = new Date(now.getTime() - rules.spamPostCooldownSeconds * 1000);
+    const recent = await prisma.userPost.findFirst({
+      where: { userId: viewer.id, createdAt: { gte: cooldownStart } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    if (recent) {
+      return NextResponse.json({ error: "Veuillez attendre avant de republier." }, { status: 429 });
+    }
+
+    const today = await prisma.userPost.count({
+      where: { userId: viewer.id, createdAt: { gte: startOfDay(now) } },
+    });
+    if (today >= rules.maxPostsPerDay) {
+      return NextResponse.json({ error: "Limite quotidienne atteinte." }, { status: 429 });
+    }
+  }
+
+  const banned = findBannedWord(content, rules.bannedWords);
+  if (banned && rules.bannedWordsAction === "BLOCK") {
+    return NextResponse.json({ error: "Contenu refusé (mots interdits)." }, { status: 403 });
+  }
+
   const created = await prisma.userPost.create({
     data: {
       userId: viewer.id,
       content: content || "",
       mediaUrl,
       mediaType,
+      isHidden: Boolean(banned && rules.bannedWordsAction === "HIDE"),
     },
     include: {
       user: { select: { fullName: true, avatarUrl: true } },
-      _count: { select: { comments: true } },
+      _count: { select: { comments: { where: { isHidden: false } } } },
       likesRel: { where: { userId: viewer.id }, select: { userId: true } },
       comments: {
-        where: { userId: viewer.id },
+        where: { isHidden: false },
         orderBy: { createdAt: "desc" },
         take: 5,
-        select: { id: true, message: true, createdAt: true },
+        select: { id: true, message: true, createdAt: true, user: { select: { fullName: true } } },
       },
     },
   });

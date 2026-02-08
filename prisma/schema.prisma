@@ -140,6 +140,26 @@ enum AuditAction {
   UNPIN_POST
   BAN_COMMUNITY
   UNBAN_COMMUNITY
+  PUBLISH_ADMIN_POST
+  UPDATE_COMMUNITY_RULES
+}
+
+enum CommunityPublishMode {
+  ADMIN_ONLY
+  PRO_ONLY
+  ALL_USERS
+}
+
+enum CommunityCommentMode {
+  ADMIN_ONLY
+  PRO_ONLY
+  ALL_USERS
+}
+
+enum CommunityBannedWordsAction {
+  HIDE
+  WARN
+  BLOCK
 }
 
 enum ReportTargetType {
@@ -393,6 +413,7 @@ model User {
   avatarUrl     String?
   coverUrl      String?
   accountType   AccountType   @default(USER)
+  roleLocked    Boolean       @default(true)
   adminRole     AdminRole     @default(ADMIN)
   accountStatus AccountStatus @default(ACTIVE)
   isCertified   Boolean       @default(false)
@@ -469,6 +490,8 @@ model User {
   messagesSent           Message[]      @relation("MessageSender")
 
   platformSettingsUpdated PlatformSetting[] @relation("PlatformSettingUpdatedBy")
+
+  communityRulesUpdated CommunityRules[] @relation("CommunityRulesUpdatedBy")
 }
 
 enum EmploymentAvailability {
@@ -1030,9 +1053,12 @@ model PartnershipRequest {
 model UserPost {
   id             String        @id @default(cuid())
   userId         String
+  title          String?
   content        String
   mediaUrl       String?
   mediaType      UserMediaType @default(NONE)
+  targetAccountType AccountType?
+  isAdminPost     Boolean       @default(false)
   isHidden       Boolean       @default(false)
   commentsLocked Boolean       @default(false)
   pinnedAt       DateTime?
@@ -1052,6 +1078,7 @@ model UserPostComment {
   postId    String
   userId    String
   message   String
+  isHidden  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   post UserPost @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -1059,6 +1086,34 @@ model UserPostComment {
 
   @@index([postId])
   @@index([userId])
+}
+
+model CommunityRules {
+  id String @id @default(cuid())
+
+  // Enforce singleton row
+  singleton Int @unique @default(1)
+
+  publishMode CommunityPublishMode @default(ADMIN_ONLY)
+  commentMode CommunityCommentMode @default(ALL_USERS)
+
+  allowLinks  Boolean @default(true)
+  allowImages Boolean @default(true)
+
+  spamPostCooldownSeconds Int @default(3600)
+  maxPostsPerDay          Int @default(3)
+
+  bannedWords       String                @default("[]")
+  bannedWordsAction CommunityBannedWordsAction @default(HIDE)
+
+  updatedByAdminId String?
+  updatedByAdmin   User? @relation("CommunityRulesUpdatedBy", fields: [updatedByAdminId], references: [id], onDelete: SetNull)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([updatedAt])
+  @@index([updatedByAdminId, updatedAt])
 }
 
 model UserPostLike {

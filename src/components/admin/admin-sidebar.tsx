@@ -14,6 +14,7 @@ const items: Item[] = [
   { href: "/admin/users", label: "Utilisateurs" },
   { href: "/admin/pro-verification", label: "Vérification Pro" },
   { href: "/admin/community/posts", label: "Communauté" },
+  { href: "/admin/community/rules", label: "Règles communauté" },
   { href: "/admin/marketplace/profiles", label: "Marketplace" },
   { href: "/admin/cases", label: "Demandes & Dossiers" },
   { href: "/admin/events", label: "Événements & Formations" },

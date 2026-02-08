@@ -30,9 +30,16 @@ export async function POST(req: NextRequest) {
     body.accountType === "PROFESSIONAL" || body.accountType === "USER" ? body.accountType : null;
 
   let decoded: { email?: string; name?: string; picture?: string };
+  let decodedUid: string | null = null;
+  let decodedTokenPhone: string | null = null;
   try {
     const auth = getFirebaseAdminAuth();
     decoded = await auth.verifyIdToken(body.idToken);
+
+    const uid = (decoded as { uid?: unknown }).uid;
+    decodedUid = typeof uid === "string" && uid ? uid : null;
+    const tokenPhone = (decoded as { phone_number?: unknown }).phone_number;
+    decodedTokenPhone = typeof tokenPhone === "string" && tokenPhone.trim() ? tokenPhone.trim() : null;
   } catch {
     return NextResponse.json({ error: "Token Google invalide." }, { status: 401 });
   }
@@ -47,8 +54,34 @@ export async function POST(req: NextRequest) {
 
   const existing = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, accountType: true },
+    select: { id: true, accountType: true, roleLocked: true },
   });
+
+  // Vérification téléphone: uniquement pour les comptes PRO/ADMIN.
+  // - Si l'utilisateur existe déjà, on se base sur son type réel en DB.
+  // - Sinon, on se base sur le type demandé (par défaut USER).
+  const targetAccountType = existing?.accountType ?? (desiredAccountType ?? "USER");
+  const requiresPhone = targetAccountType === "PROFESSIONAL" || targetAccountType === "ADMIN";
+
+  if (requiresPhone) {
+    const auth = getFirebaseAdminAuth();
+
+    let phoneNumber = decodedTokenPhone;
+    if (!phoneNumber && decodedUid) {
+      const userRecord = await auth.getUser(decodedUid);
+      phoneNumber = userRecord.phoneNumber?.trim() || null;
+    }
+
+    if (!phoneNumber) {
+      return NextResponse.json(
+        {
+          error: "Numéro de téléphone requis pour les comptes professionnels. Vérifiez votre numéro (SMS) puis réessayez.",
+          code: "PHONE_VERIFICATION_REQUIRED",
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   const isNewUser = !existing;
 
@@ -59,9 +92,6 @@ export async function POST(req: NextRequest) {
           fullName,
           avatarUrl: decoded.picture ?? undefined,
           // passwordHash reste null: on force Google pour ce compte sauf ajout ultérieur
-          ...(desiredAccountType === "PROFESSIONAL" && existing.accountType === "USER"
-            ? { accountType: "PROFESSIONAL" as const }
-            : {}),
         },
         select: { id: true, accountType: true },
       })
@@ -73,6 +103,7 @@ export async function POST(req: NextRequest) {
           avatarUrl: decoded.picture ?? null,
           coverUrl: null,
           accountType: desiredAccountType ?? "USER",
+          roleLocked: true,
           isCertified: false,
         },
         select: { id: true, accountType: true },

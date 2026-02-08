@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "PlatformSetting" ALTER COLUMN "createdAt" SET DATA TYPE TIMESTAMP(3),
+ALTER COLUMN "updatedAt" DROP DEFAULT,
+ALTER COLUMN "updatedAt" SET DATA TYPE TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "roleLocked" BOOLEAN NOT NULL DEFAULT true;

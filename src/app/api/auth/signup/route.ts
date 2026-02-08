@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
         passwordHash,
         fullName: `${firstName} ${lastName}`.trim(),
         accountType: body.accountType,
+        roleLocked: true,
         isCertified: false,
       },
       select: { id: true, accountType: true },

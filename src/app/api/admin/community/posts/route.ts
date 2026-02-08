@@ -11,7 +11,10 @@ export const dynamic = "force-dynamic";
 type PostListItem = {
   id: string;
   user: { id: string; fullName: string; email: string };
+  title: string | null;
   content: string;
+  isAdminPost: boolean;
+  targetAccountType: "USER" | "PROFESSIONAL" | "ADMIN" | null;
   isHidden: boolean;
   commentsLocked: boolean;
   pinnedAt: string | null;
@@ -60,7 +63,10 @@ export async function GET(req: NextRequest) {
     take: limit,
     select: {
       id: true,
+      title: true,
       content: true,
+      isAdminPost: true,
+      targetAccountType: true,
       isHidden: true,
       commentsLocked: true,
       pinnedAt: true,
@@ -74,7 +80,10 @@ export async function GET(req: NextRequest) {
   const payload: PostListItem[] = items.map((it) => ({
     id: it.id,
     user: it.user,
+    title: it.title,
     content: it.content,
+    isAdminPost: it.isAdminPost,
+    targetAccountType: it.targetAccountType,
     isHidden: it.isHidden,
     commentsLocked: it.commentsLocked,
     pinnedAt: toIso(it.pinnedAt),

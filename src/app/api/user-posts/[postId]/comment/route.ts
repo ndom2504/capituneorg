@@ -2,17 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
+import {
+  findBannedWord,
+  getCommunityRules,
+  getCommunityViewer,
+  roleCanComment,
+} from "@/app/api/user-posts/_community";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function getViewer() {
-  const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
-  return prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-}
 
 export async function POST(
   req: NextRequest,
@@ -23,12 +21,16 @@ export async function POST(
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
-  const viewer = await getViewer();
+  const viewer = await getCommunityViewer();
   if (!viewer) {
-    return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  }
+
+  if (viewer.accountStatus !== "ACTIVE") {
+    return NextResponse.json({ error: "Compte indisponible." }, { status: 403 });
+  }
+  if (viewer.communityBannedAt) {
+    return NextResponse.json({ error: "Accès communauté suspendu." }, { status: 403 });
   }
 
   const { postId } = await context.params;
@@ -41,39 +43,72 @@ export async function POST(
     return NextResponse.json({ error: "Message vide." }, { status: 400 });
   }
 
+  const rules = await getCommunityRules();
+  if (!roleCanComment(rules.commentMode, viewer.accountType)) {
+    return NextResponse.json({ error: "Vous ne pouvez pas commenter pour le moment." }, { status: 403 });
+  }
+
   const post = await prisma.userPost.findUnique({
     where: { id: postId },
-    select: { userId: true },
+    select: {
+      id: true,
+      isHidden: true,
+      commentsLocked: true,
+      targetAccountType: true,
+    },
   });
 
   if (!post) {
     return NextResponse.json({ error: "Publication introuvable." }, { status: 404 });
   }
 
-  if (post.userId !== viewer.id) {
-    return NextResponse.json(
-      { error: "Pas d’interaction entre utilisateurs: commentaire interdit." },
-      { status: 403 },
-    );
+  const isAdmin = viewer.accountType === "ADMIN";
+  if (!isAdmin && post.isHidden) {
+    return NextResponse.json({ error: "Publication indisponible." }, { status: 404 });
   }
+  if (!isAdmin && post.targetAccountType && post.targetAccountType !== viewer.accountType) {
+    return NextResponse.json({ error: "Accès non autorisé." }, { status: 403 });
+  }
+  if (!isAdmin && post.commentsLocked) {
+    return NextResponse.json({ error: "Commentaires verrouillés." }, { status: 403 });
+  }
+
+  const banned = findBannedWord(message, rules.bannedWords);
+  if (banned && rules.bannedWordsAction === "BLOCK") {
+    return NextResponse.json({ error: "Commentaire refusé (mots interdits)." }, { status: 403 });
+  }
+
+  const hide = Boolean(banned && rules.bannedWordsAction === "HIDE");
 
   const created = await prisma.userPostComment.create({
     data: {
       postId,
       userId: viewer.id,
       message,
+      isHidden: hide,
     },
-    select: { id: true, message: true, createdAt: true },
+    select: {
+      id: true,
+      message: true,
+      createdAt: true,
+      user: { select: { fullName: true } },
+    },
   });
 
-  const count = await prisma.userPostComment.count({ where: { postId } });
+  const countVisible = await prisma.userPostComment.count({
+    where: { postId, isHidden: false },
+  });
 
   return NextResponse.json({
-    comment: {
-      id: created.id,
-      message: created.message,
-      createdAt: created.createdAt.toISOString(),
-    },
-    commentsCount: count,
+    comment: hide
+      ? null
+      : {
+          id: created.id,
+          authorName: created.user.fullName,
+          message: created.message,
+          createdAt: created.createdAt.toISOString(),
+        },
+    commentsCount: countVisible,
+    moderated: hide ? true : false,
   });
 }

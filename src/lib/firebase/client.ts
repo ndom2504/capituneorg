@@ -112,6 +112,25 @@ export function shouldFallbackToRedirect(err: unknown): boolean {
 
 export function formatFirebaseAuthError(err: unknown): string {
   const code = getFirebaseErrorCode(err);
+  if (code === "auth/operation-not-allowed") {
+    return (
+      "Opération non autorisée côté Firebase. " +
+      "Pour la vérification SMS sur le web, activez le fournisseur Téléphone dans Firebase Authentication → Sign-in method → Phone. " +
+      "Vérifiez aussi Authentication → Settings → Authorized domains (localhost/127.0.0.1 + domaine prod)."
+    );
+  }
+  if (code === "auth/invalid-phone-number") {
+    return "Numéro invalide. Utilisez le format international E.164 (ex: +15145551234).";
+  }
+  if (code === "auth/captcha-check-failed" || code === "auth/invalid-app-credential") {
+    return (
+      "Échec reCAPTCHA. Vérifiez que le domaine actuel est autorisé dans Firebase Authentication → Settings → Authorized domains, " +
+      "et que votre clé API Firebase n'est pas restreinte à d'autres domaines dans Google Cloud (API key restrictions)."
+    );
+  }
+  if (code === "auth/too-many-requests") {
+    return "Trop de tentatives. Attendez quelques minutes puis réessayez.";
+  }
   if (code === "auth/popup-closed-by-user") {
     const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
     const handlerUrl = authDomain ? `https://${authDomain}/__/auth/handler` : null;
