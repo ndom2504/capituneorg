@@ -460,6 +460,17 @@ export function MarketplaceProfile({
               <Button onClick={sendRequest} disabled={busy || cvUploading}>
                 Envoyer la demande
               </Button>
+              {ok ? (
+                <div className="rounded-[var(--radius-md)] border border-border bg-white/70 p-3">
+                  <div className="text-xs font-semibold text-navy">Demande envoyée</div>
+                  <div className="mt-1 text-xs text-muted">ID: {ok}</div>
+                  <div className="mt-2">
+                    <Button variant="outline" size="sm" onClick={() => setOk(null)}>
+                      Faire une autre demande
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
               {error ? <div className="text-xs text-danger">{error}</div> : null}
               </div>
             </Card>

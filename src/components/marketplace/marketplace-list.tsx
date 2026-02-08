@@ -107,6 +107,7 @@ export function MarketplaceList() {
   const [cvUploading, setCvUploading] = useState(false);
   const [requestBusy, setRequestBusy] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
 
   function toggleNeed(id: NeedId) {
     setNeeds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -222,7 +223,7 @@ export function MarketplaceList() {
     if (!requestTarget) return;
     setRequestBusy(true);
     setRequestSuccess(null);
-    setError(null);
+    setRequestError(null);
     try {
       const cv = cvFile ? await uploadCv(cvFile) : null;
 
@@ -249,7 +250,7 @@ export function MarketplaceList() {
       setMessage("");
       setCvFile(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setRequestError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setRequestBusy(false);
     }
@@ -560,6 +561,7 @@ export function MarketplaceList() {
                     setRequestTarget(it);
                     setRequestOpen(true);
                     setRequestSuccess(null);
+                    setRequestError(null);
                     setPrimaryNeed(needs[0] ?? "need.orientation");
                   }}
                 >
@@ -612,6 +614,24 @@ export function MarketplaceList() {
                   ✕
                 </button>
               </div>
+
+              {requestSuccess ? (
+                <div className="mt-4 rounded-[var(--radius-md)] border border-border bg-white/70 p-4">
+                  <div className="text-sm font-medium text-navy">Demande envoyée</div>
+                  <div className="mt-1 text-sm text-muted">ID: {requestSuccess}</div>
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      onClick={() => {
+                        setRequestOpen(false);
+                        setRequestTarget(null);
+                      }}
+                    >
+                      Fermer
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
@@ -697,6 +717,12 @@ export function MarketplaceList() {
                   </Button>
                 </div>
               </div>
+
+              {requestError ? (
+                <div className="mt-3 text-sm text-danger">{requestError}</div>
+              ) : null}
+                </>
+              )}
             </Card>
           </div>
         </div>
