@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +16,7 @@ export function ContentEnrollActions(props: {
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const status = props.enrollmentStatus;
 
@@ -35,6 +36,47 @@ export function ContentEnrollActions(props: {
     if (!props.isPaid) return status === "FREE";
     return status === "PAID";
   })();
+
+  useEffect(() => {
+    // UX post-checkout: affiche un message + déclenche un refresh léger si le webhook n'a pas encore synchronisé.
+    try {
+      const url = new URL(window.location.href);
+      const payment = url.searchParams.get("payment");
+      const sessionId = url.searchParams.get("session_id");
+
+      if (payment === "success") {
+        setNotice(
+          props.isPaid
+            ? "Paiement reçu. Confirmation en cours…"
+            : "Inscription confirmée.",
+        );
+
+        // Nettoie l'URL pour éviter des refresh loops.
+        url.searchParams.delete("payment");
+        url.searchParams.delete("session_id");
+        window.history.replaceState({}, "", url.toString());
+
+        // Refresh unique si on attend encore le webhook.
+        if (props.isPaid && status !== "PAID") {
+          const key = `content-payment-refresh:${props.contentId}:${sessionId ?? ""}`;
+          const already = window.sessionStorage.getItem(key);
+          if (!already) {
+            window.sessionStorage.setItem(key, "1");
+            window.setTimeout(() => window.location.reload(), 1500);
+          }
+        }
+      }
+
+      if (payment === "cancel") {
+        setNotice("Paiement annulé.");
+        url.searchParams.delete("payment");
+        url.searchParams.delete("session_id");
+        window.history.replaceState({}, "", url.toString());
+      }
+    } catch {
+      // ignore
+    }
+  }, [props.contentId, props.isPaid, status]);
 
   async function onAction() {
     setError(null);
@@ -81,6 +123,7 @@ export function ContentEnrollActions(props: {
   return (
     <Card>
       <CardContent className="py-4 space-y-3">
+        {notice ? <div className="text-sm text-muted">{notice}</div> : null}
         <div className="flex items-start justify-between gap-3">
           <div className="text-sm">
             <div className="font-semibold">Inscription</div>
