@@ -155,6 +155,8 @@ export async function GET() {
       userId: true,
       status: true,
       isVerified: true,
+      verificationStatus: true,
+      rejectionReason: true,
       profession: true,
       primaryProfessionId: true,
       secondaryProfessionIdsJson: true,
@@ -187,7 +189,11 @@ export async function GET() {
   if (!profile) {
     return NextResponse.json({
       profile: null,
-      viewer: { fullName: auth.viewer.fullName, avatarUrl: auth.viewer.avatarUrl },
+      viewer: {
+        fullName: auth.viewer.fullName,
+        avatarUrl: auth.viewer.avatarUrl,
+        isCertified: auth.viewer.isCertified,
+      },
     });
   }
 
@@ -216,7 +222,11 @@ export async function GET() {
       employerDetails: profile.employerDetails ?? null,
       updatedAt: profile.updatedAt.toISOString(),
     },
-    viewer: { fullName: auth.viewer.fullName, avatarUrl: auth.viewer.avatarUrl },
+    viewer: {
+      fullName: auth.viewer.fullName,
+      avatarUrl: auth.viewer.avatarUrl,
+      isCertified: auth.viewer.isCertified,
+    },
   });
 }
 
@@ -277,6 +287,15 @@ export async function POST(req: NextRequest) {
   }
 
   const requestedStatus = body.status ?? "DRAFT";
+
+  // Marketplace est réservé aux pros certifiés. On bloque la publication côté API
+  // pour éviter les faux positifs (profil "publié" mais invisible côté demandeur).
+  if (requestedStatus === "PUBLISHED" && !auth.viewer.isCertified) {
+    return NextResponse.json(
+      { error: "Publication réservée aux professionnels certifiés." },
+      { status: 403 },
+    );
+  }
 
   const selectedProfessionIds = [primaryProfessionId, ...secondaryProfessionIds];
   const hasRegulatedProfession = selectedProfessionIds.some((id) => isRegulatedProfession(id));

@@ -36,6 +36,8 @@ type ApiProfile = {
   userId: string;
   status: ProfileStatus;
   isVerified: boolean;
+  verificationStatus?: string;
+  rejectionReason?: string | null;
   profession: string; // Legacy
   primaryProfessionId: string;
   secondaryProfessionIds: string[];
@@ -66,7 +68,7 @@ type ApiProfile = {
 
 type GetResponse = { profile: ApiProfile | null };
 
-type ViewerInfo = { fullName: string; avatarUrl: string | null };
+type ViewerInfo = { fullName: string; avatarUrl: string | null; isCertified?: boolean };
 
 type GetResponseWithViewer = { profile: ApiProfile | null; viewer?: ViewerInfo };
 
@@ -94,7 +96,8 @@ export function MarketplaceProfileEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ title: string; detail?: string } | null>(null);
+  const [lastIntent, setLastIntent] = useState<ProfileStatus | null>(null);
 
   const [profileId, setProfileId] = useState<string | null>(null);
 
@@ -136,6 +139,7 @@ export function MarketplaceProfileEditor() {
   const [accuracyConfirmed, setAccuracyConfirmed] = useState(false);
 
   const [viewer, setViewer] = useState<ViewerInfo | null>(null);
+  const [viewerIsCertified, setViewerIsCertified] = useState<boolean | null>(null);
 
   const languages = useMemo(() => parseList(languagesText), [languagesText]);
 
@@ -197,7 +201,11 @@ export function MarketplaceProfileEditor() {
 
         const dataWithViewer = data as unknown as GetResponseWithViewer;
         if (dataWithViewer.viewer) {
-          setViewer(dataWithViewer.viewer);
+          setViewer({
+            fullName: dataWithViewer.viewer.fullName,
+            avatarUrl: dataWithViewer.viewer.avatarUrl,
+          });
+          setViewerIsCertified(dataWithViewer.viewer.isCertified ?? null);
         }
 
         if (data.profile) {
@@ -270,8 +278,9 @@ export function MarketplaceProfileEditor() {
 
   async function submit(nextStatus: ProfileStatus) {
     setSaving(true);
-    setOk(null);
+    setNotice(null);
     setError(null);
+    setLastIntent(nextStatus);
 
     try {
       if (!complianceAccepted) {
@@ -341,7 +350,28 @@ export function MarketplaceProfileEditor() {
       const payload = (await res.json()) as SaveResponse;
       if (payload.profile?.id) setProfileId(payload.profile.id);
       if (payload.profile?.status) setStatus(payload.profile.status);
-      setOk(payload.profile?.updatedAt ?? "OK");
+
+      const resultingStatus = payload.profile?.status ?? nextStatus;
+      if (nextStatus === "PUBLISHED") {
+        if (resultingStatus === "PUBLISHED") {
+          setNotice({
+            title: "Profil publié",
+            detail: "Votre profil est maintenant visible côté demandeur.",
+          });
+        } else {
+          setNotice({
+            title: "Profil enregistré (non publié)",
+            detail:
+              viewerIsCertified === false
+                ? "Votre compte doit être certifié pour apparaître dans la Marketplace."
+                : "La publication est en attente (validation admin / vérification des métiers).",
+          });
+        }
+      } else if (nextStatus === "SUSPENDED") {
+        setNotice({ title: "Profil suspendu" });
+      } else {
+        setNotice({ title: "Brouillon enregistré" });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -365,7 +395,7 @@ export function MarketplaceProfileEditor() {
     if (!confirmed) return;
 
     setSaving(true);
-    setOk(null);
+    setNotice(null);
     setError(null);
 
     try {
@@ -409,7 +439,7 @@ export function MarketplaceProfileEditor() {
       setComplianceAccepted(false);
       setAccuracyConfirmed(false);
 
-      setOk("Profil supprimé");
+      setNotice({ title: "Profil supprimé" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -425,6 +455,15 @@ export function MarketplaceProfileEditor() {
           Créez/éditez votre profil public. Aucun email/téléphone n’est affiché. Publication réservée aux pros certifiés.
         </p>
       </div>
+
+      {viewerIsCertified === false ? (
+        <Card className="p-4">
+          <div className="text-sm font-medium text-danger">Publication indisponible</div>
+          <div className="mt-1 text-sm text-text">
+            Votre compte n’est pas certifié. Le profil ne peut pas être publié et n’apparaîtra pas côté demandeur.
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="p-4">
         <div className="text-sm font-semibold text-navy">Photo de profil (visible en Marketplace)</div>
@@ -449,10 +488,15 @@ export function MarketplaceProfileEditor() {
         </Card>
       ) : null}
 
-      {ok ? (
+      {notice ? (
         <Card className="p-4">
-          <div className="text-sm font-medium text-navy">Enregistré</div>
-          <div className="mt-1 text-xs text-muted">Mis à jour: {ok}</div>
+          <div className="text-sm font-medium text-navy">{notice.title}</div>
+          {notice.detail ? <div className="mt-1 text-sm text-muted">{notice.detail}</div> : null}
+          {lastIntent === "PUBLISHED" && status !== "PUBLISHED" ? (
+            <div className="mt-2 text-xs text-muted">
+              Statut actuel: <span className="font-semibold">Brouillon</span> (en attente).
+            </div>
+          ) : null}
         </Card>
       ) : null}
 
@@ -890,7 +934,15 @@ export function MarketplaceProfileEditor() {
               <Button variant="outline" onClick={saveDraft} disabled={saving || !complianceAccepted || !accuracyConfirmed}>
                 Enregistrer
               </Button>
-              <Button onClick={publish} disabled={saving || !complianceAccepted || !accuracyConfirmed}>
+              <Button
+                onClick={publish}
+                disabled={
+                  saving ||
+                  !complianceAccepted ||
+                  !accuracyConfirmed ||
+                  viewerIsCertified === false
+                }
+              >
                 Publier
               </Button>
             </div>
