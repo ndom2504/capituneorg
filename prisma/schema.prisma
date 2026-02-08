@@ -275,6 +275,7 @@ enum PaymentOrderStatus {
   DRAFT
   PENDING_PAYMENT
   PAID
+  FAILED
   CANCELED
   REFUNDED
 }
@@ -514,6 +515,8 @@ model User {
   paymentOrdersBought   PaymentOrder[]   @relation("PaymentOrderBuyer")
   paymentOrdersProvided PaymentOrder[]   @relation("PaymentOrderProvider")
 
+  stripeConnectedAccount StripeConnectedAccount?
+
   jobPostings     JobPosting[]     @relation("JobPoster")
   jobApplications JobApplication[] @relation("JobApplicant")
 
@@ -590,6 +593,8 @@ model ContentItem {
   updatedAt DateTime @updatedAt
 
   enrollments Enrollment[]
+
+  paymentService PaymentService?
 
   @@index([ownerId, type, createdAt])
   @@index([type, publishStatus])
@@ -1307,6 +1312,9 @@ model PaymentService {
   providerUserId String?
   providerUser   User?   @relation(fields: [providerUserId], references: [id], onDelete: SetNull)
 
+  contentItemId String? @unique
+  contentItem   ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
   title           String
   description     String?
   priceCents      Int
@@ -1320,7 +1328,29 @@ model PaymentService {
   orders PaymentOrder[]
 
   @@index([providerUserId])
+  @@index([contentItemId])
   @@index([active])
+}
+
+model StripeConnectedAccount {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeAccountId  String @unique
+  chargesEnabled   Boolean @default(false)
+  payoutsEnabled   Boolean @default(false)
+  detailsSubmitted Boolean @default(false)
+
+  requirementsDueJson Json?
+
+  paymentOrders PaymentOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model PaymentOrder {
@@ -1335,6 +1365,9 @@ model PaymentOrder {
   providerUserId String
   providerUser   User   @relation("PaymentOrderProvider", fields: [providerUserId], references: [id], onDelete: Cascade)
 
+  connectedAccountId String?
+  connectedAccount   StripeConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+
   serviceId String
   service   PaymentService @relation(fields: [serviceId], references: [id], onDelete: Restrict)
 
@@ -1342,7 +1375,11 @@ model PaymentOrder {
   amountCents Int
   currency    String             @default("cad")
 
+  // Commission CAPITUNE (V2 Connect) — stockée au moment de la création pour audit
+  applicationFeeCents Int?
+
   paidAt     DateTime?
+  refundedAt DateTime?
   canceledAt DateTime?
 
   createdAt DateTime @default(now())
@@ -1368,10 +1405,23 @@ model Payment {
 
   status    PaymentStatus @default(CREATED)
   paidAt    DateTime?
+  refundedAt DateTime?
   createdAt DateTime      @default(now())
 
   @@index([orderId])
   @@index([status])
+}
+
+model StripeWebhookEvent {
+  id String @id @default(cuid())
+
+  stripeEventId   String @unique
+  stripeEventType String
+  payloadJson     Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([stripeEventType, createdAt])
 }
 
 enum JobPostingStatus {

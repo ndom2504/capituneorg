@@ -3,6 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAppViewer } from "@/lib/auth/viewer";
 import { prisma } from "@/lib/db";
 
+function computeApplicationFeeCents(amountCents: number) {
+  const pct = Math.round(amountCents * 0.1);
+  const min = 300;
+  const raw = Math.max(pct, min);
+
+  // Garantit au moins 1 cent pour le pro quand possible.
+  if (amountCents <= 1) return 0;
+  return Math.min(raw, amountCents - 1);
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -67,6 +77,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Service introuvable." }, { status: 404 });
   }
 
+  if ((service.currency ?? "cad").toLowerCase() !== "cad") {
+    return NextResponse.json(
+      { error: "Devise non supportée (CAD uniquement)." },
+      { status: 400 },
+    );
+  }
+
+  // V2: si le pro a un compte Connect prêt, on l’attache dès la création (rétrocompat: sinon MVP)
+  const connect = await prisma.stripeConnectedAccount.findUnique({
+    where: { userId: viewer.id },
+    select: { id: true, payoutsEnabled: true, detailsSubmitted: true },
+  });
+
+  const connectReady = connect?.payoutsEnabled === true && connect?.detailsSubmitted === true;
+  const applicationFeeCents = connectReady
+    ? computeApplicationFeeCents(service.priceCents)
+    : null;
+
   const order = await prisma.paymentOrder.create({
     data: {
       marketplaceRequestId: request.id,
@@ -75,7 +103,9 @@ export async function POST(req: NextRequest) {
       serviceId: service.id,
       status: "PENDING_PAYMENT",
       amountCents: service.priceCents,
-      currency: service.currency,
+      currency: "cad",
+      connectedAccountId: connectReady ? connect!.id : null,
+      applicationFeeCents,
     },
     select: { id: true },
   });

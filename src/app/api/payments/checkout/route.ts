@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     include: {
       service: { select: { title: true, description: true } },
       marketplaceRequest: { select: { id: true } },
+      connectedAccount: { select: { id: true, stripeAccountId: true, payoutsEnabled: true, detailsSubmitted: true } },
     },
   });
 
@@ -95,6 +96,21 @@ export async function POST(req: NextRequest) {
       buyerUserId: order.buyerUserId,
       providerUserId: order.providerUserId,
     },
+    payment_intent_data:
+      order.connectedAccount?.payoutsEnabled === true && order.connectedAccount?.detailsSubmitted === true
+        ? {
+            application_fee_amount: order.applicationFeeCents ?? undefined,
+            transfer_data: {
+              destination: order.connectedAccount.stripeAccountId,
+            },
+            metadata: {
+              orderId: order.id,
+              marketplaceRequestId: requestId ?? "",
+              buyerUserId: order.buyerUserId,
+              providerUserId: order.providerUserId,
+            },
+          }
+        : undefined,
     success_url: successUrl,
     cancel_url: cancelUrl,
   });
