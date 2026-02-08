@@ -37,6 +37,10 @@ devserver.log
 .env*
 !.env.local.example
 
+# stripe cli (local)
+.stripe_whsec.txt
+.stripe_listen.log
+
 # firebase admin service account keys (NEVER commit)
 /Json/*.json
 
