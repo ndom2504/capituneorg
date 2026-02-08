@@ -1,7 +1,14 @@
 import { loadEnvConfig } from "@next/env";
 
-function pickPrisma(mod: any) {
-  return mod?.prisma ?? mod?.default?.prisma;
+type PrismaModuleShape = {
+  prisma?: unknown;
+  default?: {
+    prisma?: unknown;
+  };
+};
+
+function pickPrisma(mod: PrismaModuleShape) {
+  return mod.prisma ?? mod.default?.prisma;
 }
 
 async function main() {
@@ -102,7 +109,7 @@ async function main() {
     requesterId: requester.id,
     professionalId: professional.id,
     conversationId: conversation.id,
-    messages: messagesBefore.map((m: any) => ({
+    messages: messagesBefore.map((m) => ({
       id: m.id,
       senderId: m.senderId,
       isRead: m.isRead,
