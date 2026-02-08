@@ -230,26 +230,33 @@ export async function POST(req: Request) {
     nextBadges.push("VERIFIED");
     if (hasRegulated) nextBadges.push("REGULATED_PROFESSION");
 
-    const updated = await prisma.marketplaceProfile.update({
-      where: { id: existing.id },
-      data: {
-        verificationStatus: "VERIFIED",
-        isVerified: true,
-        verifiedAt: now,
-        verifiedById: auth.viewer.id,
-        rejectionReason: null,
-        badgesJson: nextBadges,
-      },
-      select: {
-        id: true,
-        userId: true,
-        verificationStatus: true,
-        isVerified: true,
-        verifiedAt: true,
-        verifiedById: true,
-        rejectionReason: true,
-      },
-    });
+    const [updatedUser, updated] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: existing.userId },
+        data: { isCertified: true },
+        select: { id: true, isCertified: true },
+      }),
+      prisma.marketplaceProfile.update({
+        where: { id: existing.id },
+        data: {
+          verificationStatus: "VERIFIED",
+          isVerified: true,
+          verifiedAt: now,
+          verifiedById: auth.viewer.id,
+          rejectionReason: null,
+          badgesJson: nextBadges,
+        },
+        select: {
+          id: true,
+          userId: true,
+          verificationStatus: true,
+          isVerified: true,
+          verifiedAt: true,
+          verifiedById: true,
+          rejectionReason: true,
+        },
+      }),
+    ]);
 
     await prisma.auditLog.create({
       data: {
@@ -257,8 +264,8 @@ export async function POST(req: Request) {
         action: "VERIFY_PRO",
         objectType: "MarketplaceProfile",
         objectId: updated.id,
-        beforeJson: existing,
-        afterJson: updated,
+        beforeJson: { ...existing, user: { id: existing.userId } },
+        afterJson: { ...updated, user: updatedUser },
       },
     });
 
