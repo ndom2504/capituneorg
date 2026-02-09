@@ -11,6 +11,10 @@ function notificationRoleForAccountType(accountType: string) {
   return accountType === "USER" ? "DEMANDEUR" : "PRO";
 }
 
+function notificationLinkForAccountType(accountType: string, requestId: string) {
+  return accountType === "USER" ? "/reseau-pro" : `/clients/demandes/${requestId}`;
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ requestId: string }> },
@@ -76,7 +80,7 @@ export async function POST(
           action === "ACCEPT"
             ? "Votre demande a été acceptée."
             : "Votre demande a été refusée.",
-        link: "/reseau-pro",
+        link: notificationLinkForAccountType(existing.from.accountType, requestId),
         priority: "INFO",
       },
     });

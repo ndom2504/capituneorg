@@ -12,6 +12,10 @@ function notificationRoleForAccountType(accountType: string) {
   return accountType === "USER" ? "DEMANDEUR" : "PRO";
 }
 
+function notificationLinkForAccountType(accountType: string, requestId: string) {
+  return accountType === "USER" ? "/reseau-pro" : `/clients/demandes/${requestId}`;
+}
+
 export async function POST(req: Request) {
   const viewer = await getViewer();
   if (!viewer) {
@@ -72,7 +76,7 @@ export async function POST(req: Request) {
         type: "CONTACT_REQUEST_RECEIVED",
         title: "Nouvelle demande de contact",
         message: "Vous avez reçu une demande de contact. Cliquez pour répondre.",
-        link: "/reseau-pro",
+        link: notificationLinkForAccountType(target.accountType, created.id),
         priority: "IMPORTANT",
       },
     });
