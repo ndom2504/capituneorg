@@ -32,7 +32,12 @@ export default async function AccueilPage() {
   try {
     directoryUsers = viewer
       ? await prisma.user.findMany({
-          where: { id: { not: viewer.id } },
+          where: {
+            id: { not: viewer.id },
+            ...(viewer.accountType === "USER"
+              ? { accountType: { in: ["PROFESSIONAL", "ADMIN"] as const } }
+              : {}),
+          },
           orderBy: [{ accountType: "desc" }, { fullName: "asc" }],
           select: {
             id: true,
@@ -214,7 +219,7 @@ export default async function AccueilPage() {
               <AboutCard />
               {viewer && <PerformanceCard userId={viewer.id} isPro={!!viewer.marketplaceProfile} />}
               {featureFlags.events ? <EventsSidebarCard /> : null}
-              <ConnectionsCard users={connections} />
+              <ConnectionsCard users={connections} viewerAccountType={viewer?.accountType ?? null} />
             </div>
           </div>
         </div>

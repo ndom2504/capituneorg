@@ -62,6 +62,8 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
 
+  const accountLabel = isProfessional ? "Compte pro" : "Compte demandeur";
+
   const navItems = visibleItems(isProfessional, featureFlags);
 
   const showEventsCard = featureFlags.events !== false;
@@ -84,7 +86,7 @@ export function Sidebar({
       >
         <BrandMark
           showText={!collapsed}
-          subtitle="Orientation & Accompagnement vers le Canada"
+          subtitle={accountLabel}
           className={cn("flex items-center gap-3", collapsed && "justify-center")}
         />
       </div>
@@ -209,6 +211,7 @@ export function Sidebar({
           onCloseMobile={onCloseMobile}
           navItems={navItems}
           showEventsCard={showEventsCard}
+          accountLabel={accountLabel}
         />
       </aside>
     </>
@@ -220,18 +223,20 @@ function SidebarDrawerContent({
   onCloseMobile,
   navItems,
   showEventsCard,
+  accountLabel,
 }: {
   activeHref: string | null;
   onCloseMobile: () => void;
   navItems: ReturnType<typeof visibleItems>;
   showEventsCard: boolean;
+  accountLabel: string;
 }) {
   return (
     <div className="flex h-full flex-col">
       <div className="mb-4 rounded-(--radius-md) bg-surface px-3 py-3">
         <BrandMark
           showText
-          subtitle="Orientation & Accompagnement vers le Canada"
+          subtitle={accountLabel}
           className="flex items-center gap-3"
         />
       </div>

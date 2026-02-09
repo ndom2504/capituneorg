@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,14 @@ import { AvatarBubble } from "@/components/ui/avatar-bubble";
 import { VerifiedBadge } from "@/components/marketplace/verified-badge";
 import { NEEDS, type NeedId } from "@/lib/taxonomy";
 import type { VerificationStatus, ProfileBadgeType } from "@prisma/client";
+
+type AccountType = "USER" | "PROFESSIONAL" | "ADMIN";
+
+type ViewerInfo = {
+  id: string;
+  accountType: AccountType;
+  isCertified: boolean;
+} | null;
 
 type ProfileItem = {
   professionalId: string;
@@ -79,9 +87,13 @@ function chip(text: string) {
 export function MarketplaceProfile({
   professionalId,
   mode = "PUBLIC",
+  viewer,
+  initialIsFollowed = false,
 }: {
   professionalId: string;
   mode?: "PUBLIC" | "PRO_SELF";
+  viewer: ViewerInfo;
+  initialIsFollowed?: boolean;
 }) {
   const [item, setItem] = useState<ProfileItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,7 +109,97 @@ export function MarketplaceProfile({
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState<string | null>(null);
 
-  const canSendRequest = mode === "PUBLIC";
+  const [actionBusy, setActionBusy] = useState<null | "follow" | "contact" | "partnership" | "service">(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const [isFollowed, setIsFollowed] = useState<boolean>(initialIsFollowed);
+
+  useEffect(() => {
+    setIsFollowed(initialIsFollowed);
+  }, [initialIsFollowed, professionalId]);
+
+  const viewerAccountType = viewer?.accountType ?? null;
+  const isViewerPro = viewerAccountType === "PROFESSIONAL" || viewerAccountType === "ADMIN";
+  const isViewerUser = viewerAccountType === "USER";
+  const isSelf = viewer?.id != null && viewer.id === professionalId;
+
+  const showProActions = isViewerPro && !isSelf && mode !== "PRO_SELF";
+  const showUserActions = isViewerUser && !isSelf && mode === "PUBLIC";
+
+  const canSendRequest = showUserActions;
+
+  const disabledReason = useMemo(() => {
+    if (!viewer) return "Connectez-vous pour utiliser ces actions.";
+    if (isSelf) return "Action indisponible sur votre propre profil.";
+
+    // Règles backend (voir /api/relationships/_rules et /api/marketplace/requests)
+    if (viewerAccountType === "PROFESSIONAL" && !viewer.isCertified) {
+      return "Compte professionnel non certifié.";
+    }
+    return null;
+  }, [isSelf, viewer, viewerAccountType]);
+
+  async function toggleFollow() {
+    setActionError(null);
+    try {
+      setActionBusy("follow");
+      const res = await fetch("/api/relationships/follow", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ targetUserId: professionalId }),
+      });
+      const payload = (await res.json().catch(() => null)) as
+        | { following?: boolean; error?: string }
+        | null;
+      if (!res.ok || payload?.following == null) {
+        setActionError(payload?.error ?? "Action impossible.");
+        return;
+      }
+      setIsFollowed(payload.following);
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function contact() {
+    setActionError(null);
+    try {
+      setActionBusy("contact");
+      const res = await fetch("/api/relationships/contact", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ targetUserId: professionalId }),
+      });
+      const payload = (await res.json().catch(() => null)) as
+        | { requestId?: string; status?: string; error?: string }
+        | null;
+      if (!res.ok || !payload?.requestId) {
+        setActionError(payload?.error ?? "Demande impossible.");
+      }
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function partnership() {
+    setActionError(null);
+    try {
+      setActionBusy("partnership");
+      const res = await fetch("/api/relationships/partnership", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ targetUserId: professionalId }),
+      });
+      const payload = (await res.json().catch(() => null)) as
+        | { requestId?: string; status?: string; error?: string }
+        | null;
+      if (!res.ok || !payload?.requestId) {
+        setActionError(payload?.error ?? "Demande impossible.");
+      }
+    } finally {
+      setActionBusy(null);
+    }
+  }
 
   function needToTopic(n: NeedId): RequestTopic {
     switch (n) {
@@ -216,6 +318,16 @@ export function MarketplaceProfile({
     }
   }
 
+  async function requestServiceNow() {
+    setActionError(null);
+    try {
+      setActionBusy("service");
+      await sendRequest();
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
   if (loading) {
     return (
       <Card className="p-6">
@@ -271,12 +383,66 @@ export function MarketplaceProfile({
           ← Retour
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {mode === "PRO_SELF" ? (
             <Link href="/marketplace/mon-profil-marketplace/modifier">
               <Button>Modifier mon profil</Button>
             </Link>
           ) : null}
+
+          {showProActions ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={partnership}
+                disabled={!!disabledReason || actionBusy !== null}
+                title={disabledReason ?? undefined}
+              >
+                Collaborer
+              </Button>
+              <Button
+                size="sm"
+                variant={isFollowed ? "outline" : "primary"}
+                onClick={toggleFollow}
+                disabled={!!disabledReason || actionBusy !== null}
+                title={disabledReason ?? undefined}
+              >
+                {isFollowed ? "Suivi" : "Suivre"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={contact}
+                disabled={!!disabledReason || actionBusy !== null}
+                title={disabledReason ?? undefined}
+              >
+                Contacter
+              </Button>
+            </>
+          ) : null}
+
+          {showUserActions ? (
+            <>
+              <Button
+                size="sm"
+                variant={isFollowed ? "outline" : "primary"}
+                onClick={toggleFollow}
+                disabled={!!disabledReason || actionBusy !== null}
+                title={disabledReason ?? undefined}
+              >
+                {isFollowed ? "Suivi" : "Suivre"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={requestServiceNow}
+                disabled={actionBusy !== null || busy || cvUploading}
+              >
+                Demander un service
+              </Button>
+            </>
+          ) : null}
+
           <VerifiedBadge
             verificationStatus={item.verificationStatus}
             badges={item.badges}
@@ -284,6 +450,12 @@ export function MarketplaceProfile({
           />
         </div>
       </div>
+
+      {actionError ? (
+        <Card className="p-3">
+          <div className="text-xs text-danger">{actionError}</div>
+        </Card>
+      ) : null}
 
       {ok && canSendRequest ? (
         <Card className="p-4">
@@ -395,7 +567,7 @@ export function MarketplaceProfile({
         {canSendRequest ? (
           <div className="space-y-4">
             <Card className="p-4">
-              <div className="text-base font-semibold text-navy">Demander un rendez-vous</div>
+              <div className="text-base font-semibold text-navy">Demander un service</div>
               <div className="mt-3 grid gap-3">
               <div>
                 <div className="text-xs font-semibold text-muted">Besoin principal</div>

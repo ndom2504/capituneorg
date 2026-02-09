@@ -23,11 +23,15 @@ type DirectoryUser = {
 
 export function ConnectionsCard({
   users,
+  viewerAccountType,
 }: {
   users: DirectoryUser[];
+  viewerAccountType?: AccountType | null;
 }) {
   const pros = users.filter((u) => u.accountType === "PROFESSIONAL" || u.accountType === "ADMIN");
   const demandeurs = users.filter((u) => u.accountType === "USER");
+
+  const showDemandeursSection = viewerAccountType !== "USER";
 
   return (
     <Card>
@@ -36,7 +40,7 @@ export function ConnectionsCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <Section title="Professionnels / Admin" users={pros} />
-        <Section title="Demandeurs" users={demandeurs} />
+        {showDemandeursSection ? <Section title="Demandeurs" users={demandeurs} /> : null}
       </CardContent>
     </Card>
   );
