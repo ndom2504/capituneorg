@@ -170,6 +170,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Profil introuvable." }, { status: 404 });
   }
 
+  // Empêcher l'envoi de plusieurs demandes tant que la précédente n'est pas traitée.
+  // "Traitée" ici = rejetée OU clôturée par le demandeur (closedByClientAt).
+  const existingOpen = await prisma.marketplaceRequest.findFirst({
+    where: {
+      requesterId: viewer.id,
+      professionalId: profile.userId,
+      closedByClientAt: null,
+      status: { in: ["PENDING", "NEEDS_INFO", "ACCEPTED"] },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, status: true, createdAt: true },
+  });
+
+  if (existingOpen) {
+    return NextResponse.json(
+      {
+        error:
+          "Vous avez déjà une demande en cours avec ce professionnel. Attendez qu’elle soit traitée, ou clôturez la demande actuelle avant d’en envoyer une nouvelle.",
+        existingRequest: {
+          id: existingOpen.id,
+          status: existingOpen.status,
+          createdAt: existingOpen.createdAt.toISOString(),
+        },
+      },
+      { status: 409 },
+    );
+  }
+
   const now = new Date();
   const initialMessage = clampText(body.message, 500);
   const cvUrl = clampText(body.cvUrl, 300);
