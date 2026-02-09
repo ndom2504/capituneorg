@@ -120,6 +120,7 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
       const res = await fetch(`/api/clients/demandes/${safeRequestId}`, {
         method: "GET",
         headers: { "content-type": "application/json" },
+        cache: "no-store",
       });
       if (!res.ok) {
         const text = await res.text();

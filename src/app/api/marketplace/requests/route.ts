@@ -297,8 +297,12 @@ export async function POST(req: NextRequest) {
         priority: "IMPORTANT",
       },
     });
-  } catch {
-    // ignore
+  } catch (e) {
+    console.warn("[marketplace] notification create failed", {
+      requestId: request.id,
+      professionalId: profile.userId,
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 
   return NextResponse.json({

@@ -83,6 +83,7 @@ export function DemandesList() {
         const res = await fetch(`/api/clients/demandes?${params.toString()}`, {
           method: "GET",
           headers: { "content-type": "application/json" },
+          cache: "no-store",
         });
         if (!res.ok) {
           const text = await res.text();
