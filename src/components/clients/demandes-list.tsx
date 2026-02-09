@@ -177,7 +177,7 @@ export function DemandesList() {
 
                 <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-xs text-muted">
                   {it.urgency ? <span>Urgence: {it.urgency}</span> : null}
-                  {it.preferredTimeframe ? <span>Préférence: {it.preferredTimeframe}</span> : null}
+                  {it.preferredTimeframe ? <span>Contraintes: {it.preferredTimeframe}</span> : null}
                   {it.cv ? <span>CV: {it.cv.name}</span> : null}
                   {it.meeting ? <span>Meeting: {formatDateTime(it.meeting.startsAt)}</span> : null}
                 </div>

@@ -478,8 +478,18 @@ export function MarketplaceProfile({
 
       {ok && canSendRequest ? (
         <Card className="p-4">
-          <div className="text-sm font-medium text-navy">Demande envoyée</div>
-          <div className="mt-1 text-sm text-muted">ID: {ok}</div>
+          <div className="text-sm font-semibold text-navy">Demande envoyée</div>
+          <div className="mt-1 text-sm text-muted">
+            Le professionnel la verra dans <span className="font-semibold">Clients → Demandes</span>.
+          </div>
+          <div className="mt-2 text-xs text-muted">ID: {ok}</div>
+          <div className="mt-3">
+            <Link href={`/marketplace/mes-demandes/${ok}`}>
+              <Button variant="outline" size="sm">
+                Ouvrir ma demande
+              </Button>
+            </Link>
+          </div>
         </Card>
       ) : null}
 
@@ -671,9 +681,22 @@ export function MarketplaceProfile({
               {ok ? (
                 <div className="rounded-[var(--radius-md)] border border-border bg-white/70 p-3">
                   <div className="text-xs font-semibold text-navy">Demande envoyée</div>
-                  <div className="mt-1 text-xs text-muted">ID: {ok}</div>
-                  <div className="mt-2">
-                    <Button variant="outline" size="sm" onClick={() => setOk(null)}>
+                  <div className="mt-1 text-xs text-muted">
+                    Le professionnel la verra dans <span className="font-semibold">Clients → Demandes</span>.
+                  </div>
+                  <div className="mt-2 text-xs text-muted">ID: {ok}</div>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <Link href={`/marketplace/mes-demandes/${ok}`} className="sm:flex-1">
+                      <Button variant="outline" size="sm" className="w-full">
+                        Ouvrir ma demande
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      onClick={() => setOk(null)}
+                    >
                       Faire une autre demande
                     </Button>
                   </div>

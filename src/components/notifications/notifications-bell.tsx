@@ -28,7 +28,10 @@ export function NotificationsBell() {
 
   async function refresh() {
     const res = await fetch("/api/notifications", { cache: "no-store" });
-    if (!res.ok) return;
+    if (!res.ok) {
+      if (res.status === 404) setUnavailable(true);
+      return;
+    }
     const data = (await res.json()) as {
       unreadCount: number;
       notifications: NotificationDto[];
@@ -45,7 +48,10 @@ export function NotificationsBell() {
     async function load() {
       if (cancelled) return;
       const res = await fetch("/api/notifications", { cache: "no-store" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 404) setUnavailable(true);
+        return;
+      }
       const data = (await res.json()) as {
         unreadCount: number;
         notifications: NotificationDto[];

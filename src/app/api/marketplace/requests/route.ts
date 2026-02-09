@@ -7,6 +7,10 @@ import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function notificationRoleForAccountType(accountType: string) {
+  return accountType === "USER" ? "DEMANDEUR" : "PRO";
+}
+
 type CreateRequestPayload = {
   professionalId?: string;
   topic?:
@@ -251,6 +255,23 @@ export async function POST(req: NextRequest) {
     },
     select: { id: true, status: true, createdAt: true },
   });
+
+  // V1 notifications: informer le professionnel (silencieux si indisponible)
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: profile.userId,
+        role: notificationRoleForAccountType("PROFESSIONAL"),
+        type: "MARKETPLACE_REQUEST_RECEIVED",
+        title: "Nouvelle demande de rendez-vous",
+        message: "Vous avez reçu une nouvelle demande Marketplace. Cliquez pour l’ouvrir.",
+        link: `/clients/demandes/${request.id}`,
+        priority: "IMPORTANT",
+      },
+    });
+  } catch {
+    // ignore
+  }
 
   return NextResponse.json({
     ok: true,

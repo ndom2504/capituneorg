@@ -451,17 +451,7 @@ export function MarketplaceList() {
         </Card>
       ) : null}
 
-      {requestSuccess ? (
-        <Card className="p-4">
-          <div className="text-sm font-medium text-navy">Demande envoyée</div>
-          <div className="mt-1 text-sm text-muted">ID: {requestSuccess}</div>
-          <div className="mt-3">
-            <Button variant="outline" onClick={() => setRequestSuccess(null)}>
-              Fermer
-            </Button>
-          </div>
-        </Card>
-      ) : null}
+      {/* succès affiché dans la modale (évite la duplication ici) */}
 
       <div className="grid gap-3 lg:grid-cols-2">
         {items.map((it) => (
@@ -612,6 +602,7 @@ export function MarketplaceList() {
                   onClick={() => {
                     setRequestOpen(false);
                     setRequestTarget(null);
+                    setRequestSuccess(null);
                   }}
                 >
                   ✕
@@ -620,13 +611,24 @@ export function MarketplaceList() {
 
               {requestSuccess ? (
                 <div className="mt-4 rounded-[var(--radius-md)] border border-border bg-white/70 p-4">
-                  <div className="text-sm font-medium text-navy">Demande envoyée</div>
-                  <div className="mt-1 text-sm text-muted">ID: {requestSuccess}</div>
-                  <div className="mt-4 flex justify-end">
+                  <div className="text-sm font-semibold text-navy">Demande envoyée</div>
+                  <div className="mt-1 text-sm text-muted">
+                    Le professionnel la verra dans <span className="font-semibold">Clients → Demandes</span>.
+                  </div>
+                  <div className="mt-3 text-xs text-muted">ID: {requestSuccess}</div>
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Link href={`/marketplace/mes-demandes/${requestSuccess}`}>
+                      <Button variant="outline" className="w-full sm:w-auto">
+                        Voir ma demande
+                      </Button>
+                    </Link>
                     <Button
+                      className="w-full sm:w-auto"
                       onClick={() => {
                         setRequestOpen(false);
                         setRequestTarget(null);
+                        setRequestSuccess(null);
                       }}
                     >
                       Fermer
@@ -729,6 +731,7 @@ export function MarketplaceList() {
                     onClick={() => {
                       setRequestOpen(false);
                       setRequestTarget(null);
+                      setRequestSuccess(null);
                     }}
                   >
                     Annuler
