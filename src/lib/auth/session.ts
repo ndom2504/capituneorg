@@ -5,6 +5,11 @@ import type { NextResponse } from "next/server";
 const COOKIE_NAME = "capitune_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 jours
 
+function cookieDomain(): string | undefined {
+  const v = (process.env.CAPITUNE_COOKIE_DOMAIN ?? "").trim();
+  return v ? v : undefined;
+}
+
 function secretKey() {
   const secret = process.env.CAPITUNE_AUTH_SECRET ?? "capitune-dev-secret";
   return new TextEncoder().encode(secret);
@@ -26,6 +31,7 @@ export function setSessionCookie(res: NextResponse, token: string) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    domain: cookieDomain(),
     path: "/",
     maxAge: MAX_AGE_SECONDS,
   });
@@ -38,6 +44,7 @@ export function clearSessionCookie(res: NextResponse) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    domain: cookieDomain(),
     path: "/",
     maxAge: 0,
   });
