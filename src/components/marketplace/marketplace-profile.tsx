@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { AvatarBubble } from "@/components/ui/avatar-bubble";
 import { VerifiedBadge } from "@/components/marketplace/verified-badge";
 import { NEEDS, type NeedId } from "@/lib/taxonomy";
+import { cn } from "@/lib/cn";
 import type { VerificationStatus, ProfileBadgeType } from "@prisma/client";
 
 type AccountType = "USER" | "PROFESSIONAL" | "ADMIN";
@@ -315,16 +316,50 @@ export function MarketplaceProfile({
       });
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
+
+        // Le backend peut renvoyer du JSON (ex: 409 doublon).
+        let parsed: any = null;
+        try {
+          parsed = text ? (JSON.parse(text) as any) : null;
+        } catch {
+          parsed = null;
+        }
+
+        const existingId =
+          res.status === 409 && parsed && parsed.existingRequest && typeof parsed.existingRequest.id === "string"
+            ? (parsed.existingRequest.id as string)
+            : null;
+
+        if (existingId) {
+          // Au lieu de bloquer silencieusement, on ouvre la demande existante.
+          setOk(existingId);
+          setActionError(null);
+          setActionOk("Vous avez déjà une demande en cours. Ouverture…");
+          window.location.assign(`/marketplace/mes-demandes/${existingId}`);
+          return;
+        }
+
+        const msg =
+          (parsed && typeof parsed.error === "string" && parsed.error) ||
+          text ||
+          `HTTP ${res.status}`;
+        throw new Error(msg);
       }
+
       const payload = (await res.json()) as { request?: { id: string } };
-      setOk(payload.request?.id ?? "Envoyé");
+      const id = payload.request?.id;
+      if (!id) throw new Error("Réponse invalide (id manquant).");
+
+      setOk(id);
       setPreferredTimeframe("");
       setMessage("");
       setAttachPreRegistration(false);
       setCvFile(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      // Erreurs d'envoi: on les remonte dans le bloc action (visible)
+      const msg = e instanceof Error ? e.message : "Erreur";
+      setActionError(msg);
+      setError(msg);
     } finally {
       setBusy(false);
     }
@@ -336,6 +371,8 @@ export function MarketplaceProfile({
     try {
       setActionBusy("service");
       await sendRequest();
+      // Si sendRequest a réussi, ok est défini et l'utilisateur peut ouvrir sa demande.
+      if (!actionError) setActionOk("Demande envoyée.");
     } finally {
       setActionBusy(null);
     }
@@ -484,11 +521,17 @@ export function MarketplaceProfile({
           </div>
           <div className="mt-2 text-xs text-muted">ID: {ok}</div>
           <div className="mt-3">
-            <Link href={`/marketplace/mes-demandes/${ok}`}>
-              <Button variant="outline" size="sm">
-                Ouvrir ma demande
-              </Button>
-            </Link>
+            <a
+              href={`/marketplace/mes-demandes/${ok}`}
+              className={cn(
+                "inline-flex h-9 items-center justify-center gap-2 rounded-[var(--radius-md)] px-3 text-sm font-semibold",
+                "border border-border bg-white/80 text-text shadow-sm transition-[color,background-color,border-color,box-shadow,transform]",
+                "hover:-translate-y-px hover:bg-white hover:shadow-md active:translate-y-0",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              )}
+            >
+              Ouvrir ma demande
+            </a>
           </div>
         </Card>
       ) : null}
