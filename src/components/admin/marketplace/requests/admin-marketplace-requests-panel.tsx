@@ -53,6 +53,7 @@ export function AdminMarketplaceRequestsPanel() {
   const [items, setItems] = useState<RequestItem[]>([]);
   const [canAct, setCanAct] = useState(false);
   const [busyById, setBusyById] = useState<Record<string, boolean>>({});
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +61,7 @@ export function AdminMarketplaceRequestsPanel() {
 
     try {
       const params = new URLSearchParams();
+      params.set("limit", "200");
       if (q.trim()) params.set("q", q.trim());
       if (status) params.set("status", status);
       if (openOnly === "open") params.set("openOnly", "true");
@@ -116,6 +118,66 @@ export function AdminMarketplaceRequestsPanel() {
     }
   }
 
+  async function deleteAsAdmin(requestId: string) {
+    setError(null);
+
+    const ok = window.confirm(
+      "Supprimer définitivement cette demande marketplace ?\n\nCette action est irréversible.",
+    );
+    if (!ok) return;
+
+    setBusyById((prev) => ({ ...prev, [requestId]: true }));
+
+    try {
+      const res = await fetch(`/api/admin/marketplace/requests/${encodeURIComponent(requestId)}`, {
+        method: "DELETE",
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok) {
+        setError(data.error ?? "Erreur serveur.");
+        return;
+      }
+
+      await load();
+    } catch {
+      setError("Erreur réseau.");
+    } finally {
+      setBusyById((prev) => ({ ...prev, [requestId]: false }));
+    }
+  }
+
+  async function deleteVisibleAsAdmin() {
+    setError(null);
+    if (rows.length === 0) return;
+
+    const ok = window.confirm(
+      `Supprimer définitivement ${rows.length} demande(s) marketplace affichée(s) ?\n\nCette action est irréversible.`,
+    );
+    if (!ok) return;
+
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/admin/marketplace/requests/bulk-delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids: rows.map((r) => r.id) }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok) {
+        setError(data.error ?? "Erreur serveur.");
+        return;
+      }
+
+      await load();
+    } catch {
+      setError("Erreur réseau.");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -161,6 +223,14 @@ export function AdminMarketplaceRequestsPanel() {
 
             <Button variant="outline" onClick={() => void load()} disabled={loading}>
               Rafraîchir
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => void deleteVisibleAsAdmin()}
+              disabled={loading || bulkBusy || !canAct || rows.length === 0}
+            >
+              {bulkBusy ? "Suppression…" : "Supprimer (affichées)"}
             </Button>
           </div>
         </div>
@@ -240,6 +310,10 @@ export function AdminMarketplaceRequestsPanel() {
                       onClick={() => void closeAsAdmin(it.id)}
                     >
                       Clôturer (côté client)
+                    </Button>
+
+                    <Button variant="outline" disabled={!canAct || busy} onClick={() => void deleteAsAdmin(it.id)}>
+                      Supprimer
                     </Button>
 
                     {!canAct && <div className="text-sm text-muted sm:ml-auto">Actions désactivées pour MODERATOR.</div>}
