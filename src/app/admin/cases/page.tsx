@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminMarketplaceRequestsPanel } from "@/components/admin/marketplace/requests/admin-marketplace-requests-panel";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { prisma } from "@/lib/db";
@@ -98,8 +99,10 @@ export default async function AdminCasesPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold text-navy">Demandes & Dossiers</h1>
-        <div className="text-sm text-muted">Supervision dossiers (V1) — lecture seule.</div>
+        <div className="text-sm text-muted">Supervision dossiers (V1) + demandes marketplace (V1).</div>
       </div>
+
+      <AdminMarketplaceRequestsPanel />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card className="p-4">
