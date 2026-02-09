@@ -85,6 +85,8 @@ export async function GET() {
       licenseNumber: true,
       licenseAuthority: true,
       proofUrl: true,
+      idProofUrl: true,
+      verificationRequestedAt: true,
       createdAt: true,
       updatedAt: true,
       user: {
@@ -120,6 +122,8 @@ export async function GET() {
       licenseNumber: p.licenseNumber,
       licenseAuthority: p.licenseAuthority,
       proofUrl: p.proofUrl,
+      idProofUrl: p.idProofUrl,
+      verificationRequestedAt: p.verificationRequestedAt ? p.verificationRequestedAt.toISOString() : null,
       createdAt: p.createdAt.toISOString(),
       updatedAt: p.updatedAt.toISOString(),
     })),

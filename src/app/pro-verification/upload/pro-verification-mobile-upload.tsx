@@ -95,7 +95,6 @@ export function ProVerificationMobileUpload() {
           <input
             type="file"
             accept="application/pdf,image/*"
-            capture="environment"
             className="block w-full text-sm"
             disabled={!linkOk || uploading !== null}
             onChange={(e) => {
@@ -131,7 +130,6 @@ export function ProVerificationMobileUpload() {
           <input
             type="file"
             accept="application/pdf,image/*"
-            capture="environment"
             className="block w-full text-sm"
             disabled={!linkOk || uploading !== null}
             onChange={(e) => {

@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 type ProfilePayload = {
   status?: "DRAFT" | "PUBLISHED" | "SUSPENDED";
+  requestVerification?: boolean;
   // Legacy (V1)
   profession?: LegacyMarketplaceProfession;
   // V2
@@ -35,6 +36,7 @@ type ProfilePayload = {
   licenseNumber?: string | null;
   licenseAuthority?: string | null;
   proofUrl?: string | null;
+  idProofUrl?: string | null;
   bioShort?: string | null;
   bioLong?: string | null;
 
@@ -156,6 +158,7 @@ export async function GET() {
       status: true,
       isVerified: true,
       verificationStatus: true,
+      verificationRequestedAt: true,
       rejectionReason: true,
       profession: true,
       primaryProfessionId: true,
@@ -175,6 +178,7 @@ export async function GET() {
       licenseNumber: true,
       licenseAuthority: true,
       proofUrl: true,
+      idProofUrl: true,
       bioShort: true,
       bioLong: true,
 
@@ -211,6 +215,9 @@ export async function GET() {
   return NextResponse.json({
     profile: {
       ...profile,
+      verificationRequestedAt: profile.verificationRequestedAt
+        ? profile.verificationRequestedAt.toISOString()
+        : null,
       primaryProfessionId,
       secondaryProfessionIds,
       languages: jsonStringArray(profile.languagesJson),
@@ -287,6 +294,7 @@ export async function POST(req: NextRequest) {
   }
 
   const requestedStatus = body.status ?? "DRAFT";
+  const requestVerification = body.requestVerification === true;
 
   // Marketplace est réservé aux pros certifiés. On bloque la publication côté API
   // pour éviter les faux positifs (profil "publié" mais invisible côté demandeur).
@@ -303,6 +311,22 @@ export async function POST(req: NextRequest) {
   const normalizedLicenseNumber = clampText(body.licenseNumber, 80);
   const normalizedLicenseAuthority = clampText(body.licenseAuthority, 80);
   const normalizedProofUrl = clampText(body.proofUrl, 300);
+  const normalizedIdProofUrl = clampText(body.idProofUrl, 300);
+
+  if (requestVerification) {
+    if (!normalizedProofUrl) {
+      return NextResponse.json(
+        { error: "Justificatif de compétence requis avant la demande de vérification." },
+        { status: 400 },
+      );
+    }
+    if (!normalizedIdProofUrl) {
+      return NextResponse.json(
+        { error: "Pièce d’identité requise avant la demande de vérification." },
+        { status: 400 },
+      );
+    }
+  }
 
   if (hasRegulatedProfession && requestedStatus === "PUBLISHED") {
     if (!normalizedLicenseNumber || !normalizedLicenseAuthority || !normalizedProofUrl) {
@@ -329,6 +353,7 @@ export async function POST(req: NextRequest) {
       primaryProfessionId: true,
       secondaryProfessionIdsJson: true,
       verificationStatus: true,
+      verificationRequestedAt: true,
       isVerified: true,
       verifiedAt: true,
       verifiedById: true,
@@ -367,12 +392,20 @@ export async function POST(req: NextRequest) {
     professionsChanged
       ? {
           verificationStatus: "PENDING" as const,
+          verificationRequestedAt: null,
           isVerified: false,
           verifiedAt: null,
           verifiedById: null,
           rejectionReason: null,
         }
       : {};
+
+  const verificationRequestData = requestVerification
+    ? {
+        verificationStatus: "PENDING" as const,
+        verificationRequestedAt: new Date(),
+      }
+    : {};
 
   const profile = await prisma.marketplaceProfile.upsert({
     where: { userId: auth.viewer.id },
@@ -396,6 +429,7 @@ export async function POST(req: NextRequest) {
       licenseNumber: normalizedLicenseNumber,
       licenseAuthority: normalizedLicenseAuthority,
       proofUrl: normalizedProofUrl,
+      idProofUrl: normalizedIdProofUrl,
       bioShort: clampText(body.bioShort, 300),
       bioLong: clampText(body.bioLong, 1000),
 
@@ -405,6 +439,7 @@ export async function POST(req: NextRequest) {
       price60Min: body.price60Min ?? null,
 
       ...verificationResetData,
+      ...verificationRequestData,
     },
     create: {
       userId: auth.viewer.id,
@@ -427,6 +462,7 @@ export async function POST(req: NextRequest) {
       licenseNumber: normalizedLicenseNumber,
       licenseAuthority: normalizedLicenseAuthority,
       proofUrl: normalizedProofUrl,
+      idProofUrl: normalizedIdProofUrl,
       bioShort: clampText(body.bioShort, 300),
       bioLong: clampText(body.bioLong, 1000),
 
@@ -436,6 +472,7 @@ export async function POST(req: NextRequest) {
       price60Min: body.price60Min ?? null,
 
       verificationStatus: "PENDING",
+      verificationRequestedAt: requestVerification ? new Date() : null,
       isVerified: false,
     },
     select: { id: true, status: true, updatedAt: true },
