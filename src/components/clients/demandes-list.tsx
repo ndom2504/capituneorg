@@ -199,8 +199,16 @@ export function DemandesList() {
 
               <div className="flex items-end">
                 {it.id ? (
-                  <Link href={`/clients/demandes/${it.id}`} className="w-full">
-                    <Button className="h-11 w-full">Ouvrir</Button>
+                  <Link
+                    href={`/clients/demandes/${it.id}`}
+                    className={cn(
+                      "inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] text-sm font-semibold",
+                      "border border-primary/25 bg-primary text-white shadow-sm transition-[color,background-color,border-color,box-shadow,transform]",
+                      "hover:-translate-y-px hover:shadow-md active:translate-y-0 active:shadow-sm",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    )}
+                  >
+                    Ouvrir
                   </Link>
                 ) : (
                   <Button className="h-11 w-full" disabled>
