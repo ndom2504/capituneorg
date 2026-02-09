@@ -316,7 +316,11 @@ export async function POST(req: NextRequest) {
   if (requestVerification) {
     if (!normalizedProofUrl) {
       return NextResponse.json(
+<<<<<<< HEAD
         { error: "Justificatif de compétence requis avant la demande de vérification." },
+=======
+        { error: "Justificatif de compétence requis (certificat, diplôme, licence, etc.)." },
+>>>>>>> 25b7bd0 (Fix marketplace demandes/notifications + diagnostics whoami + perf flags + cookie domain)
         { status: 400 },
       );
     }
@@ -397,12 +401,20 @@ export async function POST(req: NextRequest) {
           verifiedAt: null,
           verifiedById: null,
           rejectionReason: null,
+          verificationRequestedAt: new Date(),
         }
       : {};
 
   const verificationRequestData = requestVerification
     ? {
         verificationStatus: "PENDING" as const,
+<<<<<<< HEAD
+=======
+        isVerified: false,
+        verifiedAt: null,
+        verifiedById: null,
+        rejectionReason: null,
+>>>>>>> 25b7bd0 (Fix marketplace demandes/notifications + diagnostics whoami + perf flags + cookie domain)
         verificationRequestedAt: new Date(),
       }
     : {};
@@ -474,6 +486,7 @@ export async function POST(req: NextRequest) {
       verificationStatus: "PENDING",
       verificationRequestedAt: requestVerification ? new Date() : null,
       isVerified: false,
+      verificationRequestedAt: new Date(),
     },
     select: { id: true, status: true, updatedAt: true },
   });

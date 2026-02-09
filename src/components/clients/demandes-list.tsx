@@ -82,6 +82,7 @@ export function DemandesList() {
         if (statusFilter) params.set("status", statusFilter);
         const res = await fetch(`/api/clients/demandes?${params.toString()}`, {
           method: "GET",
+          cache: "no-store",
           headers: { "content-type": "application/json" },
           cache: "no-store",
         });

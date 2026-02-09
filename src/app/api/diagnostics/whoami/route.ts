@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 
 import { getAppViewer } from "@/lib/auth/viewer";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
@@ -7,10 +6,7 @@ import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const h = await headers();
-  const host = h.get("host");
-
+export async function GET(req: NextRequest) {
   const [viewer, flags] = await Promise.all([
     getAppViewer().catch(() => null),
     getFeatureFlagsFromDb().catch(() => null),
@@ -18,7 +14,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    host,
+    host: req.headers.get("host"),
     viewer: viewer
       ? {
           id: viewer.id,
@@ -27,6 +23,7 @@ export async function GET() {
           adminRole: viewer.adminRole,
           accountStatus: viewer.accountStatus,
           isCertified: viewer.isCertified,
+          hasMarketplaceProfile: !!viewer.marketplaceProfile,
         }
       : null,
     flags,
@@ -35,5 +32,6 @@ export async function GET() {
       url: process.env.VERCEL_URL ?? null,
       gitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     },
+    cookieDomain: process.env.CAPITUNE_COOKIE_DOMAIN ?? null,
   });
 }

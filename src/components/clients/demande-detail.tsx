@@ -119,6 +119,7 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
     try {
       const res = await fetch(`/api/clients/demandes/${safeRequestId}`, {
         method: "GET",
+        cache: "no-store",
         headers: { "content-type": "application/json" },
         cache: "no-store",
       });

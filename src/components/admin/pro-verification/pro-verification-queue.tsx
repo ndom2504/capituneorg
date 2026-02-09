@@ -24,6 +24,8 @@ type QueueItem = {
   licenseNumber: string | null;
   licenseAuthority: string | null;
   proofUrl: string | null;
+  idProofUrl: string | null;
+  verificationRequestedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -189,7 +191,7 @@ export function ProVerificationQueue({ viewerRole }: Props) {
 
                     <div className="grid gap-2 text-sm text-text sm:grid-cols-2">
                       <div>
-                        <div className="text-xs text-muted">Pièce justificative</div>
+                        <div className="text-xs text-muted">Justificatif compétence (certificat/diplôme)</div>
                         {item.proofUrl ? (
                           <a
                             className="text-sm underline"
@@ -204,10 +206,36 @@ export function ProVerificationQueue({ viewerRole }: Props) {
                         )}
                       </div>
                       <div>
+                        <div className="text-xs text-muted">Pièce d’identité</div>
+                        {item.idProofUrl ? (
+                          <a
+                            className="text-sm underline"
+                            href={normalizeUrl(item.idProofUrl)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Ouvrir le document
+                          </a>
+                        ) : (
+                          <div className="text-sm text-muted">Aucun document</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2 text-sm text-text sm:grid-cols-2">
+                      <div>
                         <div className="text-xs text-muted">Licence</div>
                         <div className="text-sm">
                           {item.licenseNumber ? item.licenseNumber : "—"}
                           {item.licenseAuthority ? ` · ${item.licenseAuthority}` : ""}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted">Demande</div>
+                        <div className="text-sm text-muted">
+                          {item.verificationRequestedAt
+                            ? new Date(item.verificationRequestedAt).toLocaleString("fr-CA")
+                            : new Date(item.updatedAt).toLocaleString("fr-CA")}
                         </div>
                       </div>
                     </div>

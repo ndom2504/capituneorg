@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { BrandMark } from "@/components/ui/brand-mark";
@@ -28,6 +29,30 @@ const items: Item[] = [
 
 export function AdminSidebar({ featureFlags }: { featureFlags: FeatureFlagsSetting }) {
   const pathname = usePathname();
+  const [pendingProVerifications, setPendingProVerifications] = useState<number | null>(null);
+
+  useEffect(() => {
+    let canceled = false;
+
+    async function load() {
+      try {
+        const res = await fetch("/api/admin/pro-verification?summary=1", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { pendingCount?: number };
+        if (canceled) return;
+        if (typeof data.pendingCount === "number") setPendingProVerifications(data.pendingCount);
+      } catch {
+        // ignore (sidebar should not be blocked)
+      }
+    }
+
+    void load();
+    const id = window.setInterval(load, 60_000);
+    return () => {
+      canceled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   const filteredItems = items.filter((it) => {
     if (it.href.startsWith("/admin/marketplace")) return featureFlags.marketplace !== false;
@@ -55,6 +80,12 @@ export function AdminSidebar({ featureFlags }: { featureFlags: FeatureFlagsSetti
             it.href === "/admin"
               ? pathname === "/admin"
               : pathname === it.href || pathname.startsWith(`${it.href}/`);
+
+          const showBadge =
+            it.href === "/admin/pro-verification" &&
+            pendingProVerifications != null &&
+            pendingProVerifications > 0;
+
           return (
             <Link
               key={it.href}
@@ -64,7 +95,14 @@ export function AdminSidebar({ featureFlags }: { featureFlags: FeatureFlagsSetti
                 active ? "bg-primary/10 text-navy font-medium" : "text-muted hover:bg-gray-50",
               )}
             >
-              {it.label}
+              <span className="flex items-center justify-between gap-2">
+                <span>{it.label}</span>
+                {showBadge ? (
+                  <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-white">
+                    {pendingProVerifications}
+                  </span>
+                ) : null}
+              </span>
             </Link>
           );
         })}

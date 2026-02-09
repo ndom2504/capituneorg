@@ -65,9 +65,19 @@ function normalizeBadges(value: unknown): Array<"VERIFIED" | "PARTNER" | "TOP_CO
 
 type BadgeType = ReturnType<typeof normalizeBadges>[number];
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAdminViewer();
   if (!auth.ok) return auth.response;
+
+  const url = new URL(req.url);
+  const summary = url.searchParams.get("summary") === "1";
+  if (summary) {
+    const pendingCount = await prisma.marketplaceProfile.count({
+      where: { verificationStatus: "PENDING" },
+    });
+
+    return NextResponse.json({ pendingCount });
+  }
 
   const items = await prisma.marketplaceProfile.findMany({
     where: { verificationStatus: "PENDING" },
@@ -188,6 +198,7 @@ export async function POST(req: Request) {
       licenseNumber: true,
       licenseAuthority: true,
       proofUrl: true,
+      idProofUrl: true,
     },
   });
 
@@ -205,6 +216,21 @@ export async function POST(req: Request) {
   const now = new Date();
 
   if (body.action === "VERIFY") {
+    if (!existing.proofUrl) {
+      return NextResponse.json(
+        { error: "Justificatif de compétence requis avant validation." },
+        { status: 400 },
+      );
+    }
+
+    // Pièce d’identité requise pour tous.
+    if (!existing.idProofUrl) {
+      return NextResponse.json(
+        { error: "Pièce d’identité requise avant validation." },
+        { status: 400 },
+      );
+    }
+
     const primaryProfessionId =
       (existing.primaryProfessionId && isProfessionId(existing.primaryProfessionId)
         ? existing.primaryProfessionId
