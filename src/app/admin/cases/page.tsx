@@ -106,19 +106,23 @@ export default async function AdminCasesPage({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card className="p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div>
               <div className="text-sm font-semibold text-navy">Dossiers</div>
               <div className="text-xs text-muted">50 derniers (selon filtres)</div>
             </div>
 
-            <form className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center" action="/admin/cases" method="GET">
+            <form
+              className="flex w-full flex-col gap-2 sm:w-full sm:flex-row sm:flex-wrap sm:items-center sm:justify-end"
+              action="/admin/cases"
+              method="GET"
+            >
               <Input name="q" defaultValue={qRaw} placeholder="Rechercher (user, email, programme, id)…" className="sm:w-60" />
               <select
                 name="status"
                 defaultValue={status}
                 aria-label="Statut dossier"
-                className="h-10 w-full rounded-(--radius-md) border border-border bg-white/85 px-3 text-sm text-text placeholder:text-muted transition-[box-shadow,border-color,background-color] focus-visible:outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-48"
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-white/85 px-3 text-sm text-text placeholder:text-muted transition-[box-shadow,border-color,background-color] focus-visible:outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-48"
               >
                 <option value="">Tous les statuts</option>
                 {ALL_STATUSES.map((s) => (
@@ -127,7 +131,7 @@ export default async function AdminCasesPage({
                   </option>
                 ))}
               </select>
-              <button type="submit" className="h-10 rounded-md bg-navy px-3 text-sm text-white">
+              <button type="submit" className="h-10 shrink-0 rounded-md bg-navy px-3 text-sm text-white">
                 Filtrer
               </button>
             </form>
