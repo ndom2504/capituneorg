@@ -69,9 +69,11 @@ function UserRow({ user }: { user: DirectoryUser }) {
   const [isFollowed, setIsFollowed] = React.useState(user.isFollowed);
   const [busy, setBusy] = React.useState<null | "follow" | "contact" | "partnership">(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [ok, setOk] = React.useState<string | null>(null);
 
   async function toggleFollow() {
     setError(null);
+    setOk(null);
     try {
       setBusy("follow");
       const res = await fetch("/api/relationships/follow", {
@@ -94,6 +96,7 @@ function UserRow({ user }: { user: DirectoryUser }) {
 
   async function contact() {
     setError(null);
+    setOk(null);
     try {
       setBusy("contact");
       const res = await fetch("/api/relationships/contact", {
@@ -108,6 +111,7 @@ function UserRow({ user }: { user: DirectoryUser }) {
         setError(payload?.error ?? "Demande impossible.");
         return;
       }
+      setOk("Demande de contact envoyée.");
     } finally {
       setBusy(null);
     }
@@ -115,6 +119,7 @@ function UserRow({ user }: { user: DirectoryUser }) {
 
   async function partnership() {
     setError(null);
+    setOk(null);
     try {
       setBusy("partnership");
       const res = await fetch("/api/relationships/partnership", {
@@ -129,6 +134,7 @@ function UserRow({ user }: { user: DirectoryUser }) {
         setError(payload?.error ?? "Demande impossible.");
         return;
       }
+      setOk("Demande de collaboration envoyée.");
     } finally {
       setBusy(null);
     }
@@ -219,6 +225,7 @@ function UserRow({ user }: { user: DirectoryUser }) {
         ) : null}
       </div>
 
+      {ok ? <div className="mt-2 text-sm text-navy">{ok}</div> : null}
       {error ? <div className="mt-2 text-sm text-red-600">{error}</div> : null}
     </div>
   );

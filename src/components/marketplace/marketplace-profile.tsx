@@ -111,6 +111,7 @@ export function MarketplaceProfile({
 
   const [actionBusy, setActionBusy] = useState<null | "follow" | "contact" | "partnership" | "service">(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionOk, setActionOk] = useState<string | null>(null);
 
   const [isFollowed, setIsFollowed] = useState<boolean>(initialIsFollowed);
 
@@ -141,6 +142,7 @@ export function MarketplaceProfile({
 
   async function toggleFollow() {
     setActionError(null);
+    setActionOk(null);
     try {
       setActionBusy("follow");
       const res = await fetch("/api/relationships/follow", {
@@ -156,6 +158,7 @@ export function MarketplaceProfile({
         return;
       }
       setIsFollowed(payload.following);
+      setActionOk(payload.following ? "Suivi activé." : "Suivi retiré.");
     } finally {
       setActionBusy(null);
     }
@@ -163,6 +166,7 @@ export function MarketplaceProfile({
 
   async function contact() {
     setActionError(null);
+    setActionOk(null);
     try {
       setActionBusy("contact");
       const res = await fetch("/api/relationships/contact", {
@@ -175,7 +179,9 @@ export function MarketplaceProfile({
         | null;
       if (!res.ok || !payload?.requestId) {
         setActionError(payload?.error ?? "Demande impossible.");
+        return;
       }
+      setActionOk("Demande de contact envoyée.");
     } finally {
       setActionBusy(null);
     }
@@ -183,6 +189,7 @@ export function MarketplaceProfile({
 
   async function partnership() {
     setActionError(null);
+    setActionOk(null);
     try {
       setActionBusy("partnership");
       const res = await fetch("/api/relationships/partnership", {
@@ -195,7 +202,9 @@ export function MarketplaceProfile({
         | null;
       if (!res.ok || !payload?.requestId) {
         setActionError(payload?.error ?? "Demande impossible.");
+        return;
       }
+      setActionOk("Demande de collaboration envoyée.");
     } finally {
       setActionBusy(null);
     }
@@ -320,6 +329,7 @@ export function MarketplaceProfile({
 
   async function requestServiceNow() {
     setActionError(null);
+    setActionOk(null);
     try {
       setActionBusy("service");
       await sendRequest();
@@ -454,6 +464,12 @@ export function MarketplaceProfile({
       {actionError ? (
         <Card className="p-3">
           <div className="text-xs text-danger">{actionError}</div>
+        </Card>
+      ) : null}
+
+      {actionOk ? (
+        <Card className="p-3">
+          <div className="text-xs text-navy">{actionOk}</div>
         </Card>
       ) : null}
 
