@@ -73,6 +73,29 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const errorInfo = (() => {
+    if (!error) return null;
+    try {
+      const parsed = JSON.parse(error) as { error?: string };
+      if (parsed && typeof parsed.error === "string") return parsed.error;
+      return null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const altHostUrl = (() => {
+    if (typeof window === "undefined") return null;
+    const { protocol, host, pathname, search } = window.location;
+    if (host === "www.capitune.com") {
+      return `${protocol}//capitune.com${pathname}${search}`;
+    }
+    if (host === "capitune.com") {
+      return `${protocol}//www.capitune.com${pathname}${search}`;
+    }
+    return null;
+  })();
+
   const [proNote, setProNote] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [durationMin, setDurationMin] = useState("45");
@@ -210,7 +233,26 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
       {error ? (
         <Card className="p-4">
           <div className="text-sm font-medium text-danger">Erreur</div>
-          <div className="mt-1 whitespace-pre-wrap text-sm text-text">{error}</div>
+          <div className="mt-1 whitespace-pre-wrap text-sm text-text">{errorInfo ?? error}</div>
+
+          {errorInfo?.includes("Demande introuvable") ? (
+            <div className="mt-3 space-y-2 text-sm text-muted">
+              <div>
+                Si la demande a bien été envoyée, il s’agit souvent d’un décalage d’environnement
+                (domaine <span className="font-semibold">www</span> vs <span className="font-semibold">sans www</span>).
+              </div>
+              {altHostUrl ? (
+                <a className="inline-block underline" href={altHostUrl}>
+                  Essayer sur l’autre domaine
+                </a>
+              ) : null}
+              <div>
+                <Link className="underline" href="/clients/demandes">
+                  Retour à la liste des demandes
+                </Link>
+              </div>
+            </div>
+          ) : null}
         </Card>
       ) : null}
 
