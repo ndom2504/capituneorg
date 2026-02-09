@@ -9,10 +9,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function getPublicBaseUrl(req: NextRequest) {
-  const raw =
-    process.env.CAPITUNE_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.VERCEL_URL;
+  // Important: avoid using Vercel's deployment URL (VERCEL_URL) here.
+  // When a deployment is protected, links to the *.vercel.app domain can
+  // redirect to a Vercel authentication page after scanning the QR.
+  // By default we use the actual request origin (custom domain in prod).
+  // If you need to override (e.g. behind a proxy or for dev), set
+  // CAPITUNE_PUBLIC_APP_URL explicitly.
+  const raw = process.env.CAPITUNE_PUBLIC_APP_URL;
 
   if (raw && raw.trim()) {
     const trimmed = raw.trim();
