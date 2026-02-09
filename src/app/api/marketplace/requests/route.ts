@@ -27,6 +27,7 @@ type CreateRequestPayload = {
   message?: string;
   cvUrl?: string;
   cvFileName?: string;
+  attachPreRegistration?: boolean;
 };
 
 function clampText(value: string | undefined, max: number) {
@@ -38,6 +39,89 @@ function clampText(value: string | undefined, max: number) {
 function isSafeUploadUrl(url: string | null) {
   if (!url) return false;
   return url.startsWith("/uploads/");
+}
+
+function labelMainObjective(v: string | null | undefined) {
+  switch (v) {
+    case "ETUDIER":
+      return "Étudier";
+    case "TRAVAILLER":
+      return "Travailler";
+    case "ENTREPRENDRE":
+      return "Entreprendre";
+    case "FAMILLE":
+      return "Famille";
+    case "EXPLORER":
+      return "Explorer";
+    default:
+      return null;
+  }
+}
+
+function labelResidenceSituation(v: string | null | undefined) {
+  switch (v) {
+    case "PAYS_ORIGINE":
+      return "Dans mon pays d’origine";
+    case "ETRANGER_ETUDES_TRAVAIL":
+      return "À l’étranger (études / travail)";
+    case "TEMPORAIRE":
+      return "Séjour temporaire";
+    default:
+      return null;
+  }
+}
+
+function labelBudgetRange(v: string | null | undefined) {
+  switch (v) {
+    case "MOINS_3000":
+      return "Moins de 3 000";
+    case "ENTRE_3000_7000":
+      return "Entre 3 000 et 7 000";
+    case "ENTRE_7000_15000":
+      return "Entre 7 000 et 15 000";
+    case "PLUS_15000":
+      return "Plus de 15 000";
+    case "JE_NE_SAIS_PAS":
+      return "Je ne sais pas";
+    default:
+      return null;
+  }
+}
+
+function summarizePreRegistration(p: {
+  status: string;
+  countryOfResidence: string | null;
+  city: string | null;
+  nationality: string | null;
+  residenceSituation: string | null;
+  mainObjective: string | null;
+  budgetRange: string | null;
+  constraintsOther: string | null;
+  message: string | null;
+}) {
+  if (p.status !== "SUBMITTED") return null;
+
+  const lines: string[] = [];
+  lines.push("Formulaire joint (Mon parcours)");
+
+  const objective = labelMainObjective(p.mainObjective);
+  if (objective) lines.push(`- Objectif: ${objective}`);
+
+  const situation = labelResidenceSituation(p.residenceSituation);
+  if (situation) lines.push(`- Situation de résidence: ${situation}`);
+
+  const locationBits = [p.city, p.countryOfResidence].filter(Boolean).join(", ");
+  if (locationBits) lines.push(`- Lieu: ${locationBits}`);
+  if (p.nationality) lines.push(`- Nationalité: ${p.nationality}`);
+
+  const budget = labelBudgetRange(p.budgetRange);
+  if (budget) lines.push(`- Budget: ${budget}`);
+
+  if (p.constraintsOther) lines.push(`- Contraintes: ${p.constraintsOther}`);
+  if (p.message) lines.push(`- Message: ${p.message}`);
+
+  const raw = lines.join("\n");
+  return raw.length > 1500 ? raw.slice(0, 1500) + "…" : raw;
 }
 
 export async function POST(req: NextRequest) {
@@ -102,6 +186,36 @@ export async function POST(req: NextRequest) {
     fileName?: string | null;
     createdAt: Date;
   }> = [];
+
+  if (body.attachPreRegistration) {
+    try {
+      const pre = await prisma.preRegistration.findUnique({
+        where: { userId: viewer.id },
+        select: {
+          status: true,
+          countryOfResidence: true,
+          city: true,
+          nationality: true,
+          residenceSituation: true,
+          mainObjective: true,
+          budgetRange: true,
+          constraintsOther: true,
+          message: true,
+        },
+      });
+      const summary = pre ? summarizePreRegistration(pre) : null;
+      if (summary) {
+        createdMessages.push({
+          senderRole: "REQUESTER",
+          kind: "TEXT",
+          body: summary,
+          createdAt: now,
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   if (cvUrl) {
     createdMessages.push({

@@ -184,7 +184,7 @@ export function MyRequestsList() {
                     </div>
                     <div className="mt-1 text-xs text-muted">
                       Besoin: {it.topicLabel}
-                      {it.preferredTimeframe ? ` • Préférence: ${it.preferredTimeframe}` : ""}
+                      {it.preferredTimeframe ? ` • Contraintes: ${it.preferredTimeframe}` : ""}
                     </div>
                   </div>
                 </div>

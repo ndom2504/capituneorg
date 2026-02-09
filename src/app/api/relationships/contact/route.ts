@@ -8,6 +8,10 @@ import { getViewer } from "../_viewer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function notificationRoleForAccountType(accountType: string) {
+  return accountType === "USER" ? "DEMANDEUR" : "PRO";
+}
+
 export async function POST(req: Request) {
   const viewer = await getViewer();
   if (!viewer) {
@@ -58,6 +62,23 @@ export async function POST(req: Request) {
     data: { fromId: viewer.id, toId: target.id, message: message || null },
     select: { id: true, status: true },
   });
+
+  // V1 notifications: rendre la demande visible côté destinataire (silencieux si indisponible)
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: target.id,
+        role: notificationRoleForAccountType(target.accountType),
+        type: "CONTACT_REQUEST_RECEIVED",
+        title: "Nouvelle demande de contact",
+        message: "Vous avez reçu une demande de contact. Cliquez pour répondre.",
+        link: "/reseau-pro",
+        priority: "IMPORTANT",
+      },
+    });
+  } catch {
+    // ignore
+  }
 
   return NextResponse.json({ requestId: created.id, status: created.status });
 }

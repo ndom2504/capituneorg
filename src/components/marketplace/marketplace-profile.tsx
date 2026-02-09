@@ -104,6 +104,7 @@ export function MarketplaceProfile({
   const [urgency, setUrgency] = useState<RequestUrgency>("MEDIUM");
   const [preferredTimeframe, setPreferredTimeframe] = useState("");
   const [message, setMessage] = useState("");
+  const [attachPreRegistration, setAttachPreRegistration] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvUploading, setCvUploading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -309,6 +310,7 @@ export function MarketplaceProfile({
           message: message.trim() || undefined,
           cvUrl: cv?.url,
           cvFileName: cv?.fileName,
+          attachPreRegistration,
         }),
       });
       if (!res.ok) {
@@ -319,6 +321,7 @@ export function MarketplaceProfile({
       setOk(payload.request?.id ?? "Envoyé");
       setPreferredTimeframe("");
       setMessage("");
+      setAttachPreRegistration(false);
       setCvFile(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
@@ -612,12 +615,15 @@ export function MarketplaceProfile({
                 </select>
               </div>
               <div>
-                <div className="text-xs font-semibold text-muted">Préférence horaire</div>
+                <div className="text-xs font-semibold text-muted">Contraintes / disponibilités (optionnel)</div>
                 <Input
                   value={preferredTimeframe}
                   onChange={(e) => setPreferredTimeframe(e.target.value)}
-                  placeholder="Ex: après 18h, week-end…"
+                  placeholder="Ex: après 18h, week-end, cette semaine…"
                 />
+                <div className="mt-1 text-xs text-muted">
+                  Le professionnel vous proposera un créneau selon ses disponibilités.
+                </div>
               </div>
               <div>
                 <div className="text-xs font-semibold text-muted">CV (optionnel)</div>
@@ -645,6 +651,20 @@ export function MarketplaceProfile({
                   placeholder="Décrivez brièvement votre situation."
                 />
               </div>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={attachPreRegistration}
+                  onChange={(e) => setAttachPreRegistration(e.target.checked)}
+                />
+                <span className="text-muted">
+                  Joindre mon formulaire de demande (Mon parcours)
+                  <span className="block text-xs">
+                    Un résumé (objectif, situation, budget, contraintes) sera ajouté à la demande.
+                  </span>
+                </span>
+              </label>
               <Button onClick={sendRequest} disabled={busy || cvUploading}>
                 Envoyer la demande
               </Button>

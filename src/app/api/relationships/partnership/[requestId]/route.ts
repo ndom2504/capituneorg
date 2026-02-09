@@ -7,6 +7,10 @@ import { getViewer } from "../../_viewer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function notificationRoleForAccountType(accountType: string) {
+  return accountType === "USER" ? "DEMANDEUR" : "PRO";
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ requestId: string }> },
@@ -34,7 +38,13 @@ export async function POST(
 
   const existing = await prisma.partnershipRequest.findUnique({
     where: { id: requestId },
-    select: { id: true, toId: true, status: true },
+    select: {
+      id: true,
+      toId: true,
+      fromId: true,
+      status: true,
+      from: { select: { accountType: true } },
+    },
   });
 
   if (!existing) {
@@ -53,6 +63,26 @@ export async function POST(
     where: { id: requestId },
     data: { status: action === "ACCEPT" ? "ACCEPTED" : "REJECTED" },
   });
+
+  // V1 notifications: informer l'expéditeur (silencieux si indisponible)
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: existing.fromId,
+        role: notificationRoleForAccountType(existing.from.accountType),
+        type: "PARTNERSHIP_REQUEST_UPDATED",
+        title: action === "ACCEPT" ? "Demande de collaboration acceptée" : "Demande de collaboration refusée",
+        message:
+          action === "ACCEPT"
+            ? "Votre demande a été acceptée."
+            : "Votre demande a été refusée.",
+        link: "/reseau-pro",
+        priority: "INFO",
+      },
+    });
+  } catch {
+    // ignore
+  }
 
   return NextResponse.json({ ok: true });
 }
