@@ -73,6 +73,8 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const safeRequestId = typeof requestId === "string" ? requestId.trim() : "";
+
   const errorInfo = (() => {
     if (!error) return null;
     try {
@@ -106,10 +108,16 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
   const [paymentBusy, setPaymentBusy] = useState(false);
 
   async function refresh() {
+    if (!safeRequestId || safeRequestId === "undefined" || safeRequestId === "null") {
+      setItem(null);
+      setLoading(false);
+      setError(JSON.stringify({ error: "Lien invalide: ID de demande manquant." }));
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/clients/demandes/${requestId}`, {
+      const res = await fetch(`/api/clients/demandes/${safeRequestId}`, {
         method: "GET",
         headers: { "content-type": "application/json" },
       });
@@ -130,7 +138,7 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestId]);
+  }, [safeRequestId]);
 
   useEffect(() => {
     // best-effort: catalogue de services (global + pro)

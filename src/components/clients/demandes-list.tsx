@@ -68,6 +68,7 @@ export function DemandesList() {
   const [items, setItems] = useState<DemandeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | RequestStatus>("");
 
   useEffect(() => {
@@ -76,6 +77,7 @@ export function DemandesList() {
     async function run() {
       setLoading(true);
       setError(null);
+      setWarning(null);
       try {
         const params = new URLSearchParams();
         if (statusFilter) params.set("status", statusFilter);
@@ -89,7 +91,12 @@ export function DemandesList() {
         }
         const data = (await res.json()) as ApiResponse;
         if (canceled) return;
-        setItems(data.items ?? []);
+        const raw = Array.isArray(data.items) ? data.items : [];
+        const valid = raw.filter((it) => typeof it?.id === "string" && it.id.trim().length > 0);
+        if (valid.length !== raw.length) {
+          setWarning("Certaines demandes sont invalides (ID manquant). Rafraîchissez la page.");
+        }
+        setItems(valid);
       } catch (e) {
         if (!canceled) setError(e instanceof Error ? e.message : "Erreur");
       } finally {
@@ -147,6 +154,13 @@ export function DemandesList() {
         </Card>
       ) : null}
 
+      {warning ? (
+        <Card className="p-4">
+          <div className="text-sm font-medium text-navy">Info</div>
+          <div className="mt-1 whitespace-pre-wrap text-sm text-muted">{warning}</div>
+        </Card>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {!loading && !items.length ? (
           <Card className="p-6">
@@ -184,9 +198,15 @@ export function DemandesList() {
               </div>
 
               <div className="flex items-end">
-                <Link href={`/clients/demandes/${it.id}`} className="w-full">
-                  <Button className="h-11 w-full">Ouvrir</Button>
-                </Link>
+                {it.id ? (
+                  <Link href={`/clients/demandes/${it.id}`} className="w-full">
+                    <Button className="h-11 w-full">Ouvrir</Button>
+                  </Link>
+                ) : (
+                  <Button className="h-11 w-full" disabled>
+                    Ouvrir
+                  </Button>
+                )}
               </div>
             </div>
           </Card>
