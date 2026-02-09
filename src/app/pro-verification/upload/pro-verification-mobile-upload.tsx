@@ -91,19 +91,44 @@ export function ProVerificationMobileUpload() {
             </a>
           ) : null}
         </div>
-        <label className="block">
-          <input
-            type="file"
-            accept="application/pdf,image/*"
-            className="block w-full text-sm"
-            disabled={!linkOk || uploading !== null}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              void upload("competence", file);
-            }}
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              disabled={!linkOk || uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.currentTarget.value = "";
+                if (!file) return;
+                void upload("competence", file);
+              }}
+            />
+            <span className="inline-flex h-10 items-center rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text hover:bg-gray-50">
+              Prendre une photo
+            </span>
+          </label>
+
+          <label className="inline-flex cursor-pointer items-center">
+            <input
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+              className="hidden"
+              disabled={!linkOk || uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.currentTarget.value = "";
+                if (!file) return;
+                void upload("competence", file);
+              }}
+            />
+            <span className="inline-flex h-10 items-center rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text hover:bg-gray-50">
+              Choisir un fichier
+            </span>
+          </label>
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -126,19 +151,44 @@ export function ProVerificationMobileUpload() {
             </a>
           ) : null}
         </div>
-        <label className="block">
-          <input
-            type="file"
-            accept="application/pdf,image/*"
-            className="block w-full text-sm"
-            disabled={!linkOk || uploading !== null}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              void upload("id", file);
-            }}
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              disabled={!linkOk || uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.currentTarget.value = "";
+                if (!file) return;
+                void upload("id", file);
+              }}
+            />
+            <span className="inline-flex h-10 items-center rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text hover:bg-gray-50">
+              Prendre une photo
+            </span>
+          </label>
+
+          <label className="inline-flex cursor-pointer items-center">
+            <input
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+              className="hidden"
+              disabled={!linkOk || uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.currentTarget.value = "";
+                if (!file) return;
+                void upload("id", file);
+              }}
+            />
+            <span className="inline-flex h-10 items-center rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text hover:bg-gray-50">
+              Choisir un fichier
+            </span>
+          </label>
+        </div>
         <Button type="button" variant="outline" disabled={!idUrl}>
           {idUrl ? "Document enregistré" : "En attente"}
         </Button>
