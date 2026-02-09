@@ -230,20 +230,20 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-navy">Demande Marketplace</h2>
+          <div className="text-lg font-semibold text-navy">Demande</div>
           <div className="mt-1 text-sm text-muted">Détail et actions.</div>
         </div>
-        <Link
+        <a
           href="/clients/demandes"
           className={cn(
             "inline-flex h-10 items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 text-sm font-semibold",
-            "border border-border bg-white/80 text-text shadow-sm transition-[color,background-color,border-color,box-shadow,transform]",
+            "border border-border bg-white text-text shadow-sm transition-[color,background-color,border-color,box-shadow,transform]",
             "hover:-translate-y-px hover:bg-white hover:shadow-md active:translate-y-0",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           )}
         >
           Retour
-        </Link>
+        </a>
       </div>
 
       {error ? (

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/cn";
 
@@ -17,7 +16,6 @@ type NotificationDto = {
 };
 
 export function NotificationsBell() {
-  const router = useRouter();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -96,16 +94,19 @@ export function NotificationsBell() {
   }
 
   async function markRead(id: string) {
-    await fetch(`/api/notifications/${id}/read`, { method: "POST" });
+    await fetch(`/api/notifications/${id}/read`, { method: "POST", keepalive: true });
   }
 
   function onItemClick(n: NotificationDto) {
     startTransition(async () => {
       setOpen(false);
-      if (!n.readAt) await markRead(n.id);
-      router.push(n.link);
-      router.refresh();
-      await refresh();
+      if (!n.readAt) {
+        // best-effort: ne doit pas bloquer la navigation
+        void markRead(n.id);
+      }
+
+      // Navigation classique (robuste même si le router client est instable)
+      window.location.assign(n.link);
     });
   }
 

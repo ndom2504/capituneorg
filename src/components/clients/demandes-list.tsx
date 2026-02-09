@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -199,7 +198,7 @@ export function DemandesList() {
 
               <div className="flex items-end">
                 {it.id ? (
-                  <Link
+                  <a
                     href={`/clients/demandes/${it.id}`}
                     className={cn(
                       "inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] text-sm font-semibold",
@@ -209,7 +208,7 @@ export function DemandesList() {
                     )}
                   >
                     Ouvrir
-                  </Link>
+                  </a>
                 ) : (
                   <Button className="h-11 w-full" disabled>
                     Ouvrir
