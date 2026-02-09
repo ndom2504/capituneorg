@@ -84,7 +84,6 @@ export function DemandesList() {
           method: "GET",
           cache: "no-store",
           headers: { "content-type": "application/json" },
-          cache: "no-store",
         });
         if (!res.ok) {
           const text = await res.text();

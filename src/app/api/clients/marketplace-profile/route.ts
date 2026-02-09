@@ -316,11 +316,7 @@ export async function POST(req: NextRequest) {
   if (requestVerification) {
     if (!normalizedProofUrl) {
       return NextResponse.json(
-<<<<<<< HEAD
-        { error: "Justificatif de compétence requis avant la demande de vérification." },
-=======
         { error: "Justificatif de compétence requis (certificat, diplôme, licence, etc.)." },
->>>>>>> 25b7bd0 (Fix marketplace demandes/notifications + diagnostics whoami + perf flags + cookie domain)
         { status: 400 },
       );
     }
@@ -396,7 +392,6 @@ export async function POST(req: NextRequest) {
     professionsChanged
       ? {
           verificationStatus: "PENDING" as const,
-          verificationRequestedAt: null,
           isVerified: false,
           verifiedAt: null,
           verifiedById: null,
@@ -408,13 +403,10 @@ export async function POST(req: NextRequest) {
   const verificationRequestData = requestVerification
     ? {
         verificationStatus: "PENDING" as const,
-<<<<<<< HEAD
-=======
         isVerified: false,
         verifiedAt: null,
         verifiedById: null,
         rejectionReason: null,
->>>>>>> 25b7bd0 (Fix marketplace demandes/notifications + diagnostics whoami + perf flags + cookie domain)
         verificationRequestedAt: new Date(),
       }
     : {};
@@ -483,10 +475,8 @@ export async function POST(req: NextRequest) {
       price30Min: body.price30Min ?? null,
       price60Min: body.price60Min ?? null,
 
-      verificationStatus: "PENDING",
-      verificationRequestedAt: requestVerification ? new Date() : null,
-      isVerified: false,
-      verificationRequestedAt: new Date(),
+      ...verificationResetData,
+      ...verificationRequestData,
     },
     select: { id: true, status: true, updatedAt: true },
   });
