@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { QrCode } from "@/components/ui/qr-code";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileMediaUploader } from "@/components/profile/profile-media-uploader";
 import {
@@ -37,6 +38,7 @@ type ApiProfile = {
   status: ProfileStatus;
   isVerified: boolean;
   verificationStatus?: string;
+  verificationRequestedAt?: string | null;
   rejectionReason?: string | null;
   profession: string; // Legacy
   primaryProfessionId: string;
@@ -56,6 +58,7 @@ type ApiProfile = {
   licenseNumber: string | null;
   licenseAuthority: string | null;
   proofUrl: string | null;
+  idProofUrl: string | null;
   bioShort: string | null;
   bioLong: string | null;
 
@@ -73,6 +76,8 @@ type ViewerInfo = { fullName: string; avatarUrl: string | null; isCertified?: bo
 type GetResponseWithViewer = { profile: ApiProfile | null; viewer?: ViewerInfo };
 
 type SaveResponse = { ok?: boolean; profile?: { id: string; status: ProfileStatus; updatedAt: string } };
+
+type UploadResponse = { url?: string; fileName?: string; error?: string };
 
 function parseList(text: string) {
   return text
@@ -102,6 +107,8 @@ export function MarketplaceProfileEditor() {
   const [profileId, setProfileId] = useState<string | null>(null);
 
   const [status, setStatus] = useState<ProfileStatus>("DRAFT");
+  const [verificationStatus, setVerificationStatus] = useState<string>("DRAFT");
+  const [verificationRequestedAt, setVerificationRequestedAt] = useState<string | null>(null);
   const [primaryProfessionCategory, setPrimaryProfessionCategory] =
     useState<ProfessionCategoryId>(PROFESSION_CATEGORIES[0]?.id);
   const [primaryProfessionId, setPrimaryProfessionId] = useState<string>(
@@ -127,6 +134,11 @@ export function MarketplaceProfileEditor() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [licenseAuthority, setLicenseAuthority] = useState("");
   const [proofUrl, setProofUrl] = useState("");
+  const [idProofUrl, setIdProofUrl] = useState("");
+  const [uploadingKind, setUploadingKind] = useState<"competence" | "id" | null>(null);
+  const [mobileUploadUrl, setMobileUploadUrl] = useState<string | null>(null);
+  const [mobileUploadExpiresInSec, setMobileUploadExpiresInSec] = useState<number | null>(null);
+  const [mobileUploadLoading, setMobileUploadLoading] = useState(false);
   const [bioShort, setBioShort] = useState("");
   const [bioLong, setBioLong] = useState("");
 
@@ -212,6 +224,8 @@ export function MarketplaceProfileEditor() {
           const p = data.profile;
           setProfileId(p.id);
           setStatus(p.status);
+          setVerificationStatus(p.verificationStatus ?? "DRAFT");
+          setVerificationRequestedAt(p.verificationRequestedAt ?? null);
           setPrimaryProfessionId(p.primaryProfessionId);
           setPrimaryProfessionCategory(professionCategoryFromProfessionId(p.primaryProfessionId));
           setSecondaryProfessionIds(p.secondaryProfessionIds ?? []);
@@ -233,6 +247,7 @@ export function MarketplaceProfileEditor() {
           setLicenseNumber(p.licenseNumber ?? "");
           setLicenseAuthority(p.licenseAuthority ?? "");
           setProofUrl(p.proofUrl ?? "");
+          setIdProofUrl(p.idProofUrl ?? "");
           setBioShort(p.bioShort ?? "");
           setBioLong(p.bioLong ?? "");
           setEmployerDetails(p.employerDetails ?? "");
@@ -276,7 +291,7 @@ export function MarketplaceProfileEditor() {
     }
   }
 
-  async function submit(nextStatus: ProfileStatus) {
+  async function submit(nextStatus: ProfileStatus, opts?: { requestVerification?: boolean }) {
     setSaving(true);
     setNotice(null);
     setError(null);
@@ -303,6 +318,16 @@ export function MarketplaceProfileEditor() {
         throw new Error("Métier principal requis.");
       }
 
+      const requestVerification = opts?.requestVerification === true;
+      if (requestVerification) {
+        if (!proofUrl.trim()) {
+          throw new Error("Justificatif de compétence requis (certificat, diplôme, licence, etc.).");
+        }
+        if (!idProofUrl.trim()) {
+          throw new Error("Pièce d’identité requise avant la demande de vérification.");
+        }
+      }
+
       if (hasRegulatedProfession && nextStatus === "PUBLISHED") {
         if (!licenseNumber.trim() || !licenseAuthority.trim() || !proofUrl.trim()) {
           throw new Error(
@@ -316,6 +341,7 @@ export function MarketplaceProfileEditor() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           status: nextStatus,
+          ...(requestVerification ? { requestVerification: true } : {}),
           primaryProfessionId,
           secondaryProfessionIds,
           headline: headline.trim() || null,
@@ -332,6 +358,7 @@ export function MarketplaceProfileEditor() {
           licenseNumber: licenseNumber.trim() || null,
           licenseAuthority: licenseAuthority.trim() || null,
           proofUrl: proofUrl.trim() || null,
+          idProofUrl: idProofUrl.trim() || null,
           bioShort: bioShort.trim() || null,
           bioLong: bioLong.trim() || null,
           employerDetails: hasEmployerService ? employerDetails.trim() || null : null,
@@ -350,6 +377,16 @@ export function MarketplaceProfileEditor() {
       const payload = (await res.json()) as SaveResponse;
       if (payload.profile?.id) setProfileId(payload.profile.id);
       if (payload.profile?.status) setStatus(payload.profile.status);
+
+      if (requestVerification) {
+        setVerificationStatus("PENDING");
+        setVerificationRequestedAt(new Date().toISOString());
+        setNotice({
+          title: "Demande de vérification envoyée",
+          detail: "Nous validons votre identité et votre compétence. Délai cible: 48h.",
+        });
+        return;
+      }
 
       const resultingStatus = payload.profile?.status ?? nextStatus;
       if (nextStatus === "PUBLISHED") {
@@ -379,12 +416,92 @@ export function MarketplaceProfileEditor() {
     }
   }
 
+  async function uploadDoc(kind: "competence" | "id", file: File) {
+    setError(null);
+    setNotice(null);
+    setUploadingKind(kind);
+    try {
+      const form = new FormData();
+      form.set("kind", kind);
+      form.set("file", file);
+
+      const res = await fetch("/api/clients/marketplace-verification-doc", {
+        method: "POST",
+        body: form,
+      });
+
+      const data = (await res.json().catch(() => null)) as UploadResponse | null;
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      const url = (data?.url ?? "").trim();
+      if (!url) throw new Error("Upload incomplet (URL manquante).");
+
+      if (kind === "competence") setProofUrl(url);
+      else setIdProofUrl(url);
+
+      setNotice({ title: "Document téléversé", detail: "Pensez à cliquer sur Enregistrer." });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setUploadingKind(null);
+    }
+  }
+
+  async function generateMobileUploadLink() {
+    if (!profileId) {
+      setNotice({
+        title: "Enregistrez d’abord votre brouillon",
+        detail:
+          "Le QR code d’upload téléphone nécessite un profil existant. Cliquez sur “Enregistrer” puis réessayez.",
+      });
+      return;
+    }
+
+    setError(null);
+    setNotice(null);
+    setMobileUploadLoading(true);
+    try {
+      const res = await fetch("/api/clients/pro-verification-upload-link", {
+        method: "GET",
+        headers: { "content-type": "application/json" },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+
+      const data = (await res.json()) as {
+        url?: string;
+        expiresInSec?: number;
+        error?: string;
+      };
+
+      if (!data.url) throw new Error(data.error || "Réponse invalide");
+
+      setMobileUploadUrl(data.url);
+      setMobileUploadExpiresInSec(typeof data.expiresInSec === "number" ? data.expiresInSec : null);
+      setNotice({ title: "QR prêt", detail: "Scannez avec votre téléphone pour téléverser les documents." });
+    } catch (e) {
+      setNotice({
+        title: "Impossible de générer le QR",
+        detail: e instanceof Error ? e.message : "Erreur",
+      });
+    } finally {
+      setMobileUploadLoading(false);
+    }
+  }
+
   async function saveDraft() {
     await submit("DRAFT");
   }
 
   async function publish() {
     await submit("PUBLISHED");
+  }
+
+  async function requestVerification() {
+    await submit("DRAFT", { requestVerification: true });
   }
 
   async function removeProfile() {
@@ -886,10 +1003,144 @@ export function MarketplaceProfileEditor() {
           </div>
 
           <div>
-            <div className="text-xs font-semibold text-muted">
-              Lien justificatif {hasRegulatedProfession ? "(requis)" : "(optionnel)"}
+            <div className="text-xs font-semibold text-muted">Vérification professionnelle (requis pour être certifié)</div>
+            <div className="mt-1 text-xs text-muted">
+              Fournissez (1) une preuve de compétence (certificat/diplôme/licence…) et (2) une pièce d’identité.
+              Sur téléphone, le sélecteur de fichier propose généralement l’appareil photo.
             </div>
-            <Input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} placeholder="https://…" />
+
+            <div className="mt-3 rounded-(--radius-md) border border-border bg-white/60 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs font-semibold text-text">Scan via QR (téléphone)</div>
+                <Button
+                  variant="outline"
+                  onClick={generateMobileUploadLink}
+                  disabled={saving || uploadingKind !== null || mobileUploadLoading}
+                >
+                  {mobileUploadLoading
+                    ? "Génération…"
+                    : mobileUploadUrl
+                      ? "Régénérer"
+                      : "Générer un QR"}
+                </Button>
+              </div>
+              <div className="mt-1 text-xs text-muted">
+                Scannez le QR avec votre téléphone pour ouvrir une page dédiée d’upload (sans connexion).
+              </div>
+
+              {mobileUploadUrl ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr]">
+                  <div className="w-fit rounded-(--radius-md) border border-border bg-white/70 p-2">
+                    <QrCode value={mobileUploadUrl} size={200} />
+                  </div>
+                  <div className="min-w-0">
+                    <a
+                      className="block truncate text-sm underline"
+                      href={mobileUploadUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Ouvrir la page mobile
+                    </a>
+                    {mobileUploadExpiresInSec ? (
+                      <div className="mt-1 text-xs text-muted">
+                        Ce lien expire dans ~{Math.max(1, Math.round(mobileUploadExpiresInSec / 60))} min.
+                      </div>
+                    ) : null}
+                    <div className="mt-1 text-xs text-muted">
+                      Après l’upload sur téléphone, rafraîchissez cette page si besoin.
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-(--radius-md) border border-border bg-white/60 p-3">
+                <div className="text-xs font-semibold text-text">Justificatif compétence</div>
+                <div className="mt-1 text-xs text-muted">PDF ou photo (un seul fichier).</div>
+
+                {proofUrl ? (
+                  <a className="mt-2 block text-sm underline" href={proofUrl} target="_blank" rel="noreferrer">
+                    Ouvrir le document
+                  </a>
+                ) : (
+                  <div className="mt-2 text-sm text-muted">Aucun document</div>
+                )}
+
+                <div className="mt-2 flex items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+                      disabled={saving || uploadingKind !== null}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.currentTarget.value = "";
+                        if (!f) return;
+                        void uploadDoc("competence", f);
+                      }}
+                    />
+                    <span className="inline-flex h-10 items-center rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text hover:bg-gray-50">
+                      {uploadingKind === "competence" ? "Téléversement…" : "Téléverser"}
+                    </span>
+                  </label>
+
+                  <Input
+                    value={proofUrl}
+                    onChange={(e) => setProofUrl(e.target.value)}
+                    placeholder="Ou collez un lien…"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-(--radius-md) border border-border bg-white/60 p-3">
+                <div className="text-xs font-semibold text-text">Pièce d’identité</div>
+                <div className="mt-1 text-xs text-muted">Recto/verso dans un seul fichier (PDF ou photos).</div>
+
+                {idProofUrl ? (
+                  <a className="mt-2 block text-sm underline" href={idProofUrl} target="_blank" rel="noreferrer">
+                    Ouvrir le document
+                  </a>
+                ) : (
+                  <div className="mt-2 text-sm text-muted">Aucun document</div>
+                )}
+
+                <div className="mt-2 flex items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+                      disabled={saving || uploadingKind !== null}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.currentTarget.value = "";
+                        if (!f) return;
+                        void uploadDoc("id", f);
+                      }}
+                    />
+                    <span className="inline-flex h-10 items-center rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text hover:bg-gray-50">
+                      {uploadingKind === "id" ? "Téléversement…" : "Téléverser"}
+                    </span>
+                  </label>
+
+                  <Input
+                    value={idProofUrl}
+                    onChange={(e) => setIdProofUrl(e.target.value)}
+                    placeholder="Ou collez un lien…"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 text-xs text-muted">
+              Statut vérification: <span className="font-semibold">{verificationStatus}</span>
+              {verificationStatus === "PENDING" && verificationRequestedAt ? (
+                <span>{` · demandé le ${new Date(verificationRequestedAt).toLocaleString("fr-CA")}`}</span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -931,6 +1182,21 @@ export function MarketplaceProfileEditor() {
               “Enregistrer” crée un brouillon : vous pourrez revenir le modifier plus tard.
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={requestVerification}
+                disabled={
+                  saving ||
+                  uploadingKind !== null ||
+                  !complianceAccepted ||
+                  !accuracyConfirmed ||
+                  !proofUrl.trim() ||
+                  !idProofUrl.trim() ||
+                  verificationStatus === "PENDING"
+                }
+              >
+                Demander la vérification
+              </Button>
               <Button variant="outline" onClick={saveDraft} disabled={saving || !complianceAccepted || !accuracyConfirmed}>
                 Enregistrer
               </Button>

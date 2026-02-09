@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AvatarBubble } from "@/components/ui/avatar-bubble";
+import { AppHelpBot } from "@/components/messaging/app-help-bot";
 
 type ConversationItem = {
   id: string;
@@ -72,6 +73,7 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
 
   return (
     <>
+      <AppHelpBot hidden={isOpen} />
       {/* Bouton flottant en bas à droite */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
