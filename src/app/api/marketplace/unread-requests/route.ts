@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
     }
 
-    const isPro = (user.accountType === "PRO" || user.accountType === "PROFESSIONAL") && user.marketplaceProfile;
+    const isPro = user.accountType === "PROFESSIONAL" && user.marketplaceProfile;
     const requests: Array<{
       id: string;
       status: string;
