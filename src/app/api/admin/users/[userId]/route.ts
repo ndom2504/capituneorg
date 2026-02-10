@@ -216,33 +216,42 @@ export async function POST(
       );
     }
 
-    const updated = await prisma.user.update({
-      where: { id: existing.id },
-      data: {
-        accountStatus: "DELETED",
-        deletedAt: now,
-        sessionInvalidBefore: now,
-      },
-      select: {
-        id: true,
-        accountStatus: true,
-        deletedAt: true,
-        sessionInvalidBefore: true,
-      },
-    });
+    try {
+      const updated = await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          accountStatus: "DELETED",
+          deletedAt: now,
+          sessionInvalidBefore: now,
+        },
+        select: {
+          id: true,
+          accountStatus: true,
+          deletedAt: true,
+          sessionInvalidBefore: true,
+        },
+      });
 
-    await prisma.auditLog.create({
-      data: {
-        adminId: auth.viewer.id,
-        action: "DELETE_USER",
-        objectType: "User",
-        objectId: existing.id,
-        beforeJson: { ...existing, reason },
-        afterJson: updated,
-      },
-    });
+      // NOTE: on utilise une action existante pour éviter un besoin de migration d'enum en prod.
+      await prisma.auditLog.create({
+        data: {
+          adminId: auth.viewer.id,
+          action: "SUSPEND_USER",
+          objectType: "User",
+          objectId: existing.id,
+          beforeJson: { ...existing, reason, delete: true },
+          afterJson: updated,
+        },
+      });
 
-    return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      console.error("[admin/users] delete failed", { userId: existing.id, error: e });
+      return NextResponse.json(
+        { error: "Suppression impossible (erreur serveur)." },
+        { status: 500 },
+      );
+    }
   }
 
   // REACTIVATE
