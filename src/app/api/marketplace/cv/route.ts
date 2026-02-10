@@ -34,53 +34,64 @@ function safeExt(filename: string, mime: string) {
 }
 
 export async function POST(req: Request) {
-  const flags = await getFeatureFlagsFromDb();
-  if (!flags.marketplace) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
-  }
+  try {
+    const flags = await getFeatureFlagsFromDb();
+    if (!flags.marketplace) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
 
-  const viewer = await getViewer();
-  if (!viewer) {
-    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
-  }
-  if (viewer.accountType !== "USER") {
-    return NextResponse.json({ error: "Seuls les demandeurs peuvent téléverser un CV." }, { status: 403 });
-  }
+    const viewer = await getViewer();
+    if (!viewer) {
+      return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+    }
+    if (viewer.accountType !== "USER") {
+      return NextResponse.json({ error: "Seuls les demandeurs peuvent téléverser un CV." }, { status: 403 });
+    }
 
-  const form = await req.formData();
-  const file = form.get("file");
+    const form = await req.formData();
+    const file = form.get("file");
 
-  if (!file || !(file instanceof File)) {
-    return NextResponse.json({ error: "Fichier manquant (champ 'file')." }, { status: 400 });
-  }
+    if (!file || !(file instanceof File)) {
+      return NextResponse.json({ error: "Fichier manquant (champ 'file')." }, { status: 400 });
+    }
 
-  const mime = file.type || "";
-  const ext = path.extname(file.name).toLowerCase();
-  if (!ALLOWED_MIME.has(mime) && !ALLOWED_EXT.has(ext)) {
+    const mime = file.type || "";
+    const ext = path.extname(file.name).toLowerCase();
+    if (!ALLOWED_MIME.has(mime) && !ALLOWED_EXT.has(ext)) {
+      return NextResponse.json(
+        { error: "Format non supporté. Utilisez PDF, DOC ou DOCX." },
+        { status: 415 },
+      );
+    }
+
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json(
+        { error: "Fichier trop volumineux (max 10MB)." },
+        { status: 413 },
+      );
+    }
+
+    const storageExt = safeExt(file.name, mime);
+    const filename = `cv-${viewer.id}-${crypto.randomUUID()}${storageExt}`;
+
+    const uploadsDir = path.join(process.cwd(), "public", "uploads", "cv");
+    await mkdir(uploadsDir, { recursive: true });
+
+    const arrayBuffer = await file.arrayBuffer();
+    await writeFile(path.join(uploadsDir, filename), Buffer.from(arrayBuffer));
+
+    return NextResponse.json({
+      url: `/uploads/cv/${filename}`,
+      fileName: sanitizeOriginalName(file.name),
+    });
+  } catch (error) {
+    console.error("[marketplace/cv] Upload error:", error);
     return NextResponse.json(
-      { error: "Format non supporté. Utilisez PDF, DOC ou DOCX." },
-      { status: 415 },
+      { 
+        error: "Erreur lors du téléversement du CV.",
+        details: error instanceof Error ? error.message : "Erreur inconnue"
+      },
+      { status: 500 }
     );
   }
-
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json(
-      { error: "Fichier trop volumineux (max 10MB)." },
-      { status: 413 },
-    );
-  }
-
-  const storageExt = safeExt(file.name, mime);
-  const filename = `cv-${viewer.id}-${crypto.randomUUID()}${storageExt}`;
-
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "cv");
-  await mkdir(uploadsDir, { recursive: true });
-
-  const arrayBuffer = await file.arrayBuffer();
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(arrayBuffer));
-
-  return NextResponse.json({
-    url: `/uploads/cv/${filename}`,
-    fileName: sanitizeOriginalName(file.name),
-  });
 }

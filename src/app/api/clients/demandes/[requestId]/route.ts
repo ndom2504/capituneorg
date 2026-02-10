@@ -59,13 +59,14 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ requestId: string }> },
 ) {
-  const auth = await requireProfessionalViewer();
-  if (!auth.ok) return auth.response;
+  try {
+    const auth = await requireProfessionalViewer();
+    if (!auth.ok) return auth.response;
 
-  const { requestId } = await context.params;
+    const { requestId } = await context.params;
 
-  const body = (await req.json().catch(() => null)) as UpdateRequestPayload | null;
-  if (!body) return NextResponse.json({ error: "Payload invalide." }, { status: 400 });
+    const body = (await req.json().catch(() => null)) as UpdateRequestPayload | null;
+    if (!body) return NextResponse.json({ error: "Payload invalide." }, { status: 400 });
 
   const isAdmin = auth.viewer.accountType === "ADMIN";
 
@@ -281,6 +282,16 @@ export async function POST(
       locationUrl: meeting.locationUrl,
     },
   });
+  } catch (error) {
+    console.error("[demandes] POST error:", error);
+    return NextResponse.json(
+      { 
+        error: "Erreur lors du traitement de la demande.",
+        details: error instanceof Error ? error.message : "Erreur inconnue"
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(
