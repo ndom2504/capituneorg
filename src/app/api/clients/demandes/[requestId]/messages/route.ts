@@ -83,3 +83,44 @@ export async function POST(
 
   return NextResponse.json({ ok: true, message: { id: msg.id, createdAt: msg.createdAt.toISOString() } });
 }
+
+export async function GET(
+  _req: NextRequest,
+  context: { params: Promise<{ requestId: string }> },
+) {
+  const auth = await requireProfessionalViewer();
+  if (!auth.ok) return auth.response;
+
+  const { requestId } = await context.params;
+
+  const isAdmin = auth.viewer.accountType === "ADMIN";
+
+  const request = await prisma.marketplaceRequest.findUnique({
+    where: { id: requestId },
+    select: { id: true, professionalId: true },
+  });
+
+  if (!request) {
+    return NextResponse.json({ error: "Demande introuvable." }, { status: 404 });
+  }
+
+  if (!isAdmin && request.professionalId !== auth.viewer.id) {
+    return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
+  }
+
+  const messages = await prisma.marketplaceRequestMessage.findMany({
+    where: { requestId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      senderRole: true,
+      kind: true,
+      body: true,
+      fileUrl: true,
+      fileName: true,
+      createdAt: true,
+    },
+  });
+
+  return NextResponse.json({ messages });
+}

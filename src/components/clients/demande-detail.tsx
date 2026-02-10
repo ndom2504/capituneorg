@@ -163,6 +163,21 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
   const [serviceId, setServiceId] = useState("");
   const [paymentBusy, setPaymentBusy] = useState(false);
 
+  // Messages
+  type MessageItem = {
+    id: string;
+    senderRole: "REQUESTER" | "PROFESSIONAL" | "SYSTEM";
+    kind: "TEXT" | "FILE" | "SYSTEM";
+    body: string | null;
+    fileUrl: string | null;
+    fileName: string | null;
+    createdAt: string;
+  };
+  const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+
   async function refresh() {
     if (!safeRequestId || safeRequestId === "undefined" || safeRequestId === "null") {
       setItem(null);
@@ -259,8 +274,63 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
     }
   }
 
+  async function loadMessages() {
+    if (!safeRequestId || safeRequestId === "undefined" || safeRequestId === "null") return;
+    setMessagesLoading(true);
+    try {
+      const res = await fetch(`/api/clients/demandes/${safeRequestId}/messages`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        console.error("Erreur chargement messages:", res.status);
+        return;
+      }
+      const data = (await res.json()) as { messages: MessageItem[] };
+      setMessages(data.messages);
+    } catch (e) {
+      console.error("Erreur chargement messages:", e);
+    } finally {
+      setMessagesLoading(false);
+    }
+  }
+
+  async function sendMessage() {
+    if (!safeRequestId || !newMessage.trim()) return;
+    setSendingMessage(true);
+    try {
+      const res = await fetch(`/api/clients/demandes/${safeRequestId}/messages`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "TEXT", body: newMessage.trim() }),
+      });
+      if (!res.ok) {
+        console.error("Erreur envoi message:", res.status);
+        return;
+      }
+      setNewMessage("");
+      await loadMessages();
+    } catch (e) {
+      console.error("Erreur envoi message:", e);
+    } finally {
+      setSendingMessage(false);
+    }
+  }
+
   useEffect(() => {
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeRequestId]);
+
+  useEffect(() => {
+    if (safeRequestId && safeRequestId !== "undefined" && safeRequestId !== "null") {
+      loadMessages();
+      // Rafraîchir les messages toutes les 5 secondes
+      const interval = setInterval(() => {
+        loadMessages();
+      }, 5000);
+      return () => clearInterval(interval);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeRequestId]);
 
@@ -658,6 +728,66 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
                 rows={5}
                 placeholder="Réponse, éléments à vérifier, infos demandées…"
               />
+
+              {/* Section Messages */}
+              <div className="mt-4">
+                <div className="text-xs font-semibold text-muted">Messagerie avec le demandeur</div>
+                <div className="mt-2 max-h-64 space-y-2 overflow-y-auto rounded-(--radius-md) border border-border bg-white/60 p-3">
+                  {messagesLoading && messages.length === 0 ? (
+                    <div className="text-xs text-muted">Chargement des messages…</div>
+                  ) : messages.length === 0 ? (
+                    <div className="text-xs text-muted">Aucun message pour le moment</div>
+                  ) : (
+                    messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={cn(
+                          "rounded-(--radius-sm) p-2 text-sm",
+                          msg.senderRole === "PROFESSIONAL"
+                            ? "ml-8 bg-blue-50 text-blue-900"
+                            : msg.senderRole === "SYSTEM"
+                            ? "bg-gray-50 text-gray-700 italic"
+                            : "mr-8 bg-slate-50 text-slate-900"
+                        )}
+                      >
+                        {msg.kind === "FILE" && msg.fileUrl ? (
+                          <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="underline">
+                            📎 {msg.fileName || "Fichier"}
+                          </a>
+                        ) : (
+                          <div className="whitespace-pre-wrap">{msg.body}</div>
+                        )}
+                        <div className="mt-1 text-xs opacity-60">
+                          {msg.senderRole === "PROFESSIONAL" ? "Vous" : msg.senderRole === "SYSTEM" ? "Système" : "Demandeur"} •{" "}
+                          {new Date(msg.createdAt).toLocaleString("fr-CA", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Écrire un message…"
+                    disabled={sendingMessage}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void sendMessage();
+                      }
+                    }}
+                  />
+                  <Button variant="outline" disabled={sendingMessage || !newMessage.trim()} onClick={() => void sendMessage()}>
+                    Envoyer
+                  </Button>
+                </div>
+              </div>
 
               <div className="mt-4">
                 <div className="text-xs font-semibold text-muted">Acceptation → planifier</div>
