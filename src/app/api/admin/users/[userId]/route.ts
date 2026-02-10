@@ -6,7 +6,7 @@ import { requireAdminActionViewer } from "@/app/api/admin/_auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type UsersAction = "SUSPEND" | "REACTIVATE" | "FORCE_LOGOUT" | "ADD_NOTE";
+type UsersAction = "SUSPEND" | "REACTIVATE" | "DELETE" | "FORCE_LOGOUT" | "ADD_NOTE";
 
 type Body = {
   action: UsersAction;
@@ -46,6 +46,7 @@ export async function POST(
   if (
     body.action !== "SUSPEND" &&
     body.action !== "REACTIVATE" &&
+    body.action !== "DELETE" &&
     body.action !== "FORCE_LOGOUT" &&
     body.action !== "ADD_NOTE"
   ) {
@@ -179,6 +180,61 @@ export async function POST(
       data: {
         adminId: auth.viewer.id,
         action: "SUSPEND_USER",
+        objectType: "User",
+        objectId: existing.id,
+        beforeJson: { ...existing, reason },
+        afterJson: updated,
+      },
+    });
+
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "DELETE") {
+    if (existing.id === auth.viewer.id) {
+      return NextResponse.json(
+        { error: "Impossible de bannir votre propre compte." },
+        { status: 403 },
+      );
+    }
+
+    const reason = (body.reason ?? "").trim();
+    if (!reason) {
+      return NextResponse.json({ error: "Motif requis pour bannir un compte." }, { status: 400 });
+    }
+    if (reason.length > 1000) {
+      return NextResponse.json(
+        { error: "Motif trop long (max 1000 caractères)." },
+        { status: 400 },
+      );
+    }
+
+    if (existing.accountStatus === "DELETED") {
+      return NextResponse.json(
+        { error: "Compte déjà banni/supprimé." },
+        { status: 409 },
+      );
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        accountStatus: "DELETED",
+        deletedAt: now,
+        sessionInvalidBefore: now,
+      },
+      select: {
+        id: true,
+        accountStatus: true,
+        deletedAt: true,
+        sessionInvalidBefore: true,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        adminId: auth.viewer.id,
+        action: "DELETE_USER",
         objectType: "User",
         objectId: existing.id,
         beforeJson: { ...existing, reason },

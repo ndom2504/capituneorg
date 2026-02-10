@@ -81,7 +81,7 @@ export function AdminUsersPanel({ viewerRole }: Props) {
 
   async function doUserAction(
     userId: string,
-    action: "SUSPEND" | "REACTIVATE" | "FORCE_LOGOUT" | "ADD_NOTE",
+    action: "SUSPEND" | "REACTIVATE" | "DELETE" | "FORCE_LOGOUT" | "ADD_NOTE",
   ) {
     setError(null);
     setBusyById((prev) => ({ ...prev, [userId]: true }));
@@ -91,7 +91,7 @@ export function AdminUsersPanel({ viewerRole }: Props) {
       const noteBody = (noteById[userId] ?? "").trim();
 
       const payload: any = { action };
-      if (action === "SUSPEND") payload.reason = suspendReason;
+      if (action === "SUSPEND" || action === "DELETE") payload.reason = suspendReason;
       if (action === "ADD_NOTE") payload.noteBody = noteBody;
 
       const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
@@ -251,6 +251,21 @@ export function AdminUsersPanel({ viewerRole }: Props) {
                           >
                             Forcer déconnexion
                           </Button>
+
+                          {u.accountStatus !== "DELETED" && (
+                            <Button
+                              variant="outline"
+                              disabled={!canAct || busy}
+                              onClick={() => {
+                                if (confirm("⚠️ ATTENTION: Cette action bannira définitivement l'utilisateur et marquera son compte comme supprimé. Continuer ?")) {
+                                  void doUserAction(u.id, "DELETE");
+                                }
+                              }}
+                              className="border-red-600 text-red-600 hover:bg-red-50"
+                            >
+                              🚫 Bannir/Effacer
+                            </Button>
+                          )}
 
                           {!canAct && (
                             <div className="text-sm text-muted">Actions désactivées pour MODERATOR.</div>
