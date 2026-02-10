@@ -82,6 +82,7 @@ export function AdminUsersPanel({ viewerRole }: Props) {
   async function doUserAction(
     userId: string,
     action: "SUSPEND" | "REACTIVATE" | "DELETE" | "FORCE_LOGOUT" | "ADD_NOTE",
+    options?: { reasonOverride?: string },
   ) {
     setError(null);
     setBusyById((prev) => ({ ...prev, [userId]: true }));
@@ -91,7 +92,9 @@ export function AdminUsersPanel({ viewerRole }: Props) {
       const noteBody = (noteById[userId] ?? "").trim();
 
       const payload: any = { action };
-      if (action === "SUSPEND" || action === "DELETE") payload.reason = suspendReason;
+      if (action === "SUSPEND" || action === "DELETE") {
+        payload.reason = (options?.reasonOverride ?? suspendReason).trim();
+      }
       if (action === "ADD_NOTE") payload.noteBody = noteBody;
 
       const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
@@ -257,8 +260,18 @@ export function AdminUsersPanel({ viewerRole }: Props) {
                               variant="outline"
                               disabled={!canAct || busy}
                               onClick={() => {
-                                if (confirm("⚠️ ATTENTION: Cette action bannira définitivement l'utilisateur et marquera son compte comme supprimé. Continuer ?")) {
-                                  void doUserAction(u.id, "DELETE");
+                                const reason = prompt(
+                                  "Motif du bannissement (obligatoire) :",
+                                  suspendReasonById[u.id] ?? "",
+                                );
+                                if (!reason || !reason.trim()) return;
+
+                                if (
+                                  confirm(
+                                    "⚠️ ATTENTION: Cette action bannira l'utilisateur (statut DELETED) et forcera sa déconnexion. Continuer ?",
+                                  )
+                                ) {
+                                  void doUserAction(u.id, "DELETE", { reasonOverride: reason });
                                 }
                               }}
                               className="border-red-600 text-red-600 hover:bg-red-50"
