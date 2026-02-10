@@ -23,16 +23,36 @@ type ConversationItem = {
   lastMessageAt: string;
 };
 
+type MarketplaceRequestItem = {
+  id: string;
+  status: string;
+  topic: string | null;
+  requester: { id: string; fullName: string; avatarUrl: string | null };
+  professional: { id: string; fullName: string; avatarUrl: string | null } | null;
+  lastMessage: {
+    id: string;
+    body: string | null;
+    senderRole: string;
+    createdAt: string;
+  } | null;
+  unreadCount: number;
+};
+
 export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (conversationId: string) => void }) {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [marketplaceRequests, setMarketplaceRequests] = useState<MarketplaceRequestItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchConversations();
+    fetchMarketplaceRequests();
     // Rafraîchir toutes les 10 secondes
-    const interval = setInterval(fetchConversations, 10000);
+    const interval = setInterval(() => {
+      fetchConversations();
+      fetchMarketplaceRequests();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -50,7 +70,20 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
     }
   }
 
-  const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+  async function fetchMarketplaceRequests() {
+    try {
+      const res = await fetch("/api/marketplace/unread-requests");
+      if (res.ok) {
+        const data = await res.json();
+        setMarketplaceRequests(data.requests || []);
+      }
+    } catch (err) {
+      console.error("Erreur fetch marketplace requests:", err);
+    }
+  }
+
+  const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0) +
+    marketplaceRequests.reduce((sum, req) => sum + req.unreadCount, 0);
 
   function formatTime(dateString: string) {
     const date = new Date(dateString);
@@ -127,6 +160,7 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
                     <button
                       onClick={() => {
                         fetchConversations();
+                        fetchMarketplaceRequests();
                         setIsMenuOpen(false);
                       }}
                       className="w-full px-4 py-2 text-left text-sm hover:bg-black/5"
@@ -162,59 +196,146 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-navy border-t-transparent" />
               </div>
-            ) : conversations.length === 0 ? (
+            ) : conversations.length === 0 && marketplaceRequests.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-muted">
                 Aucun message pour le moment
               </div>
             ) : (
-              conversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => {
-                    onOpenConversation(conv.id);
-                    setIsOpen(false);
-                  }}
-                  className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-black/5"
-                >
-                  {/* Avatar */}
-                  <div className="relative shrink-0">
-                    <AvatarBubble
-                      name={conv.otherUser.fullName}
-                      url={conv.otherUser.avatarUrl}
-                      size="md"
-                      showOnline={false}
-                    />
-                    {conv.unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                        {conv.unreadCount}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Contenu */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="truncate font-semibold text-sm text-navy">
-                        {conv.otherUser.fullName}
-                      </p>
-                      {conv.lastMessage && (
-                        <span className="shrink-0 text-xs text-muted">
-                          {formatTime(conv.lastMessage.createdAt)}
-                        </span>
-                      )}
+              <>
+                {/* Demandes Marketplace */}
+                {marketplaceRequests.length > 0 && (
+                  <>
+                    <div className="bg-slate-50 px-4 py-2">
+                      <h4 className="text-xs font-semibold text-muted uppercase">Demandes services</h4>
                     </div>
-                    {conv.lastMessage && (
-                      <p
-                        className={`truncate text-sm ${
-                          conv.unreadCount > 0 ? "font-semibold text-navy" : "text-muted"
-                        }`}
+                    {marketplaceRequests.map((req) => (
+                      <button
+                        key={req.id}
+                        onClick={() => {
+                          // Rediriger vers la bonne page selon le rôle
+                          const isPro = req.professional !== null;
+                          const url = isPro
+                            ? `/clients/demandes/${req.id}`
+                            : `/marketplace/my-requests/${req.id}`;
+                          window.location.href = url;
+                          setIsOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-black/5"
                       >
-                        {truncateMessage(conv.lastMessage.content)}
-                      </p>
-                    )}
-                  </div>
-                </button>
-              ))
+                        {/* Avatar de l'autre personne */}
+                        <div className="relative shrink-0">
+                          <AvatarBubble
+                            name={
+                              req.professional
+                                ? req.requester.fullName
+                                : req.professional?.fullName || "Demande en attente"
+                            }
+                            url={
+                              req.professional
+                                ? req.requester.avatarUrl
+                                : req.professional?.avatarUrl || null
+                            }
+                            size="md"
+                            showOnline={false}
+                          />
+                          {req.unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                              {req.unreadCount}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Contenu */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <p className="truncate font-semibold text-sm text-navy">
+                              {req.professional
+                                ? req.requester.fullName
+                                : req.professional?.fullName || "En attente"}
+                            </p>
+                            {req.lastMessage && (
+                              <span className="shrink-0 text-xs text-muted">
+                                {formatTime(req.lastMessage.createdAt)}
+                              </span>
+                            )}
+                          </div>
+                          {req.lastMessage && (
+                            <p
+                              className={`truncate text-sm ${
+                                req.unreadCount > 0 ? "font-semibold text-navy" : "text-muted"
+                              }`}
+                            >
+                              {truncateMessage(req.lastMessage.body || "")}
+                            </p>
+                          )}
+                          {req.topic && (
+                            <p className="truncate text-xs text-muted">
+                              {req.topic}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* Conversations classiques */}
+                {conversations.length > 0 && (
+                  <>
+                    <div className="bg-slate-50 px-4 py-2">
+                      <h4 className="text-xs font-semibold text-muted uppercase">Messages directs</h4>
+                    </div>
+                    {conversations.map((conv) => (
+                      <button
+                        key={conv.id}
+                        onClick={() => {
+                          onOpenConversation(conv.id);
+                          setIsOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-black/5"
+                      >
+                        {/* Avatar */}
+                        <div className="relative shrink-0">
+                          <AvatarBubble
+                            name={conv.otherUser.fullName}
+                            url={conv.otherUser.avatarUrl}
+                            size="md"
+                            showOnline={false}
+                          />
+                          {conv.unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                              {conv.unreadCount}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Contenu */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <p className="truncate font-semibold text-sm text-navy">
+                              {conv.otherUser.fullName}
+                            </p>
+                            {conv.lastMessage && (
+                              <span className="shrink-0 text-xs text-muted">
+                                {formatTime(conv.lastMessage.createdAt)}
+                              </span>
+                            )}
+                          </div>
+                          {conv.lastMessage && (
+                            <p
+                              className={`truncate text-sm ${
+                                conv.unreadCount > 0 ? "font-semibold text-navy" : "text-muted"
+                              }`}
+                            >
+                              {truncateMessage(conv.lastMessage.content)}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>
