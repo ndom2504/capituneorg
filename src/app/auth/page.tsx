@@ -499,6 +499,21 @@ export default function AuthPage() {
       });
       const data = (await res.json().catch(() => ({}))) as AuthApiResponse;
       if (!res.ok) {
+        if (data.code === "PASSWORD_NOT_SET") {
+          setError(
+            "Ce compte a été créé via Google/LinkedIn : connectez-vous avec Google/LinkedIn (le mot de passe n’est pas défini).",
+          );
+          return;
+        }
+        if (data.code === "ACCOUNT_SUSPENDED") {
+          setError("Compte suspendu. Contactez le support si besoin.");
+          return;
+        }
+        if (data.code === "ACCOUNT_DELETED") {
+          setError("Compte supprimé. Contactez le support si besoin.");
+          return;
+        }
+
         setError(data.error ?? "Connexion impossible.");
         return;
       }

@@ -12,6 +12,8 @@ type PostItem = {
   user: { id: string; fullName: string; email: string };
   title: string | null;
   content: string;
+  mediaUrl: string | null;
+  mediaType: "NONE" | "IMAGE" | "VIDEO";
   isAdminPost: boolean;
   targetAccountType: "USER" | "PROFESSIONAL" | "ADMIN" | null;
   isHidden: boolean;
@@ -41,6 +43,8 @@ export function AdminCommunityPostsPanel({ viewerRole }: Props) {
   const [officialAudience, setOfficialAudience] = useState<"" | "USER" | "PROFESSIONAL">("");
   const [officialPosting, setOfficialPosting] = useState(false);
   const [officialOk, setOfficialOk] = useState<string | null>(null);
+  const [officialFile, setOfficialFile] = useState<File | null>(null);
+  const [officialFileInputKey, setOfficialFileInputKey] = useState(0);
 
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<(typeof statusOptions)[number]>("");
@@ -121,6 +125,32 @@ export function AdminCommunityPostsPanel({ viewerRole }: Props) {
 
     try {
       setOfficialPosting(true);
+
+      let mediaUrl: string | null = null;
+      let mediaType: "NONE" | "IMAGE" | "VIDEO" = "NONE";
+
+      if (officialFile) {
+        const form = new FormData();
+        form.set("file", officialFile);
+
+        const uploadRes = await fetch("/api/admin/community/official-post-media", {
+          method: "POST",
+          body: form,
+        });
+
+        const uploadData = (await uploadRes.json().catch(() => null)) as
+          | { ok?: boolean; mediaUrl?: string; mediaType?: "IMAGE" | "VIDEO"; error?: string }
+          | null;
+
+        if (!uploadRes.ok || !uploadData?.ok || !uploadData.mediaUrl || !uploadData.mediaType) {
+          setError(uploadData?.error ?? "Téléversement impossible.");
+          return;
+        }
+
+        mediaUrl = uploadData.mediaUrl;
+        mediaType = uploadData.mediaType;
+      }
+
       const res = await fetch("/api/admin/community/official-posts", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -128,6 +158,8 @@ export function AdminCommunityPostsPanel({ viewerRole }: Props) {
           title: officialTitle.trim() || null,
           content,
           targetAccountType: officialAudience ? officialAudience : null,
+          mediaUrl,
+          mediaType,
         }),
       });
 
@@ -143,6 +175,8 @@ export function AdminCommunityPostsPanel({ viewerRole }: Props) {
       setOfficialTitle("");
       setOfficialContent("");
       setOfficialAudience("");
+      setOfficialFile(null);
+      setOfficialFileInputKey((k) => k + 1);
       setOfficialOk("Annonce publiée.");
       await load();
     } catch {
@@ -197,6 +231,26 @@ export function AdminCommunityPostsPanel({ viewerRole }: Props) {
                 onChange={(e) => setOfficialContent(e.target.value)}
                 placeholder="Message…"
               />
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-sm font-medium text-navy">Fichier (optionnel)</div>
+              <input
+                key={officialFileInputKey}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,video/mp4,video/webm"
+                disabled={officialPosting}
+                className="h-10 w-full rounded-(--radius-md) border border-border bg-white/85 px-3 text-sm text-text"
+                onChange={(e) => {
+                  const file = e.currentTarget.files?.[0] ?? null;
+                  setOfficialFile(file);
+                }}
+              />
+              {officialFile ? (
+                <div className="text-xs text-muted">
+                  {officialFile.name} ({Math.round(officialFile.size / 1024)} KB)
+                </div>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2">
@@ -297,6 +351,34 @@ export function AdminCommunityPostsPanel({ viewerRole }: Props) {
                 </CardHeader>
 
                 <CardContent className="space-y-3">
+                  {it.mediaUrl ? (
+                    <div className="space-y-2">
+                      <a
+                        className="text-sm underline"
+                        href={it.mediaUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Ouvrir le média
+                      </a>
+
+                      {it.mediaType === "IMAGE" ? (
+                        <img
+                          src={it.mediaUrl}
+                          alt="Média"
+                          className="max-h-80 w-full rounded-(--radius-md) border border-border object-contain"
+                          loading="lazy"
+                        />
+                      ) : it.mediaType === "VIDEO" ? (
+                        <video
+                          src={it.mediaUrl}
+                          controls
+                          className="max-h-80 w-full rounded-(--radius-md) border border-border"
+                        />
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   <div className="whitespace-pre-wrap text-sm text-text">{it.content}</div>
 
                   <div className="flex flex-col gap-2 sm:flex-row">

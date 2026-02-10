@@ -13,6 +13,8 @@ type PostListItem = {
   user: { id: string; fullName: string; email: string };
   title: string | null;
   content: string;
+  mediaUrl: string | null;
+  mediaType: "NONE" | "IMAGE" | "VIDEO";
   isAdminPost: boolean;
   targetAccountType: "USER" | "PROFESSIONAL" | "ADMIN" | null;
   isHidden: boolean;
@@ -65,6 +67,8 @@ export async function GET(req: NextRequest) {
       id: true,
       title: true,
       content: true,
+      mediaUrl: true,
+      mediaType: true,
       isAdminPost: true,
       targetAccountType: true,
       isHidden: true,
@@ -82,6 +86,8 @@ export async function GET(req: NextRequest) {
     user: it.user,
     title: it.title,
     content: it.content,
+    mediaUrl: it.mediaUrl,
+    mediaType: it.mediaType,
     isAdminPost: it.isAdminPost,
     targetAccountType: it.targetAccountType,
     isHidden: it.isHidden,

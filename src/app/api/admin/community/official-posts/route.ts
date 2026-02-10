@@ -12,6 +12,8 @@ type Body = {
   title?: string | null;
   content: string;
   targetAccountType?: "USER" | "PROFESSIONAL" | "ADMIN" | null;
+  mediaUrl?: string | null;
+  mediaType?: "NONE" | "IMAGE" | "VIDEO";
 };
 
 export async function POST(req: NextRequest) {
@@ -38,6 +40,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Contenu requis." }, { status: 400 });
   }
 
+  const mediaUrlRaw = typeof body.mediaUrl === "string" ? body.mediaUrl.trim() : "";
+  const mediaUrl = mediaUrlRaw ? mediaUrlRaw.slice(0, 2000) : null;
+  const mediaType = body.mediaType ?? (mediaUrl ? "IMAGE" : "NONE");
+  const allowedMediaTypes = new Set(["NONE", "IMAGE", "VIDEO"]);
+  if (!allowedMediaTypes.has(mediaType as any)) {
+    return NextResponse.json({ error: "mediaType invalide." }, { status: 400 });
+  }
+  if (mediaUrl && mediaType === "NONE") {
+    return NextResponse.json({ error: "mediaType requis si mediaUrl est fourni." }, { status: 400 });
+  }
+  if (!mediaUrl && mediaType !== "NONE") {
+    return NextResponse.json({ error: "mediaUrl requis si mediaType n'est pas NONE." }, { status: 400 });
+  }
+
   const target = body.targetAccountType ?? null;
   const allowedTargets = new Set([null, "USER", "PROFESSIONAL", "ADMIN"]);
   if (!allowedTargets.has(target as any)) {
@@ -52,7 +68,8 @@ export async function POST(req: NextRequest) {
         title,
         content: content.slice(0, 8000),
         targetAccountType: target,
-        mediaType: "NONE",
+        mediaUrl,
+        mediaType,
       },
       select: {
         id: true,

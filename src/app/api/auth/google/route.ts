@@ -54,8 +54,22 @@ export async function POST(req: NextRequest) {
 
   const existing = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, accountType: true, roleLocked: true },
+    select: { id: true, accountType: true, roleLocked: true, accountStatus: true },
   });
+
+  if (existing?.accountStatus === "SUSPENDED") {
+    return NextResponse.json(
+      { error: "Compte suspendu. Contactez le support si besoin.", code: "ACCOUNT_SUSPENDED" },
+      { status: 403 },
+    );
+  }
+
+  if (existing?.accountStatus === "DELETED") {
+    return NextResponse.json(
+      { error: "Compte supprimé. Contactez le support si besoin.", code: "ACCOUNT_DELETED" },
+      { status: 403 },
+    );
+  }
 
   // Vérification téléphone: uniquement pour les comptes PRO/ADMIN.
   // - Si l'utilisateur existe déjà, on se base sur son type réel en DB.
