@@ -291,10 +291,47 @@ export async function GET(
   if (!auth.ok) return auth.response;
 
   const { requestId } = await context.params;
-  const isAdmin = auth.viewer.accountType === "ADMIN";
+  const viewerId = auth.viewer.id;
+  const viewerType = auth.viewer.accountType;
+  const isAdmin = viewerType === "ADMIN";
 
-  const r = await prisma.marketplaceRequest.findUnique({
-    where: { id: requestId },
+  async function resolveMarketplaceRequestId(id: string) {
+    const trimmed = (id ?? "").trim();
+    if (!trimmed) return null;
+
+    // 1) ID = message id (MarketplaceRequestMessage.id)
+    const byMessage = await prisma.marketplaceRequestMessage
+      .findUnique({ where: { id: trimmed }, select: { requestId: true } })
+      .catch(() => null);
+    if (byMessage?.requestId) return { resolvedId: byMessage.requestId, resolvedFrom: "message" as const };
+
+    // 2) ID = meeting id (Meeting.id)
+    const byMeeting = await prisma.marketplaceRequest
+      .findFirst({ where: { meetingId: trimmed }, select: { id: true } })
+      .catch(() => null);
+    if (byMeeting?.id) return { resolvedId: byMeeting.id, resolvedFrom: "meeting" as const };
+
+    // 3) ID = profile id (MarketplaceProfile.id) -> récupérer la dernière demande pour ce profil
+    const byProfile = await prisma.marketplaceRequest
+      .findFirst({
+        where: {
+          profileId: trimmed,
+          ...(isAdmin ? {} : { professionalId: viewerId }),
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      })
+      .catch(() => null);
+    if (byProfile?.id) return { resolvedId: byProfile.id, resolvedFrom: "profile" as const };
+
+    return null;
+  }
+
+  let resolvedFrom: null | "message" | "meeting" | "profile" = null;
+  let canonicalRequestId = requestId;
+
+  let r = await prisma.marketplaceRequest.findUnique({
+    where: { id: canonicalRequestId },
     include: {
       requester: { select: { id: true, fullName: true, avatarUrl: true } },
       professional: { select: { id: true, fullName: true } },
@@ -316,6 +353,42 @@ export async function GET(
   });
 
   if (!r) {
+    const resolved = await resolveMarketplaceRequestId(requestId);
+    if (resolved?.resolvedId && resolved.resolvedId !== canonicalRequestId) {
+      canonicalRequestId = resolved.resolvedId;
+      resolvedFrom = resolved.resolvedFrom;
+      r = await prisma.marketplaceRequest.findUnique({
+        where: { id: canonicalRequestId },
+        include: {
+          requester: { select: { id: true, fullName: true, avatarUrl: true } },
+          professional: { select: { id: true, fullName: true } },
+          meeting: { select: { id: true, startsAt: true, durationMin: true, locationUrl: true } },
+          paymentOrders: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: {
+              service: { select: { title: true, currency: true, priceCents: true } },
+            },
+          },
+          messages: {
+            where: { kind: "FILE" },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { fileUrl: true, fileName: true, createdAt: true },
+          },
+        },
+      });
+    }
+  }
+
+  if (!r) {
+    console.warn("[demandes] request not found", {
+      requestId,
+      resolvedFrom,
+      resolvedTo: canonicalRequestId !== requestId ? canonicalRequestId : null,
+      viewerId,
+      viewerType,
+    });
     return NextResponse.json({ error: "Demande introuvable." }, { status: 404 });
   }
 
@@ -324,6 +397,9 @@ export async function GET(
   }
 
   return NextResponse.json({
+    canonicalRequestId: r.id,
+    resolvedFromId: canonicalRequestId !== requestId ? requestId : null,
+    resolvedFrom,
     item: {
       id: r.id,
       status: r.status,

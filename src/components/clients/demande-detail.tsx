@@ -45,7 +45,12 @@ type DemandeItem = {
     | null;
 };
 
-type ApiResponse = { item: DemandeItem };
+type ApiResponse = {
+  item: DemandeItem;
+  canonicalRequestId?: string;
+  resolvedFromId?: string | null;
+  resolvedFrom?: "message" | "meeting" | "profile" | null;
+};
 
 type Action = "ACCEPT" | "REJECT" | "NEEDS_INFO";
 
@@ -129,6 +134,15 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
       const data = (await res.json()) as ApiResponse;
       setItem(data.item);
       setProNote(data.item.proNote ?? "");
+
+      // Si le backend a résolu l'ID (ex: lien notification contient un profileId), on canonise l'URL.
+      if (
+        typeof window !== "undefined" &&
+        data.canonicalRequestId &&
+        data.canonicalRequestId !== safeRequestId
+      ) {
+        window.history.replaceState(null, "", `/clients/demandes/${data.canonicalRequestId}`);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
