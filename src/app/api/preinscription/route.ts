@@ -51,7 +51,8 @@ async function getViewer() {
   if (sessionViewer) return { id: sessionViewer.id, email: sessionViewer.email, accountType: sessionViewer.accountType };
 
   // Fallback dev (historique)
-  const email = process.env.CAPITUNE_VIEWER_EMAIL ?? "client@capitune.local";
+  const email = (process.env.CAPITUNE_VIEWER_EMAIL ?? "").trim();
+  if (!email) return null;
   return prisma.user.findUnique({
     where: { email },
     select: { id: true, email: true, accountType: true },
@@ -166,10 +167,7 @@ function jsonStringArray(value: unknown): string[] {
 export async function GET() {
   const viewer = await getViewer();
   if (!viewer) {
-    return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   }
 
   if (viewer.accountType !== "USER") {
@@ -244,10 +242,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const viewer = await getViewer();
   if (!viewer) {
-    return NextResponse.json(
-      { error: "Utilisateur démo introuvable. Lancez db:seed." },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   }
 
   if (viewer.accountType !== "USER") {

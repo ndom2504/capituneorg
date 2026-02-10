@@ -6,8 +6,25 @@ const COOKIE_NAME = "capitune_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 jours
 
 function cookieDomain(): string | undefined {
-  const v = (process.env.CAPITUNE_COOKIE_DOMAIN ?? "").trim();
-  return v ? v : undefined;
+  const explicit = (process.env.CAPITUNE_COOKIE_DOMAIN ?? "").trim();
+  if (explicit) return explicit;
+
+  // Heuristique prod: éviter la perte de session entre `capitune.com` et `www.capitune.com`.
+  // Si l'app tourne sur capitune.com, on définit un domain partagé.
+  const raw = (process.env.CAPITUNE_PUBLIC_APP_URL ?? "").trim();
+  if (!raw) return undefined;
+
+  const withProtocol = raw.startsWith("http://") || raw.startsWith("https://") ? raw : `https://${raw}`;
+  try {
+    const host = new URL(withProtocol).hostname.toLowerCase();
+    if (host === "capitune.com" || host.endsWith(".capitune.com")) {
+      return ".capitune.com";
+    }
+  } catch {
+    // ignore
+  }
+
+  return undefined;
 }
 
 function secretKey() {
