@@ -13,39 +13,40 @@ export const dynamic = "force-dynamic";
  * TODO: Ajouter tracking des messages lus (lastViewedByProfessionalAt, lastViewedByRequesterAt)
  */
 export async function GET(_req: NextRequest) {
-  const userId = getSessionUserId();
-  if (!userId) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
-  }
+  try {
+    const userId = getSessionUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      accountType: true,
-      marketplaceProfile: { select: { id: true } },
-    },
-  });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        accountType: true,
+        marketplaceProfile: { select: { id: true } },
+      },
+    });
 
-  if (!user) {
-    return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
-  }
+    if (!user) {
+      return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
+    }
 
-  const isPro = user.accountType === "PRO" && user.marketplaceProfile;
-  const requests: Array<{
-    id: string;
-    status: string;
-    topic: string | null;
-    requester: { id: string; fullName: string; avatarUrl: string | null };
-    professional: { id: string; fullName: string; avatarUrl: string | null } | null;
-    lastMessage: {
+    const isPro = (user.accountType === "PRO" || user.accountType === "PROFESSIONAL") && user.marketplaceProfile;
+    const requests: Array<{
       id: string;
-      body: string | null;
-      senderRole: string;
-      createdAt: Date;
-    } | null;
-    unreadCount: number;
-  }> = [];
+      status: string;
+      topic: string | null;
+      requester: { id: string; fullName: string; avatarUrl: string | null };
+      professional: { id: string; fullName: string; avatarUrl: string | null } | null;
+      lastMessage: {
+        id: string;
+        body: string | null;
+        senderRole: string;
+        createdAt: Date;
+      } | null;
+      unreadCount: number;
+    }> = [];
 
   if (isPro) {
     // PRO: récupérer les demandes avec messages
@@ -194,4 +195,8 @@ export async function GET(_req: NextRequest) {
   }
 
   return NextResponse.json({ requests });
+  } catch (error) {
+    console.error("[marketplace/unread-requests] Error:", error);
+    return NextResponse.json({ error: "Erreur serveur", requests: [] }, { status: 500 });
+  }
 }

@@ -49,14 +49,18 @@ export async function POST(
 
   const request = await prisma.marketplaceRequest.findUnique({
     where: { id: requestId },
-    select: { id: true, professionalId: true },
+    select: {
+      id: true,
+      professionalId: true,
+      professional: { select: { userId: true } },
+    },
   });
 
   if (!request) {
     return NextResponse.json({ error: "Demande introuvable." }, { status: 404 });
   }
 
-  if (!isAdmin && request.professionalId !== auth.viewer.id) {
+  if (!isAdmin && request.professional?.userId !== auth.viewer.id) {
     return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
   }
 
