@@ -6,6 +6,10 @@ import { requireProfessionalViewer } from "@/app/api/clients/_auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function notificationRoleForAccountType(accountType: string) {
+  return accountType === "USER" ? "DEMANDEUR" : "PRO";
+}
+
 function topicLabel(value: string | null) {
   switch (value) {
     case "ETUDES":
@@ -136,6 +140,23 @@ export async function POST(
 
     await addSystemStatusMessage("REJECTED");
 
+    // Notification au demandeur
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: existing.requester.id,
+          role: notificationRoleForAccountType("USER"),
+          type: "MARKETPLACE_REQUEST_UPDATED",
+          title: "Demande refusée",
+          message: "Votre demande de rendez-vous a été refusée. Consultez la réponse du professionnel.",
+          link: `/marketplace/mes-demandes/${requestId}`,
+          priority: "INFO",
+        },
+      });
+    } catch (e) {
+      console.warn("[demandes] notification create failed", { requestId, error: e });
+    }
+
     return NextResponse.json({
       ok: true,
       request: { id: updated.id, status: updated.status, updatedAt: updated.updatedAt.toISOString() },
@@ -155,6 +176,23 @@ export async function POST(
 
     await addSystemStatusMessage("NEEDS_INFO");
 
+    // Notification au demandeur
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: existing.requester.id,
+          role: notificationRoleForAccountType("USER"),
+          type: "MARKETPLACE_REQUEST_UPDATED",
+          title: "Informations demandées",
+          message: "Le professionnel a besoin d'informations supplémentaires. Consultez son message.",
+          link: `/marketplace/mes-demandes/${requestId}`,
+          priority: "IMPORTANT",
+        },
+      });
+    } catch (e) {
+      console.warn("[demandes] notification create failed", { requestId, error: e });
+    }
+
     return NextResponse.json({
       ok: true,
       request: { id: updated.id, status: updated.status, updatedAt: updated.updatedAt.toISOString() },
@@ -167,6 +205,16 @@ export async function POST(
     return NextResponse.json({ error: "startsAt requis (ISO) pour ACCEPT." }, { status: 400 });
   }
 
+  // Génération automatique d'un lien Teams si aucun lien fourni
+  let locationUrl = clampText(body.locationUrl, 500);
+  if (!locationUrl) {
+    // Format: https://teams.microsoft.com/l/meetup-join/19%3ameeting_RANDOMID
+    // Pour simplifier, on génère un lien générique avec l'ID du meeting comme référence
+    // En production, intégrer Graph API pour créer un vrai meeting Teams
+    const meetingRef = Buffer.from(`${existing.id}-${Date.now()}`).toString("base64url");
+    locationUrl = `https://teams.microsoft.com/l/meetup-join/19%3ameeting_${meetingRef}`;
+  }
+
   const meeting = await prisma.meeting.create({
     data: {
       clientId: existing.requester.id,
@@ -176,7 +224,7 @@ export async function POST(
       status: "SCHEDULED",
       startsAt,
       durationMin: Math.max(15, Math.min(180, Math.trunc(body.durationMin ?? 45))),
-      locationUrl: clampText(body.locationUrl, 500),
+      locationUrl,
       notesInternal: clampText(body.proNote, 2000),
     },
     select: { id: true, startsAt: true, durationMin: true, locationUrl: true },
@@ -192,6 +240,23 @@ export async function POST(
     },
     select: { id: true, status: true, updatedAt: true },
   });
+
+  // Notification au demandeur
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: existing.requester.id,
+        role: notificationRoleForAccountType("USER"),
+        type: "MARKETPLACE_REQUEST_ACCEPTED",
+        title: "Rendez-vous accepté",
+        message: `Votre demande a été acceptée ! Rendez-vous le ${meeting.startsAt.toLocaleDateString("fr-CA")} à ${meeting.startsAt.toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })}.`,
+        link: `/marketplace/mes-demandes/${requestId}`,
+        priority: "IMPORTANT",
+      },
+    });
+  } catch (e) {
+    console.warn("[demandes] notification create failed", { requestId, error: e });
+  }
 
   await addSystemStatusMessage("ACCEPTED");
 
