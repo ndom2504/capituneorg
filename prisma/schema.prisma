@@ -243,6 +243,23 @@ enum MarketplaceUrgency {
   HIGH
 }
 
+enum MarketplaceEngagementStatus {
+  DRAFT
+  CONTRACT_SENT
+  SIGNED
+  PAYMENT_REQUESTED
+  PAID
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum MarketplaceMilestone {
+  ANALYSE
+  DOSSIER
+  SOUMISSION
+}
+
 enum MarketplaceNeedTopic {
   ETUDES
   TRAVAIL
@@ -507,6 +524,10 @@ model User {
   marketplaceProfile          MarketplaceProfile?
   marketplaceRequestsSent     MarketplaceRequest[] @relation("MarketplaceRequester")
   marketplaceRequestsReceived MarketplaceRequest[] @relation("MarketplaceProfessional")
+
+  marketplaceEngagementsAsRequester    MarketplaceEngagement[] @relation("MarketplaceEngagementRequester")
+  marketplaceEngagementsAsProfessional MarketplaceEngagement[] @relation("MarketplaceEngagementProfessional")
+  marketplaceEngagementsSigned         MarketplaceEngagement[] @relation("MarketplaceEngagementSigner")
 
   // Vérification de profils marketplace en tant qu'admin
   verifiedProfiles MarketplaceProfile[] @relation("ProfileVerifier")
@@ -986,6 +1007,8 @@ model MarketplaceRequest {
 
   messages MarketplaceRequestMessage[]
 
+  engagement MarketplaceEngagement?
+
   paymentOrders PaymentOrder[]
 
   reviews Review[]
@@ -1015,6 +1038,47 @@ model MarketplaceRequestMessage {
   createdAt DateTime @default(now())
 
   @@index([requestId, createdAt])
+}
+
+model MarketplaceEngagement {
+  id String @id @default(cuid())
+
+  requestId String @unique
+  request   MarketplaceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  requesterId String
+  requester   User @relation("MarketplaceEngagementRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  professionalId String
+  professional   User @relation("MarketplaceEngagementProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
+
+  status MarketplaceEngagementStatus @default(DRAFT)
+
+  contractTitle  String
+  contractBody   String
+  contractSentAt DateTime?
+
+  signedAt       DateTime?
+  signedByUserId String?
+  signedByUser   User? @relation("MarketplaceEngagementSigner", fields: [signedByUserId], references: [id], onDelete: SetNull)
+  signedByName   String?
+
+  paymentRequestedAt DateTime?
+  paidAt             DateTime?
+
+  milestone       MarketplaceMilestone @default(ANALYSE)
+  analyseDoneAt   DateTime?
+  dossierDoneAt   DateTime?
+  soumissionDoneAt DateTime?
+
+  completedAt DateTime?
+  canceledAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([professionalId, status, createdAt])
+  @@index([requesterId, status, createdAt])
 }
 
 model Review {

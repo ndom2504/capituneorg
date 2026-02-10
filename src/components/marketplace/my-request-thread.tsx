@@ -52,6 +52,48 @@ type Item = {
 
 type ApiResponse = { item: Item };
 
+type EngagementDto = {
+  id: string;
+  status:
+    | "DRAFT"
+    | "CONTRACT_SENT"
+    | "SIGNED"
+    | "PAYMENT_REQUESTED"
+    | "PAID"
+    | "IN_PROGRESS"
+    | "COMPLETED"
+    | "CANCELED";
+  contractTitle: string;
+  contractBody: string;
+  contractSentAt: string | null;
+  signedAt: string | null;
+  signedByName: string | null;
+  paymentRequestedAt: string | null;
+  paidAt: string | null;
+  milestone: "ANALYSE" | "DOSSIER" | "SOUMISSION";
+  analyseDoneAt: string | null;
+  dossierDoneAt: string | null;
+  soumissionDoneAt: string | null;
+  completedAt: string | null;
+  canceledAt: string | null;
+};
+
+type EngagementApi = {
+  request: { id: string; status: Item["status"] };
+  engagement: EngagementDto | null;
+  payment:
+    | null
+    | {
+        orderId: string;
+        status: "DRAFT" | "PENDING_PAYMENT" | "PAID" | "CANCELED" | "REFUNDED";
+        amountCents: number;
+        currency: string;
+        paidAt: string | null;
+        service: { id: string; title: string };
+        createdAt: string;
+      };
+};
+
 function formatDateTime(iso: string) {
   const d = new Date(iso);
   return new Intl.DateTimeFormat("fr-CA", { dateStyle: "medium", timeStyle: "short" }).format(d);
@@ -74,6 +116,12 @@ export function MyRequestThread({ requestId }: { requestId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [engagement, setEngagement] = useState<EngagementDto | null>(null);
+  const [engLoading, setEngLoading] = useState(false);
+  const [engError, setEngError] = useState<string | null>(null);
+  const [signName, setSignName] = useState("");
+  const [signBusy, setSignBusy] = useState(false);
+
   const [text, setText] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -92,12 +140,57 @@ export function MyRequestThread({ requestId }: { requestId: string }) {
       const data = (await res.json()) as ApiResponse;
       setItem(data.item);
 
+      // Prestation (best-effort)
+      void loadEngagement();
+
       // mark read (best-effort)
       fetch(`/api/marketplace/my-requests/${requestId}`, { method: "POST" }).catch(() => null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadEngagement() {
+    setEngLoading(true);
+    setEngError(null);
+    try {
+      const res = await fetch(`/api/marketplace/my-requests/${requestId}/engagement`, { cache: "no-cache" });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as EngagementApi;
+      setEngagement(data.engagement ?? null);
+    } catch (e) {
+      setEngError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setEngLoading(false);
+    }
+  }
+
+  async function signContract() {
+    setSignBusy(true);
+    setEngError(null);
+    try {
+      const res = await fetch(`/api/marketplace/my-requests/${requestId}/engagement/sign`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        cache: "no-cache",
+        body: JSON.stringify({ fullName: signName.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      setSignName("");
+      await loadEngagement();
+      await refresh();
+    } catch (e) {
+      setEngError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setSignBusy(false);
     }
   }
 
@@ -261,6 +354,88 @@ export function MyRequestThread({ requestId }: { requestId: string }) {
         </Card>
       ) : null}
 
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-navy">Prestation</div>
+            <div className="mt-1 text-xs text-muted">Contrat obligatoire + jalons de progression.</div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-muted">Statut</div>
+            <div className="mt-0.5 text-xs font-semibold text-text">
+              {engagement ? engagement.status : engLoading ? "…" : "Aucune"}
+            </div>
+          </div>
+        </div>
+
+        {engError ? <div className="mt-2 whitespace-pre-wrap text-xs text-danger">{engError}</div> : null}
+
+        {!engagement ? (
+          <div className="mt-3 text-sm text-muted">Aucune prestation pour le moment.</div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <div>
+              <div className="text-xs font-semibold text-muted">Contrat</div>
+              <div className="mt-2 rounded-(--radius-md) border border-border bg-white/60 p-3">
+                <div className="text-sm font-semibold text-text">{engagement.contractTitle}</div>
+                <div className="mt-2 whitespace-pre-wrap text-sm text-text">
+                  {engagement.contractBody || "(Contrat vide)"}
+                </div>
+              </div>
+            </div>
+
+            {engagement.status === "CONTRACT_SENT" ? (
+              <div className="grid gap-2">
+                <div className="text-xs text-muted">Signature requise pour démarrer la prestation.</div>
+                <Input
+                  value={signName}
+                  onChange={(e) => setSignName(e.target.value)}
+                  placeholder="Nom complet (optionnel)"
+                  disabled={signBusy}
+                />
+                <div className="flex justify-end">
+                  <Button disabled={signBusy} onClick={() => void signContract()}>
+                    Signer le contrat
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {engagement.signedAt ? (
+              <div className="text-xs text-muted">
+                Signé: {formatDateTime(engagement.signedAt)}
+                {engagement.signedByName ? ` • ${engagement.signedByName}` : ""}
+              </div>
+            ) : null}
+
+            {engagement.status === "SIGNED" ||
+            engagement.status === "PAYMENT_REQUESTED" ||
+            engagement.status === "PAID" ||
+            engagement.status === "IN_PROGRESS" ||
+            engagement.status === "COMPLETED" ? (
+              <div className="space-y-1 text-sm">
+                <div className="text-xs font-semibold text-muted">Jalons</div>
+                <div className="text-sm text-text">
+                  Analyse: {engagement.analyseDoneAt ? formatDateTime(engagement.analyseDoneAt) : "—"}
+                </div>
+                <div className="text-sm text-text">
+                  Dossier: {engagement.dossierDoneAt ? formatDateTime(engagement.dossierDoneAt) : "—"}
+                </div>
+                <div className="text-sm text-text">
+                  Soumission: {engagement.soumissionDoneAt ? formatDateTime(engagement.soumissionDoneAt) : "—"}
+                </div>
+              </div>
+            ) : null}
+
+            {engagement.paymentRequestedAt ? (
+              <div className="text-xs text-muted">
+                Paiement demandé: {formatDateTime(engagement.paymentRequestedAt)}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </Card>
+
       {item.meeting ? (
         <Card className="p-4">
           <div className="text-sm font-semibold text-navy">Rendez-vous</div>
@@ -287,7 +462,7 @@ export function MyRequestThread({ requestId }: { requestId: string }) {
               <div
                 key={m.id}
                 className={cn(
-                  "rounded-[var(--radius-md)] border p-3",
+                  "rounded-(--radius-md) border p-3",
                   bubbleClass(m.senderRole),
                 )}
               >
