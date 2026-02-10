@@ -90,7 +90,7 @@ export function MyRequestsList() {
       try {
         const params = new URLSearchParams();
         if (status) params.set("status", status);
-        const res = await fetch(`/api/marketplace/my-requests?${params.toString()}`);
+        const res = await fetch(`/api/marketplace/my-requests?${params.toString()}`, { cache: "no-cache" });
         if (!res.ok) {
           if (res.status === 403) {
             throw new Error(

@@ -84,7 +84,7 @@ export function MyRequestThread({ requestId }: { requestId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/marketplace/my-requests/${requestId}`);
+      const res = await fetch(`/api/marketplace/my-requests/${requestId}`, { cache: "no-cache" });
       if (!res.ok) {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
@@ -118,6 +118,7 @@ export function MyRequestThread({ requestId }: { requestId: string }) {
       const res = await fetch(`/api/marketplace/my-requests/${requestId}/messages`, {
         method: "POST",
         headers: { "content-type": "application/json" },
+        cache: "no-cache",
         body: JSON.stringify({
           body: text.trim() || undefined,
           fileUrl: fileUrl.trim() || undefined,
