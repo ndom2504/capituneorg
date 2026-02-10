@@ -57,6 +57,33 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Contrat obligatoire: on ne facture la prestation Marketplace qu'après signature.
+  const engagement = await prisma.marketplaceEngagement.findUnique({
+    where: { requestId: request.id },
+    select: { id: true, status: true, signedAt: true, paymentRequestedAt: true, paidAt: true },
+  });
+
+  if (!engagement) {
+    return NextResponse.json(
+      { error: "Aucune prestation (contrat) n’est associée à cette demande." },
+      { status: 400 },
+    );
+  }
+
+  if (!engagement.signedAt) {
+    return NextResponse.json(
+      { error: "Le contrat doit être signé avant de pouvoir demander un paiement." },
+      { status: 400 },
+    );
+  }
+
+  if (engagement.status === "CANCELED" || engagement.status === "COMPLETED") {
+    return NextResponse.json(
+      { error: "Cette prestation est terminée ou annulée." },
+      { status: 409 },
+    );
+  }
+
   const service = await prisma.paymentService.findFirst({
     where: {
       id: body.serviceId,
@@ -109,6 +136,18 @@ export async function POST(req: NextRequest) {
     },
     select: { id: true },
   });
+
+  // Synchronise l'engagement (best-effort): marque le paiement demandé.
+  await prisma.marketplaceEngagement
+    .update({
+      where: { id: engagement.id },
+      data: {
+        status: engagement.paidAt ? "PAID" : "PAYMENT_REQUESTED",
+        paymentRequestedAt: engagement.paymentRequestedAt ?? new Date(),
+      },
+      select: { id: true },
+    })
+    .catch(() => null);
 
   await prisma.marketplaceRequestMessage.create({
     data: {

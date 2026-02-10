@@ -79,6 +79,18 @@ async function markPaid(args: {
 
   const requestId = payment.order.marketplaceRequest?.id;
   if (requestId) {
+    // Synchronise l'engagement Marketplace (best-effort)
+    await prisma.marketplaceEngagement
+      .updateMany({
+        where: { requestId, paidAt: null },
+        data: {
+          status: "PAID",
+          paidAt: now,
+          paymentRequestedAt: now,
+        },
+      })
+      .catch(() => null);
+
     // Débloque le dossier (MVP): crée/active un Dossier “Marketplace” côté demandeur
     await prisma.dossier.upsert({
       where: {
