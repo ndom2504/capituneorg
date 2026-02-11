@@ -19,8 +19,10 @@ type EventListItem = {
   liveUrl: string | null;
   replayUrl: string | null;
   isFeatured: boolean;
+  status: string;
   createdAt: string;
   speakers: { id: string; fullName: string; title: string | null; avatarUrl: string | null }[];
+
   likesCount: number;
   registrationsCount: number;
 };
@@ -80,6 +82,7 @@ export async function GET(req: NextRequest) {
     liveUrl: e.liveUrl,
     replayUrl: e.replayUrl,
     isFeatured: e.isFeatured,
+    status: e.status,
     createdAt: e.createdAt.toISOString(),
     speakers: e.speakers.map((s) => s.speaker),
     likesCount: e._count.likes,
@@ -94,7 +97,10 @@ export async function GET(req: NextRequest) {
 
 type ActionBody =
   | { action: "FEATURE"; eventId: string }
-  | { action: "UNFEATURE"; eventId: string };
+  | { action: "UNFEATURE"; eventId: string }
+  | { action: "SUSPEND"; eventId: string }
+  | { action: "REACTIVATE"; eventId: string }
+  | { action: "DELETE"; eventId: string };
 
 export async function POST(req: NextRequest) {
   const flags = await getFeatureFlagsFromDb();
@@ -115,28 +121,73 @@ export async function POST(req: NextRequest) {
   const eventId = (body as any)?.eventId;
   if (!eventId || typeof eventId !== "string") {
     return NextResponse.json({ error: "eventId requis." }, { status: 400 });
-  }
-
-  const action = (body as any)?.action;
-  if (action !== "FEATURE" && action !== "UNFEATURE") {
+  }!["FEATURE", "UNFEATURE", "SUSPEND", "REACTIVATE", "DELETE"].includes(action)) {
     return NextResponse.json({ error: "Action invalide." }, { status: 400 });
   }
 
   const result = await prisma.$transaction(async (tx) => {
+    // Handling DELETE separately because it destroys the record
+    if (action === "DELETE") {
+      const before = await tx.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, title: true, createdBy: true },
+      });
+      if (!before) return { ok: false as const, error: "Événement introuvable." };
+
+      await tx.event.delete({ where: { id: eventId } });
+
+      await tx.auditLog.create({
+        data: {
+          adminId: auth.viewer.id,
+          action: AuditAction.DELETE_EVENT,
+          objectType: "Event",
+          objectId: eventId,
+          beforeJson: before,
+          afterJson: { deleted: true },
+        },
+      });
+      return { ok: true as const };
+    }
+
+    // Other actions (Update)
     const before = await tx.event.findUnique({
       where: { id: eventId },
-      select: { id: true, isFeatured: true, title: true },
+      select: { id: true, isFeatured: true, title: true, status: true },
     });
     if (!before) return { ok: false as const, error: "Événement introuvable." };
 
-    const makeFeatured = action === "FEATURE";
+    let dataToUpdate: any = {};
+    let auditAction: AuditAction;
+
+    if (action === "FEATURE") {
+      dataToUpdate = { isFeatured: true };
+      auditAction = AuditAction.FEATURE_EVENT;
+    } else if (action === "UNFEATURE") {
+      dataToUpdate = { isFeatured: false };
+      auditAction = AuditAction.UNFEATURE_EVENT;
+    } else if (action === "SUSPEND") {
+      dataToUpdate = { status: "SUSPENDED" };
+      auditAction = AuditAction.SUSPEND_EVENT;
+    } else if (action === "REACTIVATE") {
+      // Restore to PUBLISHED if it was SUSPENDED, or just force PUBLISHED?
+      // For now, let's set to PUBLISHED to allow immediate restore of visibility.
+      // Alternatively, we could default to DRAFT.
+      dataToUpdate = { status: "PUBLISHED" };
+      auditAction = AuditAction.REACTIVATE_EVENT;
+    } else {
+      return { ok: false as const, error: "Action non gérée." };
+    }
+  
     const after = await tx.event.update({
       where: { id: eventId },
-      data: { isFeatured: makeFeatured },
-      select: { id: true, isFeatured: true, title: true },
+      data: dataToUpdate,
+      select: { id: true, isFeatured: true, title: true, status: true },
     });
 
     await tx.auditLog.create({
+      data: {
+        adminId: auth.viewer.id,
+        action: auditAction
       data: {
         adminId: auth.viewer.id,
         action: makeFeatured ? AuditAction.FEATURE_EVENT : AuditAction.UNFEATURE_EVENT,

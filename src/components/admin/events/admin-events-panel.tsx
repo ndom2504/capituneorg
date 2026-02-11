@@ -18,6 +18,7 @@ type EventItem = {
   liveUrl: string | null;
   replayUrl: string | null;
   isFeatured: boolean;
+  status: string;
   createdAt: string;
   speakers: { id: string; fullName: string; title: string | null; avatarUrl: string | null }[];
   likesCount: number;
@@ -120,7 +121,7 @@ export function AdminEventsPanel({ viewerRole }: Props) {
     }
   }
 
-  async function doAction(eventId: string, action: "FEATURE" | "UNFEATURE") {
+  async function doAction(eventId: string, action: "FEATURE" | "UNFEATURE" | "SUSPEND" | "REACTIVATE" | "DELETE") {
     setError(null);
     setBusyById((prev) => ({ ...prev, [eventId]: true }));
 
@@ -199,18 +200,22 @@ export function AdminEventsPanel({ viewerRole }: Props) {
               <Card key={it.id} className="hover:translate-y-0">
                 <CardHeader>
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                    <CardTitle className="text-base">{it.title}{it.isFeatured ? " (Mis en avant)" : ""}</CardTitle>
+                    <CardTitle className="text-base">
+                      {it.title}
+                      {it.isFeatured ? " (Mis en avant)" : ""}
+                      {it.status === "SUSPENDED" ? " (SUSPENDU)" : ""}
+                    </CardTitle>
                     <div className="text-xs text-muted">{startsLabel}</div>
                   </div>
                   <CardDescription>
-                    {it.type} · {it.theme} · {it.level} · {it.format} · Likes: {it.likesCount} · Inscriptions: {it.registrationsCount}
+                    {it.status} · {it.type} · {it.theme} · {it.level} · {it.format} · Likes: {it.likesCount} · Inscriptions: {it.registrationsCount}
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-3">
                   <div className="text-sm text-muted">Speakers: {it.speakers.map((s) => s.fullName).join(", ") || "—"}</div>
 
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="flex flex-col gap-2 sm:flex-row flex-wrap">
                     <Button
                       variant="primary"
                       disabled={!canAct || busy || it.isFeatured}
@@ -225,6 +230,38 @@ export function AdminEventsPanel({ viewerRole }: Props) {
                       onClick={() => void doAction(it.id, "UNFEATURE")}
                     >
                       Retirer la mise en avant
+                    </Button>
+
+                    {it.status !== "SUSPENDED" && (
+                      <Button
+                        variant="destructive"
+                        disabled={!canAct || busy}
+                        onClick={() => void doAction(it.id, "SUSPEND")}
+                      >
+                        Suspendre
+                      </Button>
+                    )}
+
+                    {it.status === "SUSPENDED" && (
+                      <Button
+                        variant="outline"
+                        disabled={!canAct || busy}
+                        onClick={() => void doAction(it.id, "REACTIVATE")}
+                      >
+                        Réactiver
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="destructive"
+                      disabled={!canAct || busy}
+                      onClick={() => {
+                        if (confirm("Voulez-vous vraiment supprimer cet événement ?")) {
+                          void doAction(it.id, "DELETE");
+                        }
+                      }}
+                    >
+                      Supprimer
                     </Button>
 
                     {!canAct && (
