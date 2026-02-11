@@ -1,7 +1,8 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,9 @@ function selectClassName() {
   );
 }
 
-export default function AuthPage() {
+function AuthContent() {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
   const handledRedirectRef = useRef(false);
 
   const [mode, setMode] = useState<Mode>("login");
@@ -185,7 +188,9 @@ export default function AuthPage() {
 
     // Déterminer la cible de redirection
     let target: string;
-    if (isProfessionalAccount(resolvedAccountType)) {
+    if (from) {
+      target = from;
+    } else if (isProfessionalAccount(resolvedAccountType)) {
       // Professionnel : première connexion OU pas de profil marketplace → marketplace-profil
       // Sinon → accueil
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
@@ -320,14 +325,16 @@ export default function AuthPage() {
     const preRegistrationStatus = data.preRegistrationStatus ?? null;
 
     let target: string;
-    if (isProfessionalAccount(resolvedAccountType)) {
+    if (from) {
+      target = from;
+    } else if (isProfessionalAccount(resolvedAccountType)) {
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
     } else {
       target = isNewUser || preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
     }
 
     window.location.assign(target);
-  }, []);
+  }, [from]);
 
   const exchangeLinkedInToken = useCallback(async (idToken: string, accountType?: "USER" | "PROFESSIONAL") => {
     const res = await fetch("/api/auth/linkedin", {
@@ -348,14 +355,16 @@ export default function AuthPage() {
     const preRegistrationStatus = data.preRegistrationStatus ?? null;
 
     let target: string;
-    if (isProfessionalAccount(resolvedAccountType)) {
+    if (from) {
+      target = from;
+    } else if (isProfessionalAccount(resolvedAccountType)) {
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
     } else {
       target = isNewUser || preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
     }
 
     window.location.assign(target);
-  }, []);
+  }, [from]);
 
   useEffect(() => {
     if (handledRedirectRef.current) return;
@@ -524,7 +533,9 @@ export default function AuthPage() {
 
       // Déterminer la cible de redirection
       let target: string;
-      if (isProfessionalAccount(accountType)) {
+      if (from) {
+        target = from;
+      } else if (isProfessionalAccount(accountType)) {
         // Professionnel : pas de profil marketplace → marketplace-profil, sinon → accueil
         target = !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
       } else {
@@ -589,9 +600,8 @@ export default function AuthPage() {
 
       const accountType = data.accountType ?? signup.accountType;
       // Signup = toujours première fois : professionnel → marketplace-profil, demandeur → mon-parcours
-      window.location.assign(
-        isProfessionalAccount(accountType) ? "/clients/marketplace-profil" : "/mon-parcours",
-      );
+      const target = from || (isProfessionalAccount(accountType) ? "/clients/marketplace-profil" : "/mon-parcours");
+      window.location.assign(target);
     } finally {
       setLoading(false);
     }
@@ -1168,5 +1178,13 @@ export default function AuthPage() {
         </Card>
       </div>
     </main>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center p-4">Chargement...</div>}>
+      <AuthContent />
+    </Suspense>
   );
 }
