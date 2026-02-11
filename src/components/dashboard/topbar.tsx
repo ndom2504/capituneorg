@@ -105,7 +105,7 @@ export function Topbar({
             </TopbarTab>
           ) : null}
 
-          {viewer?.accountType === "USER" ? (
+          {viewer?.accountType ? (
             <TopbarTab href="/accueil" active={pathname === "/accueil"}>
               Communauté
             </TopbarTab>
