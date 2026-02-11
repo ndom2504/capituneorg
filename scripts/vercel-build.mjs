@@ -84,12 +84,16 @@ function isConversationAlreadyExistsError(output) {
 
 function getFailedMigrationName(output) {
   const text = String(output ?? "");
-  if (!text.includes("migrate found failed migrations")) return null;
+  
+  // Format 1: "The `...` migration started ... failed"
+  const m1 = text.match(/The `([^`]+)` migration started[\s\S]*?failed/);
+  if (m1?.[1]) return m1[1];
 
-  // Example:
-  // The `20260206_add_messaging_system` migration started at ... failed
-  const match = text.match(/The `([^`]+)` migration started[\s\S]*?failed/);
-  return match?.[1] ?? null;
+  // Format 2: "Migration name: ..." (common in Vercel logs)
+  const m2 = text.match(/Migration name: (\S+)/);
+  if (m2?.[1]) return m2[1];
+
+  return null;
 }
 
 function getApplyingMigrationName(output) {
@@ -118,7 +122,9 @@ function isAlreadyExistsLikeError(output) {
 }
 
 const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
+  "20260205172558_notification_capitune",
   "20260206_add_messaging_system",
+  "20260206015353_add_presence_and_verification",
   "20260206193000_add_user_settings",
   "20260206223000_admin_v1",
   "20260207005000_platform_settings_v1",
