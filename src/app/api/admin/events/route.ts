@@ -190,10 +190,7 @@ export async function POST(req: NextRequest) {
     await tx.auditLog.create({
       data: {
         adminId: auth.viewer.id,
-        action: auditAction
-      data: {
-        adminId: auth.viewer.id,
-        action: makeFeatured ? AuditAction.FEATURE_EVENT : AuditAction.UNFEATURE_EVENT,
+        action: auditAction,
         objectType: "Event",
         objectId: eventId,
         beforeJson: before,
