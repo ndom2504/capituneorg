@@ -106,9 +106,9 @@ export function CommunityPageHeader({
                 </Button>
               </>
             ) : (
-              <Link href={startHref}>
+              <Link href="/mon-dossier">
                 <Button variant="outline" className="bg-white/70">
-                  Démarrer mon parcours
+                  Démarrer mon dossier
                 </Button>
               </Link>
             )}

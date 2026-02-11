@@ -45,6 +45,7 @@ enum MainObjective {
   ENTREPRENDRE
   FAMILLE
   EXPLORER
+  DEMANDE_ASILE
 }
 
 enum ProfessionalSituation {
@@ -580,6 +581,7 @@ model User {
   conversationsInitiated Conversation[] @relation("ConversationInitiator")
   conversationsReceived  Conversation[] @relation("ConversationRecipient")
   messagesSent           Message[]      @relation("MessageSender")
+  dossierMessagesSent    DossierMessage[] @relation("DossierMessageSender")
 
   // Cases (V1)
   casesRequested    Case[]        @relation("CaseRequester")
@@ -1434,8 +1436,27 @@ model Dossier {
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   documents Document[]
+  messages  DossierMessage[]
 
   @@index([userId])
+}
+
+model DossierMessage {
+  id        String   @id @default(cuid())
+  dossierId String
+  senderId  String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+  
+  dossier   Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  sender    User     @relation("DossierMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId])
+  @@index([senderId])
 }
 
 model Document {
@@ -1444,6 +1465,8 @@ model Document {
   name      String
   status    DocumentStatus @default(A_FOURNIR)
   note      String?
+  url       String?
+  mimeType  String?
 
   dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
 

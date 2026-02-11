@@ -106,8 +106,8 @@ export function Topbar({
           ) : null}
 
           {viewer?.accountType === "USER" ? (
-            <TopbarTab href="/mon-parcours" active={pathname.startsWith("/mon-parcours")}>
-              Mon parcours
+            <TopbarTab href="/accueil" active={pathname === "/accueil"}>
+              Communauté
             </TopbarTab>
           ) : null}
         </nav>

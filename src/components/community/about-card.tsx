@@ -34,7 +34,7 @@ export function AboutCard() {
         <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3">
           <div className="text-xs font-semibold text-navy">Conseil</div>
           <div className="mt-1 text-sm text-muted">
-            Commencez par l’onglet Mon parcours pour la préinscription.
+            Commencez par l’onglet Mon dossier pour la préinscription.
           </div>
         </div>
       </CardContent>

@@ -712,7 +712,7 @@ export function MarketplaceProfile({
                   onChange={(e) => setAttachPreRegistration(e.target.checked)}
                 />
                 <span className="text-muted">
-                  Joindre mon formulaire de demande (Mon parcours)
+                  Joindre mon formulaire de demande
                   <span className="block text-xs">
                     Un résumé (objectif, situation, budget, contraintes) sera ajouté à la demande.
                   </span>

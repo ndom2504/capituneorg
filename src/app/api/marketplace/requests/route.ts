@@ -106,7 +106,7 @@ function summarizePreRegistration(p: {
   if (p.status !== "SUBMITTED") return null;
 
   const lines: string[] = [];
-  lines.push("Formulaire joint (Mon parcours)");
+  lines.push("Formulaire joint (Préinscription)");
 
   const objective = labelMainObjective(p.mainObjective);
   if (objective) lines.push(`- Objectif: ${objective}`);
