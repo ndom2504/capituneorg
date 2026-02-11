@@ -121,7 +121,10 @@ export async function POST(req: NextRequest) {
   const eventId = (body as any)?.eventId;
   if (!eventId || typeof eventId !== "string") {
     return NextResponse.json({ error: "eventId requis." }, { status: 400 });
-  }!["FEATURE", "UNFEATURE", "SUSPEND", "REACTIVATE", "DELETE"].includes(action)) {
+  }
+
+  const action = (body as any)?.action;
+  if (!["FEATURE", "UNFEATURE", "SUSPEND", "REACTIVATE", "DELETE"].includes(action)) {
     return NextResponse.json({ error: "Action invalide." }, { status: 400 });
   }
 
