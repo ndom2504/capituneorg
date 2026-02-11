@@ -353,8 +353,6 @@ if (isVercel) {
     }
   }
 }
-  }
-}
 
 log("Running prisma generate.");
 runBin("prisma", ["generate"]);
