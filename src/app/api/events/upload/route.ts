@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { NextRequest, NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 
 import { getAppViewer } from "@/lib/auth/viewer";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
@@ -47,13 +48,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fichier trop volumineux (max 5MB)." }, { status: 413 });
   }
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "events");
-  await mkdir(uploadsDir, { recursive: true });
-
   const ext = safeExt(file.name, ".png");
   const filename = `event-${Date.now()}-${Math.random().toString(16).slice(2)}${ext}`;
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+
+  if (blobToken) {
+    const blob = await put(`events/${filename}`, buffer, {
+      access: "public",
+      contentType: file.type,
+    });
+    return NextResponse.json({ fileUrl: blob.url, fileName: file.name || filename });
+  }
+
+  const uploadsDir = path.join(process.cwd(), "public", "uploads", "events");
+  await mkdir(uploadsDir, { recursive: true });
   await writeFile(path.join(uploadsDir, filename), buffer);
 
   const fileUrl = `/uploads/events/${filename}`;

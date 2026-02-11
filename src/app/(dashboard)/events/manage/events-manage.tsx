@@ -35,13 +35,22 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const dateFormatter = new Intl.DateTimeFormat("fr-CA", {
+  timeZone: "UTC",
+  month: "short",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 function formatDate(dateIso: string) {
-  return new Date(dateIso).toLocaleDateString("fr-FR", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return dateFormatter.format(new Date(dateIso));
+}
+
+function getBannerUrl(url: string | null) {
+  if (!url) return null;
+  if (url.startsWith("http") || url.startsWith("/")) return url;
+  return `/uploads/events/${url}`;
 }
 
 export function EventsManage({ initialEvents }: { initialEvents: EventItem[] }) {
@@ -149,7 +158,7 @@ export function EventsManage({ initialEvents }: { initialEvents: EventItem[] }) 
                       <div className="flex items-center gap-3">
                         {ev.bannerUrl ? (
                           <img
-                            src={ev.bannerUrl}
+                            src={getBannerUrl(ev.bannerUrl) ?? ""}
                             className="w-16 h-10 object-cover rounded border border-border"
                             alt=""
                           />

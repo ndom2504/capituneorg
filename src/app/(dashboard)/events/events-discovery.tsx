@@ -29,15 +29,23 @@ export type EventCard = {
   };
 };
 
+const dateFormatter = new Intl.DateTimeFormat("fr-CA", {
+  timeZone: "UTC",
+  month: "short",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 function formatDate(dateIso: string | null) {
   if (!dateIso) return "Date à venir";
-  const date = new Date(dateIso);
-  return date.toLocaleDateString("fr-FR", { 
-    month: "short", 
-    day: "numeric", 
-    hour: "2-digit", 
-    minute: "2-digit" 
-  });
+  return dateFormatter.format(new Date(dateIso));
+}
+
+function getBannerUrl(url: string | null) {
+  if (!url) return null;
+  if (url.startsWith("http") || url.startsWith("/")) return url;
+  return `/uploads/events/${url}`;
 }
 
 function TypeBadge({ type, status }: { type: string; status?: string }) {
@@ -174,7 +182,7 @@ export function EventsDiscovery({
               <div className="relative h-48 w-full overflow-hidden bg-gray-100">
                 {ev.bannerUrl ? (
                   <img
-                    src={ev.bannerUrl}
+                    src={getBannerUrl(ev.bannerUrl) ?? ""}
                     alt={ev.title}
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:rotate-1"
                   />

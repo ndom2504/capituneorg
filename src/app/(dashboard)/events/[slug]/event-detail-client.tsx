@@ -96,17 +96,25 @@ export function EventDetailClient({
     }
   }
 
+  const dateFormatter = new Intl.DateTimeFormat("fr-CA", {
+    timeZone: "UTC",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   function formatDate(dateIso: string | null) {
     if (!dateIso) return "Date TBD";
-    const date = new Date(dateIso);
-    return date.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return dateFormatter.format(new Date(dateIso));
+  }
+
+  function getBannerUrl(url: string | null) {
+    if (!url) return null;
+    if (url.startsWith("http") || url.startsWith("/")) return url;
+    return `/uploads/events/${url}`;
   }
 
   return (
@@ -125,7 +133,7 @@ export function EventDetailClient({
           <div className="relative group overflow-hidden rounded-2xl border border-border shadow-sm bg-gray-100">
             {event.bannerUrl ? (
               <img
-                src={event.bannerUrl}
+                src={getBannerUrl(event.bannerUrl) ?? ""}
                 alt={event.title}
                 className="w-full h-[400px] object-cover transition-transform duration-700 group-hover:scale-105"
               />
