@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SendIcon, BotIcon, UserIcon, PaperclipIcon, FileIcon, XIcon } from "lucide-react";
 import { sendDossierMessage } from "@/app/(dashboard)/mon-dossier/echanges/actions";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 type Message = {
   id: string;
