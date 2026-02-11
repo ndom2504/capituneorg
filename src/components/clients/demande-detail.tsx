@@ -22,13 +22,6 @@ type DemandeItem = {
   message: string | null;
   proNote: string | null;
   createdAt: string;
-  payment: null | {
-    orderId: string;
-    status: "DRAFT" | "PENDING_PAYMENT" | "PAID" | "CANCELED" | "REFUNDED";
-    amountCents: number;
-    currency: string;
-    serviceTitle: string;
-  };
   cv: null | {
     url: string;
     name: string;
@@ -50,50 +43,6 @@ type ApiResponse = {
   canonicalRequestId?: string;
   resolvedFromId?: string | null;
   resolvedFrom?: "message" | "meeting" | "profile" | null;
-};
-
-type EngagementDto = {
-  id: string;
-  status:
-    | "DRAFT"
-    | "CONTRACT_SENT"
-    | "SIGNED"
-    | "PAYMENT_REQUESTED"
-    | "PAID"
-    | "IN_PROGRESS"
-    | "COMPLETED"
-    | "CANCELED";
-  contractTitle: string;
-  contractBody: string;
-  contractSentAt: string | null;
-  signedAt: string | null;
-  signedByUserId: string | null;
-  signedByName: string | null;
-  paymentRequestedAt: string | null;
-  paidAt: string | null;
-  milestone: "ANALYSE" | "DOSSIER" | "SOUMISSION";
-  analyseDoneAt: string | null;
-  dossierDoneAt: string | null;
-  soumissionDoneAt: string | null;
-  completedAt: string | null;
-  canceledAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type EngagementApi = {
-  engagement: EngagementDto | null;
-  payment:
-    | null
-    | {
-        orderId: string;
-        status: "DRAFT" | "PENDING_PAYMENT" | "PAID" | "CANCELED" | "REFUNDED";
-        amountCents: number;
-        currency: string;
-        paidAt: string | null;
-        service: { id: string; title: string };
-        createdAt: string;
-      };
 };
 
 type Action = "ACCEPT" | "REJECT" | "NEEDS_INFO";
@@ -121,13 +70,6 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [engagement, setEngagement] = useState<EngagementDto | null>(null);
-  const [engLoading, setEngLoading] = useState(false);
-  const [engBusy, setEngBusy] = useState(false);
-  const [engError, setEngError] = useState<string | null>(null);
-  const [contractTitle, setContractTitle] = useState("Contrat de prestation");
-  const [contractBody, setContractBody] = useState("");
 
   const safeRequestId = typeof requestId === "string" ? requestId.trim() : "";
 
@@ -158,10 +100,6 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
   const [startsAt, setStartsAt] = useState("");
   const [durationMin, setDurationMin] = useState("45");
   const [locationUrl, setLocationUrl] = useState("");
-
-  const [services, setServices] = useState<Array<{ id: string; title: string; priceCents: number; currency: string }>>([]);
-  const [serviceId, setServiceId] = useState("");
-  const [paymentBusy, setPaymentBusy] = useState(false);
 
   // Messages
   type MessageItem = {
@@ -201,9 +139,6 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
       setItem(data.item);
       setProNote(data.item.proNote ?? "");
 
-      // Charger la prestation (best-effort)
-      void loadEngagement();
-
       // Si le backend a résolu l'ID (ex: lien notification contient un profileId), on canonise l'URL.
       if (
         typeof window !== "undefined" &&
@@ -216,61 +151,6 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function loadEngagement() {
-    if (!safeRequestId || safeRequestId === "undefined" || safeRequestId === "null") return;
-    setEngLoading(true);
-    setEngError(null);
-    try {
-      const res = await fetch(`/api/clients/demandes/${safeRequestId}/engagement`, {
-        method: "GET",
-        cache: "no-store",
-        headers: { "content-type": "application/json" },
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
-      }
-      const data = (await res.json()) as EngagementApi;
-      setEngagement(data.engagement ?? null);
-      if (data.engagement) {
-        setContractTitle(data.engagement.contractTitle || "Contrat de prestation");
-        setContractBody(data.engagement.contractBody || "");
-      }
-    } catch (e) {
-      setEngError(e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setEngLoading(false);
-    }
-  }
-
-  async function engagementAction(payload: any) {
-    if (!safeRequestId) return;
-    setEngBusy(true);
-    setEngError(null);
-    try {
-      const res = await fetch(`/api/clients/demandes/${safeRequestId}/engagement`, {
-        method: "POST",
-        cache: "no-store",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
-      }
-      const data = (await res.json()) as { engagement?: EngagementDto };
-      if (data.engagement) {
-        setEngagement(data.engagement);
-        setContractTitle(data.engagement.contractTitle || contractTitle);
-        setContractBody(data.engagement.contractBody || contractBody);
-      }
-    } catch (e) {
-      setEngError(e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setEngBusy(false);
     }
   }
 
@@ -334,48 +214,12 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeRequestId]);
 
-  useEffect(() => {
-    // best-effort: catalogue de services (global + pro)
-    fetch("/api/payments/services")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: null | { items: Array<{ id: string; title: string; priceCents: number; currency: string }> }) => {
-        if (!data) return;
-        setServices(data.items);
-        setServiceId((prev) => prev || data.items[0]?.id || "");
-      })
-      .catch(() => null);
-  }, []);
-
   function money(amountCents: number, currency: string) {
     const amount = amountCents / 100;
     return new Intl.NumberFormat("fr-CA", {
       style: "currency",
       currency: currency.toUpperCase(),
     }).format(amount);
-  }
-
-  async function createPaymentOrder() {
-    if (!item) return;
-    if (!serviceId) throw new Error("Choisissez un service.");
-
-    setPaymentBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/payments/orders", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ marketplaceRequestId: item.id, serviceId }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
-      }
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setPaymentBusy(false);
-    }
   }
 
   async function act(action: Action) {
@@ -526,198 +370,6 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
                   ) : null}
                 </div>
               ) : null}
-
-              <div className="mt-3 rounded-(--radius-md) border border-border bg-white/60 p-3 text-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="font-semibold text-navy">Paiement</div>
-                  <div className="text-xs text-muted">
-                    {item.payment ? `Statut: ${item.payment.status}` : "Aucune demande de paiement"}
-                  </div>
-                </div>
-
-                {item.payment ? (
-                  <div className="mt-2 text-sm text-text">
-                    {item.payment.serviceTitle} • {money(item.payment.amountCents, item.payment.currency)}
-                  </div>
-                ) : (
-                  <div className="mt-2 grid gap-2">
-                    <label htmlFor="serviceId" className="text-xs font-semibold text-muted">
-                      Service à facturer
-                    </label>
-                    <select
-                      id="serviceId"
-                      className="h-10 rounded-(--radius-md) border border-border bg-white/70 px-3 text-sm text-text"
-                      value={serviceId}
-                      onChange={(e) => setServiceId(e.target.value)}
-                      disabled={paymentBusy || busy}
-                    >
-                      {services.length === 0 ? (
-                        <option value="">Aucun service</option>
-                      ) : (
-                        services.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.title} — {money(s.priceCents, s.currency)}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                    <div className="flex justify-end">
-                      <Button
-                        variant="outline"
-                        disabled={paymentBusy || busy || !serviceId || services.length === 0}
-                        onClick={() => void createPaymentOrder()}
-                      >
-                        Créer une demande de paiement
-                      </Button>
-                    </div>
-                    <div className="text-xs text-muted">
-                      Le paiement débloque le suivi (meeting/dossier/docs) selon la prestation.
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-3 rounded-(--radius-md) border border-border bg-white/60 p-3 text-sm">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <div className="font-semibold text-navy">Prestation</div>
-                    <div className="mt-1 text-xs text-muted">
-                      Contrat obligatoire + jalons (Analyse → Dossier → Soumission).
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-muted">Statut</div>
-                    <div className="mt-0.5 text-xs font-semibold text-text">
-                      {engagement ? engagement.status : engLoading ? "…" : "Aucune"}
-                    </div>
-                  </div>
-                </div>
-
-                {engError ? <div className="mt-2 whitespace-pre-wrap text-xs text-danger">{engError}</div> : null}
-
-                {!engagement ? (
-                  <div className="mt-3 flex items-center justify-end">
-                    <Button
-                      variant="outline"
-                      disabled={engBusy || engLoading || busy || !item || item.status !== "ACCEPTED"}
-                      onClick={() => void engagementAction({ action: "CREATE" })}
-                    >
-                      Créer la prestation
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="mt-3 space-y-3">
-                    <div className="grid gap-2">
-                      <label className="text-xs font-semibold text-muted">Titre du contrat</label>
-                      <Input
-                        value={contractTitle}
-                        onChange={(e) => setContractTitle(e.target.value)}
-                        disabled={engBusy || engagement.status !== "DRAFT"}
-                      />
-                      <label className="text-xs font-semibold text-muted">Contrat (texte)</label>
-                      <Textarea
-                        value={contractBody}
-                        onChange={(e) => setContractBody(e.target.value)}
-                        rows={6}
-                        placeholder="Définition des termes, périmètre, délais, livrables, conditions…"
-                        disabled={engBusy || engagement.status !== "DRAFT"}
-                      />
-                    </div>
-
-                    {engagement.signedAt ? (
-                      <div className="text-xs text-muted">
-                        Signé: {formatDateTime(engagement.signedAt)}
-                        {engagement.signedByName ? ` • ${engagement.signedByName}` : ""}
-                      </div>
-                    ) : engagement.status === "CONTRACT_SENT" ? (
-                      <div className="text-xs text-muted">En attente de signature du demandeur.</div>
-                    ) : null}
-
-                    {engagement.status === "DRAFT" ? (
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          disabled={engBusy}
-                          onClick={() =>
-                            void engagementAction({
-                              action: "UPDATE_DRAFT",
-                              contractTitle,
-                              contractBody,
-                            })
-                          }
-                        >
-                          Enregistrer
-                        </Button>
-                        <Button
-                          disabled={engBusy || !(contractBody || "").trim()}
-                          onClick={() => void engagementAction({ action: "SEND_CONTRACT" })}
-                        >
-                          Envoyer le contrat
-                        </Button>
-                      </div>
-                    ) : null}
-
-                    {engagement.status === "SIGNED" ||
-                    engagement.status === "IN_PROGRESS" ||
-                    engagement.status === "PAID" ||
-                    engagement.status === "PAYMENT_REQUESTED" ? (
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-xs text-muted">Jalons</div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button
-                            variant="outline"
-                            disabled={engBusy}
-                            onClick={() =>
-                              void engagementAction({ action: "ADVANCE_MILESTONE", milestone: "ANALYSE" })
-                            }
-                          >
-                            Analyse
-                          </Button>
-                          <Button
-                            variant="outline"
-                            disabled={engBusy}
-                            onClick={() =>
-                              void engagementAction({ action: "ADVANCE_MILESTONE", milestone: "DOSSIER" })
-                            }
-                          >
-                            Dossier
-                          </Button>
-                          <Button
-                            variant="outline"
-                            disabled={engBusy}
-                            onClick={() =>
-                              void engagementAction({ action: "ADVANCE_MILESTONE", milestone: "SOUMISSION" })
-                            }
-                          >
-                            Soumission
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {engagement.status === "SIGNED" ||
-                    engagement.status === "IN_PROGRESS" ||
-                    engagement.status === "PAID" ||
-                    engagement.status === "PAYMENT_REQUESTED" ? (
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          disabled={engBusy}
-                          onClick={() => void engagementAction({ action: "REQUEST_PAYMENT" })}
-                        >
-                          Demander le paiement
-                        </Button>
-                        <Button
-                          disabled={engBusy || !engagement.soumissionDoneAt}
-                          onClick={() => void engagementAction({ action: "COMPLETE" })}
-                        >
-                          Terminer
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </div>
             </div>
 
             <div>

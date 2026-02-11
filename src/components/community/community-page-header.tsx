@@ -25,7 +25,6 @@ export function CommunityPageHeader({
   featureFlags?: FeatureFlagsSetting;
 }) {
   const marketplaceEnabled = featureFlags?.marketplace !== false;
-  const eventsEnabled = featureFlags?.events !== false;
 
   const startHref =
     viewerAccountType === "PROFESSIONAL" || viewerAccountType === "ADMIN"
@@ -125,11 +124,6 @@ export function CommunityPageHeader({
             <Tab href="/a-propos" active={activeTab === "apropos"}>
               À propos
             </Tab>
-            {eventsEnabled ? (
-              <Tab href="/evenements-formations" active={activeTab === "evenements"}>
-                Événements & formations
-              </Tab>
-            ) : null}
           </div>
         </div>
       </div>

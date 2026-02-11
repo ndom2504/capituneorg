@@ -20,7 +20,6 @@ const items: Item[] = [
   { href: "/admin/cases", label: "Demandes & Dossiers" },
   { href: "/admin/events", label: "Événements & Formations" },
   { href: "/admin/jobs", label: "Pôle emploi" },
-  { href: "/admin/payments", label: "Paiements" },
   { href: "/admin/notifications", label: "Notifications" },
   { href: "/admin/community/reports", label: "Rapports & Modération" },
   { href: "/admin/settings", label: "Paramètres plateforme" },

@@ -84,18 +84,6 @@ export async function GET(
     include: {
       professional: { select: { id: true, fullName: true, avatarUrl: true } },
       meeting: { select: { id: true, startsAt: true, durationMin: true, locationUrl: true } },
-      paymentOrders: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        include: {
-          service: { select: { id: true, title: true, description: true, priceCents: true, currency: true } },
-          payments: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: { id: true, status: true, stripeCheckoutSessionId: true, stripePaymentIntentId: true, paidAt: true },
-          },
-        },
-      },
       messages: {
         orderBy: { createdAt: "asc" },
         take: 300,
@@ -132,28 +120,6 @@ export async function GET(
             locationUrl: request.meeting.locationUrl,
           }
         : null,
-      payment:
-        request.paymentOrders.length > 0
-          ? {
-              orderId: request.paymentOrders[0].id,
-              status: request.paymentOrders[0].status,
-              amountCents: request.paymentOrders[0].amountCents,
-              currency: request.paymentOrders[0].currency,
-              service: {
-                id: request.paymentOrders[0].service.id,
-                title: request.paymentOrders[0].service.title,
-                description: request.paymentOrders[0].service.description,
-              },
-              lastPayment: request.paymentOrders[0].payments[0]
-                ? {
-                    status: request.paymentOrders[0].payments[0].status,
-                    paidAt: request.paymentOrders[0].payments[0].paidAt
-                      ? request.paymentOrders[0].payments[0].paidAt.toISOString()
-                      : null,
-                  }
-                : null,
-            }
-          : null,
       messages: request.messages.map((m) => ({
         id: m.id,
         senderRole: m.senderRole,

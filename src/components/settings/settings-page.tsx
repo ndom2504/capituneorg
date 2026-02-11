@@ -63,7 +63,6 @@ type TabKey =
   | "notifications"
   | "presence"
   | "marketplace"
-  | "paiements"
   | "securite"
   | "donnees";
 
@@ -169,27 +168,8 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
 
   const [manualStatus, setManualStatus] = React.useState<"" | "PAUSE" | "ABSENT" | "MUTE" | "MEETING">("");
 
-  const [connectLoading, setConnectLoading] = React.useState(false);
-  const [connectError, setConnectError] = React.useState<string | null>(null);
-  const [connectStatus, setConnectStatus] = React.useState<
-    | {
-        ok: true;
-        ready: boolean;
-        account: {
-          id: string;
-          stripeAccountId: string;
-          chargesEnabled: boolean;
-          payoutsEnabled: boolean;
-          detailsSubmitted: boolean;
-          requirementsDueJson: unknown;
-          updatedAt: string;
-        } | null;
-      }
-    | null
-  >(null);
-
   React.useEffect(() => {
-    // Deep-linking minimal via /parametres?tab=paiements
+    // Deep-linking minimal via /parametres?tab=...
     try {
       const tab = new URLSearchParams(window.location.search).get("tab");
       const allowed: TabKey[] = [
@@ -198,7 +178,6 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
         "notifications",
         "presence",
         "marketplace",
-        "paiements",
         "securite",
         "donnees",
       ];
@@ -214,53 +193,6 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
     if (presenceEnabled) return;
     setActiveTab((t) => (t === "presence" ? "compte" : t));
   }, [presenceEnabled]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    async function loadConnectStatus() {
-      if (!isPro) return;
-      if (activeTab !== "paiements") return;
-
-      setConnectLoading(true);
-      setConnectError(null);
-
-      try {
-        const res = await fetch("/api/payments/connect/status", { cache: "no-store" });
-        const dataUnknown = (await res.json().catch(() => null)) as unknown;
-        const dataErr = (dataUnknown as { error?: string } | null)?.error;
-        if (!res.ok) throw new Error(dataErr || `HTTP ${res.status}`);
-        if (cancelled) return;
-
-        const payload = dataUnknown as {
-          ok: true;
-          ready: boolean;
-          account: {
-            id: string;
-            stripeAccountId: string;
-            chargesEnabled: boolean;
-            payoutsEnabled: boolean;
-            detailsSubmitted: boolean;
-            requirementsDueJson: unknown;
-            updatedAt: string;
-          } | null;
-        };
-        setConnectStatus(payload);
-      } catch (e) {
-        if (!cancelled) {
-          setConnectError(e instanceof Error ? e.message : "Erreur inconnue");
-          setConnectStatus(null);
-        }
-      } finally {
-        if (!cancelled) setConnectLoading(false);
-      }
-    }
-
-    void loadConnectStatus();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, isPro]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -527,7 +459,6 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
     { key: "notifications", label: "Notifications" },
     { key: "presence", label: "Statut & présence", show: presenceEnabled },
     { key: "marketplace", label: "Marketplace & performance", show: isPro },
-    { key: "paiements", label: "Paiements", show: isPro },
     { key: "securite", label: "Sécurité" },
     { key: "donnees", label: "Données" },
   ];
@@ -705,11 +636,6 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
                   label="Documents"
                 />
                 <Toggle
-                  checked={form.notifyPayments}
-                  onChange={(v) => setForm((p) => (p ? { ...p, notifyPayments: v } : p))}
-                  label="Paiements"
-                />
-                <Toggle
                   checked={form.notifyMeetings}
                   onChange={(v) => setForm((p) => (p ? { ...p, notifyMeetings: v } : p))}
                   label="Rendez-vous"
@@ -848,20 +774,6 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
                 </div>
               </div>
 
-              <div className="rounded-(--radius-md) border border-border bg-white/60 p-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-navy">Paiements (Stripe Connect)</div>
-                    <div className="mt-1 text-xs text-muted">
-                      Configurez vos paiements pour recevoir les virements.
-                    </div>
-                  </div>
-                  <Link href="/parametres?tab=paiements">
-                    <Button variant="outline">Configurer</Button>
-                  </Link>
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Toggle
                   checked={form.allowFollow}
@@ -905,111 +817,6 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
                 <div className="mt-2 text-xs text-muted">
                   Voir: <Link className="font-semibold text-navy hover:underline" href="/profil">Profil</Link>
                 </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      ) : null}
-
-      {activeTab === "paiements" && isPro ? (
-        <div className="space-y-4">
-          <Card className="p-4">
-            <div className="space-y-4">
-              <div>
-                <div className="text-lg font-semibold text-navy">Paiements (Stripe Connect)</div>
-                <div className="mt-1 text-sm text-muted">
-                  Configurez vos paiements pour recevoir les virements. Devise: CAD.
-                </div>
-              </div>
-
-              <div className="rounded-(--radius-md) border border-border bg-white/60 p-3">
-                <div className="text-sm font-semibold text-navy">Statut</div>
-                {connectLoading ? (
-                  <div className="mt-1 text-sm text-muted">Chargement…</div>
-                ) : connectError ? (
-                  <div className="mt-1 text-sm text-red-700">{connectError}</div>
-                ) : connectStatus ? (
-                  <div className="mt-2 space-y-1 text-sm text-text">
-                    <div>
-                      Prêt à recevoir des virements: {connectStatus.ready ? "Oui ✅" : "Non"}
-                    </div>
-                    <div>Compte Stripe: {connectStatus.account?.stripeAccountId ?? "—"}</div>
-                    <div>
-                      Payouts activés: {connectStatus.account?.payoutsEnabled ? "Oui" : "Non"}
-                    </div>
-                    <div>
-                      Détails soumis: {connectStatus.account?.detailsSubmitted ? "Oui" : "Non"}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-1 text-sm text-muted">Non configuré.</div>
-                )}
-              </div>
-
-              <div className="text-xs text-muted">
-                Commission CAPITUNE: 10% (minimum 3 CAD) sur les paiements traités via Connect.
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  className="bg-navy hover:bg-navy/90"
-                  disabled={connectLoading}
-                  onClick={async () => {
-                    setConnectError(null);
-                    try {
-                      const returnUrl = `${window.location.origin}/parametres?tab=paiements`;
-                      const res = await fetch("/api/payments/connect/link", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ returnUrl, refreshUrl: returnUrl }),
-                      });
-                      const data = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
-                      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-                      if (!data?.url) throw new Error("Stripe n’a pas renvoyé d’URL.");
-                      window.location.href = data.url;
-                    } catch (e) {
-                      setConnectError(e instanceof Error ? e.message : "Erreur inconnue");
-                    }
-                  }}
-                >
-                  Configurer / Continuer sur Stripe
-                </Button>
-
-                <Button
-                  variant="outline"
-                  disabled={connectLoading}
-                  onClick={async () => {
-                    setConnectError(null);
-                    setConnectLoading(true);
-                    try {
-                      const res = await fetch("/api/payments/connect/status", { cache: "no-store" });
-                      const dataUnknown = (await res.json().catch(() => null)) as unknown;
-                      const dataErr = (dataUnknown as { error?: string } | null)?.error;
-                      if (!res.ok) throw new Error(dataErr || `HTTP ${res.status}`);
-                      setConnectStatus(
-                        dataUnknown as {
-                          ok: true;
-                          ready: boolean;
-                          account: {
-                            id: string;
-                            stripeAccountId: string;
-                            chargesEnabled: boolean;
-                            payoutsEnabled: boolean;
-                            detailsSubmitted: boolean;
-                            requirementsDueJson: unknown;
-                            updatedAt: string;
-                          } | null;
-                        },
-                      );
-                    } catch (e) {
-                      setConnectError(e instanceof Error ? e.message : "Erreur inconnue");
-                    } finally {
-                      setConnectLoading(false);
-                    }
-                  }}
-                >
-                  Actualiser
-                </Button>
               </div>
             </div>
           </Card>

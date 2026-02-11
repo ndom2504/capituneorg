@@ -15,16 +15,34 @@ import { prisma } from "@/lib/db";
 
 type ViewMode = "demandeur" | "professionnel";
 
-type DemandeurTab = "apercu" | "documents" | "paiements" | "echanges" | "historique";
+type DemandeurTab = "apercu" | "documents" | "echanges" | "historique";
 type ProTab =
   | "apercu"
   | "parcours"
   | "documents"
-  | "paiements"
   | "echanges"
   | "notes"
   | "meetings"
   | "historique";
+
+function normalizeDemandeurTab(tab: string | null | undefined): DemandeurTab {
+  if (tab === "documents" || tab === "echanges" || tab === "historique") return tab;
+  return "apercu";
+}
+
+function normalizeProTab(tab: string | null | undefined): ProTab {
+  if (
+    tab === "parcours" ||
+    tab === "documents" ||
+    tab === "echanges" ||
+    tab === "notes" ||
+    tab === "meetings" ||
+    tab === "historique"
+  ) {
+    return tab;
+  }
+  return "apercu";
+}
 
 type GlobalStatusLabel =
   | "Préinscription"
@@ -209,9 +227,9 @@ export default async function MonDossierPage({
   const mode = parseViewMode(viewer.accountType);
 
   if (mode === "demandeur") {
-    const tab = (typeof params.tab === "string" ? params.tab : "apercu") as DemandeurTab;
+    const tab = normalizeDemandeurTab(typeof params.tab === "string" ? params.tab : null);
 
-    const [preRegistration, dossier, paymentOrders] = await Promise.all([
+    const [preRegistration, dossier] = await Promise.all([
       prisma.preRegistration.findUnique({
         where: { userId: viewer.id },
         include: {
@@ -228,16 +246,6 @@ export default async function MonDossierPage({
         where: { userId: viewer.id },
         orderBy: { createdAt: "desc" },
         include: { documents: true },
-      }),
-      prisma.paymentOrder.findMany({
-        where: { buyerUserId: viewer.id },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        include: {
-          service: { select: { title: true } },
-          providerUser: { select: { fullName: true } },
-          marketplaceRequest: { select: { id: true } },
-        },
       }),
     ]);
 
@@ -259,14 +267,6 @@ export default async function MonDossierPage({
       preRegistration?.updatedAt ?? dossier?.createdAt ?? new Date(0);
 
     const assignedPro = preRegistration?.review?.assignedPro ?? null;
-
-    function money(amountCents: number, currency: string) {
-      const amount = amountCents / 100;
-      return new Intl.NumberFormat("fr-CA", {
-        style: "currency",
-        currency: currency.toUpperCase(),
-      }).format(amount);
-    }
 
     return (
       <div className="mx-auto max-w-5xl space-y-4">
@@ -294,7 +294,6 @@ export default async function MonDossierPage({
             <div className="flex flex-wrap gap-2">
               <TabLink href="/mon-dossier?tab=apercu" active={tab === "apercu"}>Aperçu</TabLink>
               <TabLink href="/mon-dossier?tab=documents" active={tab === "documents"}>Documents</TabLink>
-              <TabLink href="/mon-dossier?tab=paiements" active={tab === "paiements"}>Paiements</TabLink>
               <TabLink href="/mon-dossier?tab=echanges" active={tab === "echanges"}>Échanges</TabLink>
               <TabLink href="/mon-dossier?tab=historique" active={tab === "historique"}>Historique</TabLink>
             </div>
@@ -423,60 +422,6 @@ export default async function MonDossierPage({
           </Card>
         ) : null}
 
-        {tab === "paiements" ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Paiements</CardTitle>
-              <CardDescription>Historique des paiements liés à vos demandes.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-hidden rounded-[var(--radius-md)] border border-border">
-                <table className="w-full text-sm">
-                  <thead className="bg-surface">
-                    <tr className="text-left text-xs text-muted">
-                      <th className="px-4 py-3">Service</th>
-                      <th className="px-4 py-3">Professionnel</th>
-                      <th className="px-4 py-3">Montant</th>
-                      <th className="px-4 py-3">Statut</th>
-                      <th className="px-4 py-3">Accès</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paymentOrders.length === 0 ? (
-                      <tr className="border-t border-border">
-                        <td className="px-4 py-4 text-muted" colSpan={5}>
-                          Aucun paiement pour le moment.
-                        </td>
-                      </tr>
-                    ) : (
-                      paymentOrders.map((o) => (
-                        <tr key={o.id} className="border-t border-border">
-                          <td className="px-4 py-3 font-medium text-text">{o.service.title}</td>
-                          <td className="px-4 py-3 text-muted">{o.providerUser.fullName}</td>
-                          <td className="px-4 py-3 text-muted">{money(o.amountCents, o.currency)}</td>
-                          <td className="px-4 py-3 text-muted">{o.status}</td>
-                          <td className="px-4 py-3">
-                            {o.marketplaceRequest?.id ? (
-                              <Link
-                                className="text-sm font-semibold text-primary underline"
-                                href={`/marketplace/mes-demandes/${o.marketplaceRequest.id}`}
-                              >
-                                Ouvrir la demande
-                              </Link>
-                            ) : (
-                              <span className="text-muted">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
         {tab === "echanges" ? (
           <Card>
             <CardHeader>
@@ -518,7 +463,7 @@ export default async function MonDossierPage({
   }
 
   // Vue professionnel
-  const tab = (typeof params.tab === "string" ? params.tab : "apercu") as ProTab;
+  const tab = normalizeProTab(typeof params.tab === "string" ? params.tab : null);
   const clientId = typeof params.clientId === "string" ? params.clientId : null;
 
   const assigned = await prisma.preRegistrationReview.findMany({
@@ -584,28 +529,6 @@ export default async function MonDossierPage({
 
   const missingDocs = targetDocuments.filter((d) => d.status === "À fournir").length;
   const pendingReviewDocs = targetDocuments.filter((d) => d.status === "En revue").length;
-  const paymentsPending = 0;
-
-  const proPaymentOrders = targetClientId
-    ? await prisma.paymentOrder.findMany({
-        where: { providerUserId: viewer.id, buyerUserId: targetClientId },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        include: {
-          service: { select: { title: true } },
-          buyerUser: { select: { fullName: true } },
-          marketplaceRequest: { select: { id: true } },
-        },
-      })
-    : [];
-
-  function money(amountCents: number, currency: string) {
-    const amount = amountCents / 100;
-    return new Intl.NumberFormat("fr-CA", {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(amount);
-  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
@@ -664,12 +587,6 @@ export default async function MonDossierPage({
               Documents
             </TabLink>
             <TabLink
-              href={`/mon-dossier?tab=paiements${targetClientId ? `&clientId=${targetClientId}` : ""}`}
-              active={tab === "paiements"}
-            >
-              Paiements
-            </TabLink>
-            <TabLink
               href={`/mon-dossier?tab=echanges${targetClientId ? `&clientId=${targetClientId}` : ""}`}
               active={tab === "echanges"}
             >
@@ -725,10 +642,6 @@ export default async function MonDossierPage({
                 <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3">
                   <div className="text-xs text-muted">Docs en revue</div>
                   <div className="mt-1 text-sm font-semibold text-navy">{pendingReviewDocs}</div>
-                </div>
-                <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-3">
-                  <div className="text-xs text-muted">Paiements en attente</div>
-                  <div className="mt-1 text-sm font-semibold text-navy">{paymentsPending}</div>
                 </div>
               </div>
 
@@ -849,66 +762,6 @@ export default async function MonDossierPage({
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {tab === "paiements" ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Paiements</CardTitle>
-            <CardDescription>Suivi financier des prestations liées à ce client.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!targetClientId ? (
-              <div className="rounded-[var(--radius-md)] border border-border bg-white/60 p-4 text-sm text-muted">
-                Sélectionnez un client pour voir ses paiements.
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-[var(--radius-md)] border border-border">
-                <table className="w-full text-sm">
-                  <thead className="bg-surface">
-                    <tr className="text-left text-xs text-muted">
-                      <th className="px-4 py-3">Client</th>
-                      <th className="px-4 py-3">Service</th>
-                      <th className="px-4 py-3">Montant</th>
-                      <th className="px-4 py-3">Statut</th>
-                      <th className="px-4 py-3">Demande</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {proPaymentOrders.length === 0 ? (
-                      <tr className="border-t border-border">
-                        <td className="px-4 py-4 text-muted" colSpan={5}>
-                          Aucun paiement pour ce client.
-                        </td>
-                      </tr>
-                    ) : (
-                      proPaymentOrders.map((o) => (
-                        <tr key={o.id} className="border-t border-border">
-                          <td className="px-4 py-3 text-muted">{o.buyerUser.fullName}</td>
-                          <td className="px-4 py-3 font-medium text-text">{o.service.title}</td>
-                          <td className="px-4 py-3 text-muted">{money(o.amountCents, o.currency)}</td>
-                          <td className="px-4 py-3 text-muted">{o.status}</td>
-                          <td className="px-4 py-3">
-                            {o.marketplaceRequest?.id ? (
-                              <Link
-                                className="text-sm font-semibold text-primary underline"
-                                href={`/clients/demandes/${o.marketplaceRequest.id}`}
-                              >
-                                Ouvrir
-                              </Link>
-                            ) : (
-                              <span className="text-muted">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </CardContent>
         </Card>
       ) : null}

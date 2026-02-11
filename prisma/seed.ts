@@ -445,19 +445,20 @@ async function main() {
       await prisma.event.create({
         data: {
           title: "Webinaire – Comprendre les options de travail au Canada",
+          slug: "webinaire-options-travail-canada",
           description:
             "Identifier les programmes adaptés à votre profil et éviter les erreurs fréquentes.",
-          objectives:
-            "Clarifier les options, comprendre les critères, repartir avec une checklist.",
-          audience: "Candidats débutants à intermédiaires.",
           durationMin: 60,
           type: EventType.WEBINAIRE,
           theme: EventTheme.TRAVAIL,
           level: EventLevel.DEBUTANT,
           format: EventFormat.LIVE,
+          mode: "ONLINE",
+          status: "PUBLISHED",
+          isPaid: false,
           startsAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
           liveUrl: "https://example.com/live-travail",
-          isFeatured: true,
+          createdBy: pro.id,
           speakers: { create: [{ speakerId: s1.id }] },
         },
       });
@@ -465,19 +466,20 @@ async function main() {
       await prisma.event.create({
         data: {
           title: "Atelier – Dossier & documents : checklist complète",
+          slug: "atelier-dossier-documents",
           description:
             "Atelier pratique pour structurer vos preuves, traductions et attestations.",
-          objectives:
-            "Organiser votre dossier, prioriser les documents, réduire les erreurs.",
-          audience: "Candidats en préparation de dossier.",
-          prerequisites: "Avoir une liste de documents disponibles (même incomplète).",
           durationMin: 75,
           type: EventType.ATELIER,
           theme: EventTheme.DOCUMENTS,
           level: EventLevel.INTERMEDIAIRE,
           format: EventFormat.LIVE,
+          mode: "ONLINE",
+          status: "PUBLISHED",
+          isPaid: false,
           startsAt: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000),
           liveUrl: "https://example.com/live-documents",
+          createdBy: pro.id,
           speakers: { create: [{ speakerId: s2.id }] },
         },
       });
@@ -485,17 +487,19 @@ async function main() {
       await prisma.event.create({
         data: {
           title: "Formation – Budget & planification : éviter les mauvaises surprises",
+          slug: "formation-budget-planification",
           description:
             "Une formation progressive pour estimer et planifier votre budget de mobilité.",
-          objectives:
-            "Construire un budget réaliste, anticiper les coûts, structurer votre plan.",
-          audience: "Tous profils.",
           durationMin: 45,
           type: EventType.FORMATION,
           theme: EventTheme.BUDGET,
           level: EventLevel.DEBUTANT,
           format: EventFormat.REPLAY,
+          mode: "ONLINE",
+          status: "PUBLISHED",
+          isPaid: false,
           replayUrl: "https://example.com/replay-budget",
+          createdBy: pro.id,
           speakers: { create: [{ speakerId: s4.id }] },
         },
       });
@@ -503,17 +507,19 @@ async function main() {
       await prisma.event.create({
         data: {
           title: "Replay – CV & LinkedIn pour le Canada (bases solides)",
+          slug: "replay-cv-linkedin-canada",
           description:
-            "Optimiser votre profil et votre CV pour une recherche d’emploi crédible.",
-          objectives:
-            "Structurer un CV, aligner votre positionnement, éviter les pièges.",
-          audience: "Recherche d’emploi.",
+            "Optimiser votre profil et votre CV pour une recherche d'emploi crédible.",
           durationMin: 50,
           type: EventType.WEBINAIRE,
           theme: EventTheme.TRAVAIL,
           level: EventLevel.INTERMEDIAIRE,
           format: EventFormat.REPLAY,
+          mode: "ONLINE",
+          status: "PUBLISHED",
+          isPaid: false,
           replayUrl: "https://example.com/replay-cv",
+          createdBy: pro.id,
           speakers: { create: [{ speakerId: s3.id }] },
         },
       });

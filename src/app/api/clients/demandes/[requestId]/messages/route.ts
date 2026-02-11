@@ -53,7 +53,6 @@ export async function POST(
       select: {
         id: true,
         professionalId: true,
-        professional: { select: { userId: true } },
       },
     });
 
@@ -61,7 +60,7 @@ export async function POST(
       return NextResponse.json({ error: "Demande introuvable." }, { status: 404 });
     }
 
-    if (!isAdmin && request.professional?.userId !== auth.viewer.id) {
+    if (!isAdmin && request.professionalId !== auth.viewer.id) {
       return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
     }
 
@@ -109,7 +108,6 @@ export async function GET(
     select: {
       id: true,
       professionalId: true,
-      professional: { select: { userId: true } },
     },
   });
 
@@ -117,7 +115,7 @@ export async function GET(
     return NextResponse.json({ error: "Demande introuvable." }, { status: 404 });
   }
 
-  if (!isAdmin && request.professional?.userId !== auth.viewer.id) {
+  if (!isAdmin && request.professionalId !== auth.viewer.id) {
     return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
   }
 

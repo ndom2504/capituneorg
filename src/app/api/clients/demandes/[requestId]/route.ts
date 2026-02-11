@@ -68,31 +68,32 @@ export async function POST(
     const body = (await req.json().catch(() => null)) as UpdateRequestPayload | null;
     if (!body) return NextResponse.json({ error: "Payload invalide." }, { status: 400 });
 
-  const isAdmin = auth.viewer.accountType === "ADMIN";
+    const isAdmin = auth.viewer.accountType === "ADMIN";
 
-  const existing = await prisma.marketplaceRequest.findUnique({
-    where: { id: requestId },
-    include: {
-      requester: { select: { id: true } },
-      professional: { select: { userId: true } },
-    },
-  });
+    const existing = await prisma.marketplaceRequest.findUnique({
+      where: { id: requestId },
+      select: {
+        id: true,
+        requesterId: true,
+        professionalId: true,
+      },
+    });
 
-  if (!existing) {
-    return NextResponse.json({ error: "Demande introuvable." }, { status: 404 });
-  }
+    if (!existing) {
+      return NextResponse.json({ error: "Demande introuvable." }, { status: 404 });
+    }
 
-  if (!isAdmin && existing.professional?.userId !== auth.viewer.id) {
-    return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
-  }
+    if (!isAdmin && existing.professionalId !== auth.viewer.id) {
+      return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
+    }
 
-  const action = body.action;
-  if (!action) {
-    return NextResponse.json({ error: "action requise." }, { status: 400 });
-  }
+    const action = body.action;
+    if (!action) {
+      return NextResponse.json({ error: "action requise." }, { status: 400 });
+    }
 
-  const now = new Date();
-  const proNote = clampText(body.proNote, 800);
+    const now = new Date();
+    const proNote = clampText(body.proNote, 800);
 
   async function addSystemStatusMessage(status: "ACCEPTED" | "REJECTED" | "NEEDS_INFO") {
     await prisma.marketplaceRequestMessage.create({
@@ -148,7 +149,7 @@ export async function POST(
     try {
       await prisma.notification.create({
         data: {
-          userId: existing.requester.id,
+          userId: existing.requesterId,
           role: notificationRoleForAccountType("USER"),
           type: "MARKETPLACE_REQUEST_UPDATED",
           title: "Demande refusée",
@@ -184,7 +185,7 @@ export async function POST(
     try {
       await prisma.notification.create({
         data: {
-          userId: existing.requester.id,
+          userId: existing.requesterId,
           role: notificationRoleForAccountType("USER"),
           type: "MARKETPLACE_REQUEST_UPDATED",
           title: "Informations demandées",
@@ -209,19 +210,12 @@ export async function POST(
     return NextResponse.json({ error: "startsAt requis (ISO) pour ACCEPT." }, { status: 400 });
   }
 
-  // Génération automatique d'un lien Teams si aucun lien fourni
-  let locationUrl = clampText(body.locationUrl, 500);
-  if (!locationUrl) {
-    // Format: https://teams.microsoft.com/l/meetup-join/19%3ameeting_RANDOMID
-    // Pour simplifier, on génère un lien générique avec l'ID du meeting comme référence
-    // En production, intégrer Graph API pour créer un vrai meeting Teams
-    const meetingRef = Buffer.from(`${existing.id}-${Date.now()}`).toString("base64url");
-    locationUrl = `https://teams.microsoft.com/l/meetup-join/19%3ameeting_${meetingRef}`;
-  }
+    // Lien visio: manuel / optionnel (pas d'auto-génération, pas de Graph)
+    const locationUrl = clampText(body.locationUrl, 500);
 
   const meeting = await prisma.meeting.create({
     data: {
-      clientId: existing.requester.id,
+      clientId: existing.requesterId,
       proId: auth.viewer.id,
       title: "Meeting Marketplace",
       type: "ORIENTATION",
@@ -249,7 +243,7 @@ export async function POST(
   try {
     await prisma.notification.create({
       data: {
-        userId: existing.requester.id,
+        userId: existing.requesterId,
         role: notificationRoleForAccountType("USER"),
         type: "MARKETPLACE_REQUEST_ACCEPTED",
         title: "Rendez-vous accepté",
@@ -350,13 +344,6 @@ export async function GET(
       requester: { select: { id: true, fullName: true, avatarUrl: true } },
       professional: { select: { id: true, fullName: true } },
       meeting: { select: { id: true, startsAt: true, durationMin: true, locationUrl: true } },
-      paymentOrders: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        include: {
-          service: { select: { title: true, currency: true, priceCents: true } },
-        },
-      },
       messages: {
         where: { kind: "FILE" },
         orderBy: { createdAt: "desc" },
@@ -377,13 +364,6 @@ export async function GET(
           requester: { select: { id: true, fullName: true, avatarUrl: true } },
           professional: { select: { id: true, fullName: true } },
           meeting: { select: { id: true, startsAt: true, durationMin: true, locationUrl: true } },
-          paymentOrders: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            include: {
-              service: { select: { title: true, currency: true, priceCents: true } },
-            },
-          },
           messages: {
             where: { kind: "FILE" },
             orderBy: { createdAt: "desc" },
@@ -424,16 +404,6 @@ export async function GET(
       message: r.message,
       proNote: r.proNote,
       createdAt: r.createdAt.toISOString(),
-      payment:
-        r.paymentOrders.length > 0
-          ? {
-              orderId: r.paymentOrders[0].id,
-              status: r.paymentOrders[0].status,
-              amountCents: r.paymentOrders[0].amountCents,
-              currency: r.paymentOrders[0].currency,
-              serviceTitle: r.paymentOrders[0].service.title,
-            }
-          : null,
       cv: r.messages[0]?.fileUrl
         ? {
             url: r.messages[0].fileUrl,
