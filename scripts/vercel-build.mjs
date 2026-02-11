@@ -137,6 +137,7 @@ const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
   "20260208015242_community_rules_v1",
   "20260208190000_marketplace_pro_verification_docs",
   "20260210120000_marketplace_engagement_v1",
+  "20260210150000_add_case_models",
 ]);
 
 function fileExists(p) {
