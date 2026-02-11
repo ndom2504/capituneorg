@@ -30,8 +30,8 @@ export function CommunityPageHeader({
     viewerAccountType === "PROFESSIONAL" || viewerAccountType === "ADMIN"
       ? marketplaceEnabled
         ? "/clients/marketplace-profil"
-        : "/mon-parcours"
-      : "/mon-parcours";
+        : "/accueil"
+      : "/accueil";
 
   return (
     <section className="overflow-hidden rounded-[var(--radius-md)] border border-border bg-white/70">

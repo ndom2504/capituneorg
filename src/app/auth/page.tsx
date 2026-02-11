@@ -195,8 +195,8 @@ function AuthContent() {
       // Sinon → accueil
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
     } else {
-      // Demandeur : tant que la préinscription n'est pas soumise → mon-parcours, sinon → accueil
-      target = isNewUser || preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
+      // Demandeur : démarrer dans la communauté.
+      target = "/accueil";
     }
 
     window.location.assign(target);
@@ -330,7 +330,7 @@ function AuthContent() {
     } else if (isProfessionalAccount(resolvedAccountType)) {
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
     } else {
-      target = isNewUser || preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
+      target = "/accueil";
     }
 
     window.location.assign(target);
@@ -360,7 +360,7 @@ function AuthContent() {
     } else if (isProfessionalAccount(resolvedAccountType)) {
       target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
     } else {
-      target = isNewUser || preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
+      target = "/accueil";
     }
 
     window.location.assign(target);
@@ -539,8 +539,7 @@ function AuthContent() {
         // Professionnel : pas de profil marketplace → marketplace-profil, sinon → accueil
         target = !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
       } else {
-        // Demandeur : tant que la préinscription n'est pas soumise → mon-parcours
-        target = preRegistrationStatus !== "SUBMITTED" ? "/mon-parcours" : "/accueil";
+        target = "/accueil";
       }
 
       window.location.assign(target);
@@ -600,7 +599,7 @@ function AuthContent() {
 
       const accountType = data.accountType ?? signup.accountType;
       // Signup = toujours première fois : professionnel → marketplace-profil, demandeur → mon-parcours
-      const target = from || (isProfessionalAccount(accountType) ? "/clients/marketplace-profil" : "/mon-parcours");
+      const target = from || (isProfessionalAccount(accountType) ? "/clients/marketplace-profil" : "/accueil");
       window.location.assign(target);
     } finally {
       setLoading(false);
