@@ -27,6 +27,12 @@ function formatStartsAtShort(iso: string) {
   });
 }
 
+function getBannerUrl(url: string | null) {
+  if (!url) return null;
+  if (url.startsWith("http") || url.startsWith("/")) return url;
+  return `/uploads/events/${url}`;
+}
+
 export function EventsSidebarCard({ className }: { className?: string }) {
   const [events, setEvents] = useState<EventDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,7 +111,7 @@ export function EventsSidebarCard({ className }: { className?: string }) {
                 >
                   <div className="h-10 w-14 shrink-0 overflow-hidden rounded bg-gray-100 border border-border/40 relative">
                     {e.bannerUrl ? (
-                      <img src={e.bannerUrl} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300" alt="" />
+                      <img src={getBannerUrl(e.bannerUrl) ?? ""} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300" alt="" />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-[8px] font-bold text-gray-300 uppercase leading-none text-center">Live</div>
                     )}
