@@ -135,6 +135,7 @@ const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
   "20260207110000_marketplace_professions_v2",
   "20260207182430_role_locked",
   "20260208015242_community_rules_v1",
+  "20260208190000_marketplace_pro_verification_docs",
 ]);
 
 function fileExists(p) {
