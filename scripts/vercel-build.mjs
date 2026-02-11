@@ -254,8 +254,13 @@ if (isVercel) {
     const deploy = () => runBinCapture("prisma", ["migrate", "deploy"]);
 
     let deployResult = deploy();
-    if (deployResult.status !== 0) {
+    let maxRetries = 10;
+    let retries = 0;
+
+    while (deployResult.status !== 0 && retries < maxRetries) {
+      retries++;
       let combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
+      let fixed = false;
 
       // 1. Auto-heal P3005: The database schema is not empty (baseline needed)
       if (isP3005Error(combinedOutput)) {
@@ -265,77 +270,89 @@ if (isVercel) {
         );
         try {
           runBin("prisma", ["migrate", "resolve", "--applied", firstMigration]);
-          deployResult = deploy();
-          combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
+          fixed = true;
         } catch {
           // fall through
         }
       }
 
       // 2. Auto-heal when Prisma blocks deploy due to a migration recorded as failed.
-      const failedMigration = getFailedMigrationName(combinedOutput);
-      if (deployResult.status !== 0 && failedMigration && AUTO_RESOLVE_APPLIED_MIGRATIONS.has(failedMigration)) {
-        log(
-          `Detected failed migration record '${failedMigration}'; resolving (rolled-back then applied if needed), then retrying prisma migrate deploy.`,
-        );
-        try {
+      if (!fixed) {
+        const failedMigration = getFailedMigrationName(combinedOutput);
+        if (failedMigration && AUTO_RESOLVE_APPLIED_MIGRATIONS.has(failedMigration)) {
+          log(
+            `Detected failed migration record '${failedMigration}'; resolving (rolled-back then applied if needed), then retrying prisma migrate deploy.`,
+          );
           try {
-            runBin("prisma", ["migrate", "resolve", "--rolled-back", failedMigration]);
+            try {
+              runBin("prisma", ["migrate", "resolve", "--rolled-back", failedMigration]);
+            } catch {
+              // ignore
+            }
+            // After rollback, we try deploy. If it fails again with "already exists", we'll resolve as applied in the next loop iteration or below.
+            // Actually, let's try to resolve it right here if it still fails.
+            const intermediateResult = deploy();
+            const intermediateOutput = `${intermediateResult.stdout ?? ""}\n${intermediateResult.stderr ?? ""}`;
+            
+            if (intermediateResult.status !== 0 && (isAlreadyExistsLikeError(intermediateOutput) || getApplyingMigrationName(intermediateOutput) === failedMigration)) {
+              runBin("prisma", ["migrate", "resolve", "--applied", failedMigration]);
+            }
+            fixed = true;
           } catch {
             // ignore
           }
-          deployResult = deploy();
-          combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
-
-          if (deployResult.status !== 0 && (isAlreadyExistsLikeError(combinedOutput) || getApplyingMigrationName(combinedOutput) === failedMigration)) {
-            runBin("prisma", ["migrate", "resolve", "--applied", failedMigration]);
-            deployResult = deploy();
-            combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
-          }
-        } catch {
-          // ignore
         }
       }
 
       // 3. Auto-heal a common production blocker: tables exist but migration history is missing.
-      if (deployResult.status !== 0 && isConversationAlreadyExistsError(combinedOutput)) {
+      if (!fixed && isConversationAlreadyExistsError(combinedOutput)) {
         const migrationName = "20260206_add_messaging_system";
         log(
           `Detected existing Conversation table; resolving migration '${migrationName}' as applied, then retrying prisma migrate deploy.`,
         );
         try {
           runBin("prisma", ["migrate", "resolve", "--applied", migrationName]);
-          deployResult = deploy();
-          combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
+          fixed = true;
         } catch {
           // ignore
         }
       }
 
       // 4. Auto-heal when a migration fails with "already exists" (manual SQL applied)
-      const applying = getApplyingMigrationName(combinedOutput);
-      if (deployResult.status !== 0 && applying && AUTO_RESOLVE_APPLIED_MIGRATIONS.has(applying) && isAlreadyExistsLikeError(combinedOutput)) {
-        log(
-          `Detected '${applying}' failing with an 'already exists' error; resolving as applied, then retrying prisma migrate deploy.`,
-        );
-        try {
-          runBin("prisma", ["migrate", "resolve", "--applied", applying]);
-          deployResult = deploy();
-          combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
-        } catch {
-          // ignore
+      if (!fixed) {
+        const applying = getApplyingMigrationName(combinedOutput);
+        if (applying && AUTO_RESOLVE_APPLIED_MIGRATIONS.has(applying) && isAlreadyExistsLikeError(combinedOutput)) {
+          log(
+            `Detected '${applying}' failing with an 'already exists' error; resolving as applied, then retrying prisma migrate deploy.`,
+          );
+          try {
+            runBin("prisma", ["migrate", "resolve", "--applied", applying]);
+            fixed = true;
+          } catch {
+            // ignore
+          }
         }
       }
 
-      if (deployResult.status !== 0) {
-        if (!allowMigrateFailure) {
-          throw new Error(`Command failed (${deployResult.status}): prisma migrate deploy\n${combinedOutput}`);
-        }
-        log(
-          `Warning: prisma migrate deploy failed but ALLOW_PRISMA_MIGRATE_FAILURE is set; continuing.`,
-        );
+      if (fixed) {
+        deployResult = deploy();
+      } else {
+        // Nothing left to try fixing
+        break;
       }
     }
+
+    if (deployResult.status !== 0) {
+      const combinedOutput = `${deployResult.stdout ?? ""}\n${deployResult.stderr ?? ""}`;
+      if (!allowMigrateFailure) {
+        throw new Error(`Command failed (${deployResult.status}): prisma migrate deploy\n${combinedOutput}`);
+      }
+      log(
+        `Warning: prisma migrate deploy failed but ALLOW_PRISMA_MIGRATE_FAILURE is set; continuing.`,
+      );
+    }
+  }
+}
   }
 }
 
