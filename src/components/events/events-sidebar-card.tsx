@@ -29,10 +29,12 @@ function formatStartsAtShort(iso: string) {
 
 export function EventsSidebarCard({ className }: { className?: string }) {
   const [events, setEvents] = useState<EventDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setIsLoading(true);
     fetch("/api/events", { cache: "no-store" })
       .then(async (res) => {
         if (!res.ok) throw new Error("Chargement impossible");
@@ -41,6 +43,9 @@ export function EventsSidebarCard({ className }: { className?: string }) {
       })
       .catch(() => {
         if (!cancelled) setError("Événements indisponibles");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
       });
 
     return () => {
@@ -64,6 +69,8 @@ export function EventsSidebarCard({ className }: { className?: string }) {
       .slice(0, 2);
   }, [events]);
 
+  const isEmpty = upcoming.length === 0 && trainings.length === 0;
+
   return (
     <Card className={cn("overflow-hidden border-border bg-white shadow-sm hover:shadow-md transition-all", className)}>
       <CardHeader className="flex flex-row items-center justify-between gap-3 p-4 pb-2">
@@ -75,12 +82,16 @@ export function EventsSidebarCard({ className }: { className?: string }) {
       <CardContent className="space-y-4 p-4 pt-2">
         {error ? <div className="text-[10px] text-red-500 font-medium">{error}</div> : null}
 
-        {!error && events.length === 0 ? (
+        {isLoading ? (
           <div className="flex items-center gap-2 py-2">
             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />
             <div className="text-[10px] text-muted font-medium">Synchronisation...</div>
           </div>
         ) : null}
+
+        {!isLoading && !error && isEmpty && (
+           <div className="py-2 text-[10px] text-muted font-medium italic">Aucun événement planifié.</div>
+        )}
 
         {upcoming.length > 0 && (
           <div className="space-y-2">
@@ -92,7 +103,7 @@ export function EventsSidebarCard({ className }: { className?: string }) {
                   href={`/events/${e.slug}`}
                   className="flex items-center gap-2.5 rounded-lg border border-border bg-gray-50/50 p-2 hover:bg-white hover:border-primary/30 transition-all group"
                 >
-                  <div className="h-10 w-14 shrink-0 overflow-hidden rounded bg-gray-100 border border-border/40">
+                  <div className="h-10 w-14 shrink-0 overflow-hidden rounded bg-gray-100 border border-border/40 relative">
                     {e.bannerUrl ? (
                       <img src={e.bannerUrl} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300" alt="" />
                     ) : (
