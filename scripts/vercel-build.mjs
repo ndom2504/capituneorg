@@ -127,6 +127,7 @@ const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
   "20260205233000_refactor_jobs_v1",
   "20260206_add_messaging_system",
   "20260206015353_add_presence_and_verification",
+  "20260206133840_add_performance_system",
   "20260206193000_add_user_settings",
   "20260206223000_admin_v1",
   "20260207005000_platform_settings_v1",
