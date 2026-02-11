@@ -132,6 +132,7 @@ const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
   "20260206223000_admin_v1",
   "20260207005000_platform_settings_v1",
   "20260207091000_employment_profile_v1",
+  "20260207110000_marketplace_professions_v2",
 ]);
 
 function fileExists(p) {
