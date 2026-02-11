@@ -123,6 +123,7 @@ function isAlreadyExistsLikeError(output) {
 
 const AUTO_RESOLVE_APPLIED_MIGRATIONS = new Set([
   "20260205172558_notification_capitune",
+  "20260205231708_add_job_postings",
   "20260206_add_messaging_system",
   "20260206015353_add_presence_and_verification",
   "20260206193000_add_user_settings",
