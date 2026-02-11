@@ -3,7 +3,7 @@ import * as React from "react";
 import { cn } from "@/lib/cn";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
-type ButtonSize = "sm" | "md";
+type ButtonSize = "sm" | "md" | "icon";
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
@@ -16,7 +16,7 @@ export function getButtonClasses(variant: ButtonVariant = "primary", size: Butto
     "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-sm font-semibold transition-[color,background-color,border-color,box-shadow,transform]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "disabled:pointer-events-none disabled:opacity-50",
-    size === "sm" ? "h-9 px-3" : "h-10 px-4",
+    size === "sm" ? "h-9 px-3" : size === "icon" ? "h-10 w-10 shrink-0" : "h-10 px-4",
     variant === "primary" &&
       "bg-primary text-white border border-primary/25 shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 active:shadow-sm",
     variant === "outline" &&
