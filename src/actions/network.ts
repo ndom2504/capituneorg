@@ -156,7 +156,7 @@ export async function respondToPartnershipRequest(requestId: string, accept: boo
 
 export async function getMyNetwork() {
   const viewer = await getAppViewer();
-  if (!viewer) return { connections: [], receivedRequests: [] };
+  if (!viewer) return { receivedRequests: [], partners: [] };
 
   // 1. Received Pending Requests
   const receivedRequests = await prisma.partnershipRequest.findMany({
