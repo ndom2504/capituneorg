@@ -240,6 +240,17 @@ export const NAV_ITEMS: NavItem[] = [
     professionalOnly: true,
     featureKey: "proNetwork",
   },
-  { href: "/profil", label: "Profil", icon: icons.user },
+  { 
+    href: "/pro/profile", 
+    label: "Mon Profil Pro", 
+    icon: icons.user, 
+    professionalOnly: true 
+  },
+  { 
+    href: "/profil", 
+    label: "Profil", 
+    icon: icons.user, 
+    hideForProfessionals: true 
+  },
   { href: "/parametres", label: "Paramètres", icon: icons.settings },
 ];
