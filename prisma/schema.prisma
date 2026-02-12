@@ -1786,6 +1786,14 @@ model Conversation {
   @@index([lastMessageAt])
 }
 
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  VIDEO
+  AUDIO
+}
+
 model Message {
   id String @id @default(cuid())
 
@@ -1795,7 +1803,13 @@ model Message {
   senderId String
   sender   User   @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
 
-  content String @db.Text
+  content String? @db.Text
+  type    MessageType @default(TEXT)
+
+  attachmentUrl String?
+  mimeType      String?
+  fileName      String?
+  fileSize      Int?
 
   isRead Boolean   @default(false)
   readAt DateTime?

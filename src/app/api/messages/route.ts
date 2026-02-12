@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAppViewer } from "@/lib/auth/viewer";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
+import { MessageType } from "@prisma/client";
 
 // POST /api/messages - Envoyer un message dans une conversation
 export async function POST(request: Request) {
@@ -17,17 +18,25 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { conversationId, content } = body;
+    const { conversationId, content, type, attachmentUrl, mimeType, fileName, fileSize } = body;
 
     if (!conversationId || typeof conversationId !== "string") {
       return NextResponse.json({ error: "conversationId requis" }, { status: 400 });
     }
 
-    if (!content || typeof content !== "string" || content.trim().length === 0) {
-      return NextResponse.json({ error: "Message vide" }, { status: 400 });
+    const msgType = (type && Object.values(MessageType).includes(type)) ? type : MessageType.TEXT;
+
+    if (msgType === MessageType.TEXT) {
+       if (!content || typeof content !== "string" || content.trim().length === 0) {
+         return NextResponse.json({ error: "Message vide" }, { status: 400 });
+       }
+    } else {
+       if (!attachmentUrl) {
+           return NextResponse.json({ error: "Fichier joint manquant" }, { status: 400 });
+       }
     }
 
-    if (content.length > 5000) {
+    if (content && content.length > 5000) {
       return NextResponse.json({ error: "Message trop long (max 5000 caractères)" }, { status: 400 });
     }
 
@@ -56,7 +65,12 @@ export async function POST(request: Request) {
       data: {
         conversationId,
         senderId: viewer.id,
-        content: content.trim(),
+        content: content ? content.trim() : null,
+        type: msgType,
+        attachmentUrl,
+        mimeType,
+        fileName,
+        fileSize
       },
       include: {
         sender: {
