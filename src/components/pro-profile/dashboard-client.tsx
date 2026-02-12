@@ -101,16 +101,6 @@ export function ProProfileDashboardClient({ user, initialProfile }: Props) {
                     <Input name="country" defaultValue={initialProfile?.country || "Canada"} />
                  </div>
              </div>
-
-             <div className="space-y-2">
-                <label className="text-sm font-medium">Années d'Expérience</label>
-                <Input 
-                    type="number" 
-                    name="experienceYears" 
-                    defaultValue={initialProfile?.experienceYears || 0} 
-                    min={0}
-                />
-             </div>
              
              <div className="space-y-2">
                 <label className="text-sm font-medium">Biographie</label>

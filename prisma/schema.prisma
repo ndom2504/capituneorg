@@ -992,8 +992,6 @@ model MarketplaceProfile {
   pricingMode MarketplacePricingMode @default(FREE)
   price30Min  Int?
   price60Min  Int?
-  
-  experienceYears Int?
 
   // Stats (cached)
   ratingAvg       Float @default(0)

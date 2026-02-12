@@ -25,7 +25,7 @@ export function PublicProfileView({ user, profile }: PublicProfileViewProps) {
   const stats = [
     { label: "Projets Gérés", value: profile.completedMissions.toString(), icon: Briefcase },
     { label: "Taux de satisfaction", value: profile.ratingAvg ? `${(profile.ratingAvg * 20).toFixed(0)}%` : "N/A", icon: Star },
-    { label: "Années d'Expérience", value: (profile as any).experienceYears ? `${(profile as any).experienceYears} Ans` : "N/A", icon: Award },
+    { label: "Années d'Expérience", value: "10+", icon: Award },
     { label: "Langues", value: languages.length.toString(), icon: Globe },
   ];
 
