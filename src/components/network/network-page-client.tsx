@@ -37,6 +37,7 @@ export function NetworkPageClient({
     );
     const [isSending, startSendingTransition] = useTransition();
     const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [openingChatId, setOpeningChatId] = useState<string | null>(null);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,6 +84,7 @@ export function NetworkPageClient({
     };
 
     const handleOpenChat = async (partnerId: string) => {
+        setOpeningChatId(partnerId);
         try {
             const res = await fetch("/api/conversations", {
                 method: "POST",
@@ -90,18 +92,26 @@ export function NetworkPageClient({
                 body: JSON.stringify({ otherUserId: partnerId }),
             });
             
-            if (!res.ok) throw new Error("Impossible d'ouvrir la conversation");
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || "Impossible d'ouvrir la conversation");
+            }
             
             const data = await res.json();
+            console.log("Conversation opened:", data.id);
+            
             // Dispatch custom event to open messaging widget
             window.dispatchEvent(
                 new CustomEvent("open-conversation", { 
                     detail: { conversationId: data.id } 
                 })
             );
-        } catch (err) {
-            setStatusMessage({ type: 'error', text: "Erreur lors de l'ouverture du chat." });
+        } catch (err: any) {
+            console.error(err);
+            setStatusMessage({ type: 'error', text: err.message || "Erreur ouverture chat" });
             setTimeout(() => setStatusMessage(null), 3000);
+        } finally {
+            setOpeningChatId(null);
         }
     };
 
@@ -291,9 +301,14 @@ export function NetworkPageClient({
                                             variant="ghost" 
                                             className="text-muted-foreground hover:text-primary"
                                             onClick={() => handleOpenChat(partner.id)}
+                                            disabled={openingChatId === partner.id}
                                             title="Envoyer un message"
                                         >
-                                            <MessageSquare className="h-4 w-4" />
+                                            {openingChatId === partner.id ? (
+                                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                            ) : (
+                                                <MessageSquare className="h-4 w-4" />
+                                            )}
                                         </Button>
                                     </div>
                                 ))}
