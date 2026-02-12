@@ -97,13 +97,18 @@ export function NetworkPageClient({
                 throw new Error(errorData.error || "Impossible d'ouvrir la conversation");
             }
             
-            const data = await res.json();
-            console.log("Conversation opened:", data.id);
+            const { conversation } = await res.json();
+            
+            if (!conversation?.id) {
+                throw new Error("ID de conversation manquant");
+            }
+
+            console.log("Conversation opened:", conversation.id);
             
             // Dispatch custom event to open messaging widget
             window.dispatchEvent(
                 new CustomEvent("open-conversation", { 
-                    detail: { conversationId: data.id } 
+                    detail: { conversationId: conversation.id } 
                 })
             );
         } catch (err: any) {
