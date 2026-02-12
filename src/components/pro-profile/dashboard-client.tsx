@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { AvatarBubble } from "@/components/ui/avatar-bubble";
 import { updateProProfile } from "@/actions/pro-profile";
 import { useState } from "react";
+import Link from "next/link";
+import { Eye } from "lucide-react";
 
 interface Props {
   user: User;
@@ -45,6 +47,15 @@ export function ProProfileDashboardClient({ user, initialProfile }: Props) {
             <Button variant="outline" size="sm" className="mb-6">
                 Changer la photo
             </Button>
+            
+            <div className="mb-6">
+                <Button variant="default" className="w-full gap-2 bg-navy hover:bg-navy/90" asChild>
+                  <Link href={`/pro/${user.id}`}>
+                    <Eye className="w-4 h-4" />
+                    Voir mon profil public
+                  </Link>
+                </Button>
+            </div>
 
             <div className="text-left space-y-4">
                 <div>
