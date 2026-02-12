@@ -49,6 +49,7 @@ export default async function ReseauProPage() {
       <NetworkPageClient 
           initialNetworkData={networkData} 
           initialPros={initialPros}
+          viewerId={viewer.id}
       />
     </div>
   );

@@ -17,15 +17,18 @@ type NetworkData = {
 
 export function NetworkPageClient({
     initialNetworkData,
-    initialPros = []
+    initialPros = [],
+    viewerId
 }: {
     initialNetworkData: NetworkData,
-    initialPros?: ProResult[]
+    initialPros?: ProResult[],
+    viewerId: string
 }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState<ProResult[]>(initialPros);
     const [isSearching, startSearchTransition] = useTransition();
     const [activeTab, setActiveTab] = useState<"DISCOVER" | "NETWORK">("DISCOVER");
+    const visibleResults = searchResults.filter((pro) => pro.id !== viewerId);
     
     // Invitation Modal
     const [selectedPro, setSelectedPro] = useState<ProResult | null>(null);
@@ -143,9 +146,9 @@ export function NetworkPageClient({
                     </form>
 
                     {/* Results */}
-                    {searchResults.length > 0 ? (
+                    {visibleResults.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {searchResults.map((pro) => (
+                            {visibleResults.map((pro) => (
                                 <Card key={pro.id} className="p-4 flex flex-col items-center text-center gap-3 hover:shadow-md transition-shadow">
                                     <AvatarBubble 
                                         name={pro.fullName} 

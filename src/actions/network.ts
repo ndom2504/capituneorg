@@ -127,7 +127,7 @@ export async function sendPartnershipRequest(targetUserId: string, message: stri
       });
   }
 
-  revalidatePath("/reseau");
+  revalidatePath("/reseau-pro");
   return { success: true };
 }
 
@@ -150,7 +150,7 @@ export async function respondToPartnershipRequest(requestId: string, accept: boo
     },
   });
 
-  revalidatePath("/reseau");
+  revalidatePath("/reseau-pro");
   return { success: true };
 }
 
