@@ -15,6 +15,7 @@ export async function updateProProfile(formData: FormData) {
     const profession = formData.get("profession") as MarketplaceProfession || "IMMIGRATION_CONSULTANT";
     const city = formData.get("city") as string;
     const country = formData.get("country") as string;
+    const experienceYears = parseInt(formData.get("experienceYears") as string) || 0;
     
     // Complex fields handling (simplified for this demo)
     const languages = (formData.get("languages") as string)?.split(",").map(s => s.trim()).filter(Boolean) || [];
@@ -29,6 +30,7 @@ export async function updateProProfile(formData: FormData) {
             city,
             country,
             profession,
+            experienceYears,
             languagesJson: languages,
             specialtiesJson: specialties,
         },
@@ -39,6 +41,7 @@ export async function updateProProfile(formData: FormData) {
             city: city || "Montreal",
             country: country || "Canada",
             profession,
+            experienceYears,
             languagesJson: languages,
             specialtiesJson: specialties,
             status: "DRAFT"

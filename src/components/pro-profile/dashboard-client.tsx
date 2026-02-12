@@ -101,6 +101,16 @@ export function ProProfileDashboardClient({ user, initialProfile }: Props) {
                     <Input name="country" defaultValue={initialProfile?.country || "Canada"} />
                  </div>
              </div>
+
+             <div className="space-y-2">
+                <label className="text-sm font-medium">Années d'Expérience</label>
+                <Input 
+                    type="number" 
+                    name="experienceYears" 
+                    defaultValue={initialProfile?.experienceYears || 0} 
+                    min={0}
+                />
+             </div>
              
              <div className="space-y-2">
                 <label className="text-sm font-medium">Biographie</label>
@@ -119,6 +129,7 @@ export function ProProfileDashboardClient({ user, initialProfile }: Props) {
 
              <div className="space-y-2">
                 <label className="text-sm font-medium">Domaines d'expertise (séparés par des virgules)</label>
+                <p className="text-xs text-gray-500 mb-1">Affichés sous forme de tuiles sur votre profil (ex: Permis d'études, Entrée Express, Parrainage)</p>
                 <Input name="specialties" defaultValue={specialties} placeholder="Permis d'études, Parrainage, Entrée Express" />
                 <p className="text-xs text-gray-500">Ces tags apparaîtront sur votre profil public.</p>
              </div>
