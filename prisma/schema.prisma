@@ -993,6 +993,11 @@ model MarketplaceProfile {
   price30Min  Int?
   price60Min  Int?
 
+  // Stats (cached)
+  ratingAvg       Float @default(0)
+  ratingCount     Int   @default(0)
+  completedMissions Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
