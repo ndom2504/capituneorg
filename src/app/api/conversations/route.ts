@@ -121,17 +121,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
     }
 
-    // Règle métier : messages uniquement entre USER (demandeur) et PROFESSIONAL (pro)
-    const viewerIsPro = viewer.accountType === "PROFESSIONAL" && !!viewer.marketplaceProfile;
-    const otherIsPro = otherUser.accountType === "PROFESSIONAL" && !!otherUser.marketplaceProfile;
+    // Règle métier : messages uniquement impliquant au moins un professionnel
+    // (Utilisateur <-> Pro) OU (Pro <-> Pro)
+    // Les conversations Utilisateur <-> Utilisateur sont interdites.
+    const viewerIsPro = (viewer.accountType === "PROFESSIONAL" && !!viewer.marketplaceProfile) || viewer.accountType === "ADMIN";
+    const otherIsPro = (otherUser.accountType === "PROFESSIONAL" && !!otherUser.marketplaceProfile) || otherUser.accountType === "ADMIN";
 
-    // Au moins un des deux doit être pro, et l'autre demandeur
-    const isValidConversation =
-      (viewerIsPro && !otherIsPro) || (!viewerIsPro && otherIsPro);
+    // Au moins un des deux doit être pro
+    const isValidConversation = viewerIsPro || otherIsPro;
 
     if (!isValidConversation) {
       return NextResponse.json(
-        { error: "Messages uniquement entre demandeurs et professionnels" },
+        { error: "Les messages doivent impliquer au moins un professionnel." },
         { status: 403 }
       );
     }

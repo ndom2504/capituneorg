@@ -107,7 +107,6 @@ export async function sendPartnershipRequest(targetUserId: string, message: stri
   }
 
   if (existing) {
-     console.log("Updating existing request:", existing.id);
      await prisma.partnershipRequest.update({
         where: { id: existing.id },
         data: {
@@ -118,7 +117,6 @@ export async function sendPartnershipRequest(targetUserId: string, message: stri
         }
      })
   } else {
-      console.log("Creating new request from", viewer.id, "to", targetUserId);
       await prisma.partnershipRequest.create({
         data: {
           fromId: viewer.id,
@@ -137,7 +135,6 @@ export async function respondToPartnershipRequest(requestId: string, accept: boo
   const viewer = await getAppViewer();
   if (!viewer) throw new Error("Unauthorized");
 
-  console.log("Responding to request:", requestId, "Accept:", accept);
   const request = await prisma.partnershipRequest.findUnique({
     where: { id: requestId },
   });
@@ -161,8 +158,6 @@ export async function respondToPartnershipRequest(requestId: string, accept: boo
 export async function getMyNetwork() {
   const viewer = await getAppViewer();
   if (!viewer) return { receivedRequests: [], partners: [] };
-
-  console.log("Fetching network for:", viewer.id);
 
   // 1. Received Pending Requests
   const receivedRequests = await prisma.partnershipRequest.findMany({
@@ -189,7 +184,6 @@ export async function getMyNetwork() {
   });
   console.log("Found requests:", receivedRequests.length);
 
-  // 2. Accepted Connections (both directions)
   const connections = await prisma.partnershipRequest.findMany({
     where: {
       status: "ACCEPTED",

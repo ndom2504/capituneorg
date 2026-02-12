@@ -82,6 +82,29 @@ export function NetworkPageClient({
         }
     };
 
+    const handleOpenChat = async (partnerId: string) => {
+        try {
+            const res = await fetch("/api/conversations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ otherUserId: partnerId }),
+            });
+            
+            if (!res.ok) throw new Error("Impossible d'ouvrir la conversation");
+            
+            const data = await res.json();
+            // Dispatch custom event to open messaging widget
+            window.dispatchEvent(
+                new CustomEvent("open-conversation", { 
+                    detail: { conversationId: data.id } 
+                })
+            );
+        } catch (err) {
+            setStatusMessage({ type: 'error', text: "Erreur lors de l'ouverture du chat." });
+            setTimeout(() => setStatusMessage(null), 3000);
+        }
+    };
+
     return (
         <div className="space-y-8 relative">
             {/* Status Notification */}
@@ -259,10 +282,19 @@ export function NetworkPageClient({
                                             url={partner.avatarUrl} 
                                             size="md"
                                         />
-                                        <div className="overflow-hidden">
+                                        <div className="overflow-hidden flex-1">
                                             <h4 className="font-medium text-sm truncate">{partner.fullName}</h4>
                                             <p className="text-xs text-muted-foreground truncate">{partner.marketplaceProfile?.profession}</p>
                                         </div>
+                                        <Button 
+                                            size="icon" 
+                                            variant="ghost" 
+                                            className="text-muted-foreground hover:text-primary"
+                                            onClick={() => handleOpenChat(partner.id)}
+                                            title="Envoyer un message"
+                                        >
+                                            <MessageSquare className="h-4 w-4" />
+                                        </Button>
                                     </div>
                                 ))}
                              </div>
