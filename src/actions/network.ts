@@ -182,8 +182,6 @@ export async function getMyNetwork() {
     },
     orderBy: { createdAt: "desc" },
   });
-  console.log("Found requests:", receivedRequests.length);
-
   const connections = await prisma.partnershipRequest.findMany({
     where: {
       status: "ACCEPTED",
