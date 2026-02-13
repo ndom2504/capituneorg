@@ -20,7 +20,7 @@ export async function GET(
     select: {
       id: true,
       accountType: true,
-      marketplaceProfile: {
+      professionalProfile: {
         select: {
           id: true,
           profession: true,
@@ -37,7 +37,7 @@ export async function GET(
   }
 
   // Si pas de profil marketplace, pas de performance
-  if (!user.marketplaceProfile) {
+  if (!user.professionalProfile) {
     return NextResponse.json({
       casesCompleted: 0,
       averageRating: null,

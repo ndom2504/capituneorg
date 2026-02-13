@@ -18,7 +18,7 @@ export default async function MarketplacePage() {
   }
   
   if (viewer && isProfessional) {
-    const profile = await prisma.marketplaceProfile.findUnique({
+    const profile = await prisma.professionalProfile.findUnique({
       where: { userId: viewer.id },
       select: { id: true },
     });

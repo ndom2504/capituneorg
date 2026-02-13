@@ -87,29 +87,34 @@ export function Topbar({
           </div>
         </div>
 
-        {/* Onglets (réduits) */}
+        {/* Onglets */}
         <nav className="hidden shrink-0 items-center gap-0.5 md:flex" aria-label="Navigation principale">
-          {viewer?.accountType === "PROFESSIONAL" || viewer?.accountType === "ADMIN" ? (
-            <TopbarTab href="/clients/demandes" active={pathname.startsWith("/clients/demandes")}>
-              Demandes
-            </TopbarTab>
-          ) : (
-            <TopbarTab href="/mon-dossier" active={pathname.startsWith("/mon-dossier")}>
-              Mon dossier
-            </TopbarTab>
-          )}
-
-          {featureFlags.events !== false ? (
-            <TopbarTab href="/events" active={pathname.startsWith("/events")}>
-              Événements
-            </TopbarTab>
+          <TopbarTab href="/mon-dossier" active={pathname.startsWith("/mon-dossier")}>Mon dossier</TopbarTab>
+          {featureFlags.jobs !== false ? (
+            <TopbarTab href="/emploi" active={pathname.startsWith("/emploi")}>Emploi</TopbarTab>
           ) : null}
-
-          {viewer?.accountType ? (
-            <TopbarTab href="/accueil" active={pathname === "/accueil"}>
-              Communauté
-            </TopbarTab>
+          {showClientsTab ? (
+            <TopbarTab href="/clients" active={pathname.startsWith("/clients")}>Clients</TopbarTab>
           ) : null}
+          {featureFlags.marketplace !== false ? (
+            <>
+              <TopbarTab
+                href="/marketplace"
+                active={pathname.startsWith("/marketplace") && !pathname.startsWith("/marketplace/mes-demandes")}
+              >
+                Marketplace
+              </TopbarTab>
+              {viewer?.accountType === "USER" ? (
+                <TopbarTab
+                  href="/marketplace/mes-demandes"
+                  active={pathname.startsWith("/marketplace/mes-demandes")}
+                >
+                  Mes demandes
+                </TopbarTab>
+              ) : null}
+            </>
+          ) : null}
+          <TopbarTab href="/mon-parcours" active={pathname.startsWith("/mon-parcours")}>Mon parcours</TopbarTab>
         </nav>
 
         {/* Spacer pour pousser les actions à droite */}

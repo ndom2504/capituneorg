@@ -87,13 +87,13 @@ export async function POST(
       return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
     }
 
-    const action = body.action;
-    if (!action) {
-      return NextResponse.json({ error: "action requise." }, { status: 400 });
-    }
+  const action = body.action;
+  if (!action) {
+    return NextResponse.json({ error: "action requise." }, { status: 400 });
+  }
 
-    const now = new Date();
-    const proNote = clampText(body.proNote, 800);
+  const now = new Date();
+  const proNote = clampText(body.proNote, 800);
 
   async function addSystemStatusMessage(status: "ACCEPTED" | "REJECTED" | "NEEDS_INFO") {
     await prisma.marketplaceRequestMessage.create({
@@ -210,8 +210,7 @@ export async function POST(
     return NextResponse.json({ error: "startsAt requis (ISO) pour ACCEPT." }, { status: 400 });
   }
 
-    // Lien visio: manuel / optionnel (pas d'auto-génération, pas de Graph)
-    const locationUrl = clampText(body.locationUrl, 500);
+  const locationUrl = clampText(body.locationUrl, 500);
 
   const meeting = await prisma.meeting.create({
     data: {

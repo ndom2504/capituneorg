@@ -214,14 +214,6 @@ export function DemandeDetail({ requestId }: { requestId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeRequestId]);
 
-  function money(amountCents: number, currency: string) {
-    const amount = amountCents / 100;
-    return new Intl.NumberFormat("fr-CA", {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(amount);
-  }
-
   async function act(action: Action) {
     if (!item) return;
 

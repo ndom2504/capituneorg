@@ -23,90 +23,67 @@ type ConversationItem = {
   lastMessageAt: string;
 };
 
-type CaseItem = {
+type MarketplaceRequestItem = {
   id: string;
   status: string;
-  title: string;
-  description: string;
-  serviceId?: string | null;
-  requester: { id: string; fullName: string; avatarUrl: string | null; accountType: string };
-  professional: { id: string; fullName: string; avatarUrl: string | null; accountType: string };
+  topic: string | null;
+  otherUser: { id: string; fullName: string; avatarUrl: string | null };
+  openUrl: string;
   lastMessage: {
     id: string;
     body: string | null;
-    fileName: string | null;
-    fileUrl: string | null;
-    authorId: string;
+    senderRole: string;
     createdAt: string;
   } | null;
   unreadCount: number;
-  viewerRole: "REQUESTER" | "PROFESSIONAL";
-  lastActivityAt: string;
 };
 
 export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (conversationId: string) => void }) {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [cases, setCases] = useState<CaseItem[]>([]);
+  const [marketplaceRequests, setMarketplaceRequests] = useState<MarketplaceRequestItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    const controller = new AbortController();
-
-    const refresh = async () => {
-      await Promise.all([fetchConversations(controller.signal), fetchCases(controller.signal)]);
-      if (mounted) setLoading(false);
-    };
-
-    void refresh();
-
+    fetchConversations();
+    fetchMarketplaceRequests();
+    // Rafraîchir toutes les 10 secondes
     const interval = setInterval(() => {
-      const tickController = new AbortController();
-      void fetchConversations(tickController.signal);
-      void fetchCases(tickController.signal);
+      fetchConversations();
+      fetchMarketplaceRequests();
     }, 10000);
-
-    return () => {
-      mounted = false;
-      controller.abort();
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, []);
 
-  async function fetchConversations(signal?: AbortSignal) {
+  async function fetchConversations() {
     try {
-      const res = await fetch("/api/conversations", { signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setConversations(data.conversations || []);
-      setError(null);
+      const res = await fetch("/api/conversations");
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data.conversations || []);
+      }
     } catch (err) {
-      if ((err as Error).name === "AbortError") return;
-      console.warn("Messagerie - fetch conversations", err);
-      setError("Messagerie indisponible");
+      console.error("Erreur fetch conversations:", err);
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function fetchCases(signal?: AbortSignal) {
+  async function fetchMarketplaceRequests() {
     try {
-      const res = await fetch("/api/cases", { signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setCases(data.cases || []);
-      setError(null);
+      const res = await fetch("/api/marketplace/unread-requests");
+      if (res.ok) {
+        const data = await res.json();
+        setMarketplaceRequests(data.requests || []);
+      }
     } catch (err) {
-      if ((err as Error).name === "AbortError") return;
-      console.warn("Messagerie - fetch cases", err);
-      setError("Messagerie indisponible");
+      console.error("Erreur fetch marketplace requests:", err);
     }
   }
 
-  const totalUnread =
-    conversations.reduce((sum, conv) => sum + conv.unreadCount, 0) +
-    cases.reduce((sum, c) => sum + c.unreadCount, 0);
+  const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0) +
+    marketplaceRequests.reduce((sum, req) => sum + req.unreadCount, 0);
 
   function formatTime(dateString: string) {
     const date = new Date(dateString);
@@ -162,10 +139,6 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
               )}
             </div>
 
-            {error && (
-              <span className="rounded bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-600">{error}</span>
-            )}
-
             <div className="flex items-center gap-2">
               {/* Bouton trois points (plus d'options) */}
               <div className="relative">
@@ -187,7 +160,7 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
                     <button
                       onClick={() => {
                         fetchConversations();
-                        fetchCases();
+                        fetchMarketplaceRequests();
                         setIsMenuOpen(false);
                       }}
                       className="w-full px-4 py-2 text-left text-sm hover:bg-black/5"
@@ -223,23 +196,23 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-navy border-t-transparent" />
               </div>
-            ) : conversations.length === 0 && cases.length === 0 ? (
+            ) : conversations.length === 0 && marketplaceRequests.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-muted">
                 Aucun message pour le moment
               </div>
             ) : (
               <>
-                {/* Dossiers / demandes */}
-                {cases.length > 0 && (
+                {/* Demandes Marketplace */}
+                {marketplaceRequests.length > 0 && (
                   <>
                     <div className="bg-slate-50 px-4 py-2">
-                      <h4 className="text-xs font-semibold text-muted uppercase">Dossiers</h4>
+                      <h4 className="text-xs font-semibold text-muted uppercase">Demandes services</h4>
                     </div>
-                    {cases.map((c) => (
+                    {marketplaceRequests.map((req) => (
                       <button
-                        key={c.id}
+                        key={req.id}
                         onClick={() => {
-                          window.location.href = `/cases/${c.id}`;
+                          window.location.href = req.openUrl;
                           setIsOpen(false);
                         }}
                         className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-black/5"
@@ -247,14 +220,14 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
                         {/* Avatar de l'autre personne */}
                         <div className="relative shrink-0">
                           <AvatarBubble
-                            name={c.viewerRole === "REQUESTER" ? c.professional.fullName : c.requester.fullName}
-                            url={c.viewerRole === "REQUESTER" ? c.professional.avatarUrl : c.requester.avatarUrl}
+                            name={req.otherUser.fullName}
+                            url={req.otherUser.avatarUrl}
                             size="md"
                             showOnline={false}
                           />
-                          {c.unreadCount > 0 && (
+                          {req.unreadCount > 0 && (
                             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                              {c.unreadCount}
+                              {req.unreadCount}
                             </span>
                           )}
                         </div>
@@ -263,26 +236,28 @@ export function MessagingWidget({ onOpenConversation }: { onOpenConversation: (c
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-2">
                             <p className="truncate font-semibold text-sm text-navy">
-                              {c.viewerRole === "REQUESTER" ? c.professional.fullName : c.requester.fullName}
+                              {req.otherUser.fullName}
                             </p>
-                            {c.lastMessage && (
+                            {req.lastMessage && (
                               <span className="shrink-0 text-xs text-muted">
-                                {formatTime(c.lastMessage.createdAt)}
+                                {formatTime(req.lastMessage.createdAt)}
                               </span>
                             )}
                           </div>
-                          {c.lastMessage && (
+                          {req.lastMessage && (
                             <p
                               className={`truncate text-sm ${
-                                c.unreadCount > 0 ? "font-semibold text-navy" : "text-muted"
+                                req.unreadCount > 0 ? "font-semibold text-navy" : "text-muted"
                               }`}
                             >
-                              {truncateMessage(c.lastMessage.body || c.lastMessage.fileName || "")}
+                              {truncateMessage(req.lastMessage.body || "")}
                             </p>
                           )}
-                          <p className="truncate text-xs text-muted">
-                            {c.title}
-                          </p>
+                          {req.topic && (
+                            <p className="truncate text-xs text-muted">
+                              {req.topic}
+                            </p>
+                          )}
                         </div>
                       </button>
                     ))}

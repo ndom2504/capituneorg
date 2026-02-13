@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   // Pour les professionnels, vérifier s'ils ont déjà un profil marketplace
   let hasMarketplaceProfile = false;
   if (user.accountType === "PROFESSIONAL" || user.accountType === "ADMIN") {
-    const profile = await prisma.marketplaceProfile.findUnique({
+    const profile = await prisma.professionalProfile.findUnique({
       where: { userId: user.id },
       select: { id: true },
     });

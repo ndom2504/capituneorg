@@ -52,7 +52,7 @@ type ApiGet = {
     email: string;
     avatarUrl: string | null;
     hasPassword: boolean;
-    professionalProfile: { id: string; status: string; verificationStatus?: string; isVerified?: boolean } | null;
+    professionalProfile: { id: string; status: string; isVerified: boolean } | null;
   };
   settings: SettingsDto;
 };
@@ -204,19 +204,23 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
       try {
         const res = await fetch("/api/settings", { cache: "no-store" });
         const dataUnknown = (await res.json().catch(() => null)) as unknown;
-        const dataErr = (dataUnknown as { error?: string } | null)?.error;
-        if (!res.ok) throw new Error(dataErr || `HTTP ${res.status}`);
-        if (cancelled) return;
+
+        if (!res.ok) {
+          const err = (dataUnknown as { error?: string } | null)?.error;
+          throw new Error(err ?? `HTTP ${res.status}`);
+        }
 
         const payload = dataUnknown as ApiGet;
-        setApi(payload);
-        setFullName(payload.viewer.fullName);
-        setCountry(payload.settings.country ?? "");
+        if (cancelled) return;
 
-        // Exclure userId (non éditable)
+        setApi(payload);
+
         const { userId: _discard, ...rest } = payload.settings;
         void _discard;
         setForm(rest);
+
+        setCountry(payload.settings.country ?? "");
+        setFullName(payload.viewer.fullName);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Erreur inconnue");
       } finally {
@@ -224,7 +228,7 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
       }
     }
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
@@ -608,9 +612,7 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
                   recommended
                 />
 
-                <div className={cn(!showEmailV2 && "opacity-60")}
-                  aria-disabled={!showEmailV2}
-                >
+                <div className={cn(!showEmailV2 && "opacity-60")}>
                   <Toggle
                     checked={form.notifyEmail}
                     onChange={(v) => {
@@ -765,7 +767,7 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
                       Modifier votre profil et suivre l’état de vérification.
                     </div>
                     <div className="mt-2 text-xs text-muted">
-                      État: {api.viewer.professionalProfile ? `${api.viewer.professionalProfile.status}${api.viewer.professionalProfile.verificationStatus === "VERIFIED" ? " · Vérifié ✅" : ""}` : "—"}
+                      État: {api.viewer.professionalProfile ? `${api.viewer.professionalProfile.status}${api.viewer.professionalProfile.isVerified ? " · Vérifié ✅" : ""}` : "—"}
                     </div>
                   </div>
                   <Link href="/clients/marketplace-profil">

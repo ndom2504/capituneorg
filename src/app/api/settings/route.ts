@@ -105,7 +105,7 @@ export async function GET() {
       accountType: true,
       passwordHash: true,
       professionalProfile: {
-        select: { id: true, status: true, verificationStatus: true },
+        select: { id: true, status: true, isVerified: true },
       },
     },
   });

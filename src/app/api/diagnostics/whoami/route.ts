@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
           adminRole: viewer.adminRole,
           accountStatus: viewer.accountStatus,
           isCertified: viewer.isCertified,
-          hasMarketplaceProfile: !!viewer.marketplaceProfile,
+          hasMarketplaceProfile: !!viewer.professionalProfile,
         }
       : null,
     flags,

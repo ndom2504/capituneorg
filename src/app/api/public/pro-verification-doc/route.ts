@@ -86,7 +86,7 @@ export async function POST(req: Request) {
   }
 
   // Le profil doit exister (sinon, on ne sait pas quoi mettre en DB)
-  const profile = await prisma.marketplaceProfile.findUnique({
+  const profile = await prisma.professionalProfile.findUnique({
     where: { userId },
     select: { id: true },
   });
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     url = `/uploads/pro-verification/${fileName}`;
   }
 
-  await prisma.marketplaceProfile.update({
+  await prisma.professionalProfile.update({
     where: { userId },
     data: kind === "competence" ? { proofUrl: url } : { idProofUrl: url },
   });

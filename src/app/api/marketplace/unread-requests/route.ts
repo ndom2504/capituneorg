@@ -1,25 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { prisma } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth/session";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/marketplace/unread-requests
+ * Récupère les demandes marketplace avec messages récents:
+ * - Pour le PRO: toutes ses demandes avec messages
+ * - Pour le demandeur: toutes ses demandes avec messages
+ * Note: Pour MVP, on affiche toutes les demandes actives.
+ * TODO: Ajouter tracking des messages lus (lastViewedByProfessionalAt, lastViewedByRequesterAt)
+ */
 export async function GET(_req: NextRequest) {
   try {
     const userId = await getSessionUserId();
     if (!userId) {
-      return NextResponse.json({ error: "Non authentifié", requests: [] }, { status: 401 });
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, accountType: true },
+      select: {
+        id: true,
+        accountType: true,
+      },
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Utilisateur introuvable", requests: [] }, { status: 404 });
+      return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
     }
 
     const isPro = user.accountType === "PROFESSIONAL" || user.accountType === "ADMIN";
@@ -29,22 +38,31 @@ export async function GET(_req: NextRequest) {
         ...(isPro ? { professionalId: user.id } : { requesterId: user.id }),
         messages: { some: {} },
       },
-      orderBy: { lastActivityAt: "desc" },
-      take: 20,
       select: {
         id: true,
         status: true,
         topic: true,
         requesterLastReadAt: true,
         professionalLastReadAt: true,
-        requester: { select: { id: true, fullName: true, avatarUrl: true } },
-        professional: { select: { id: true, fullName: true, avatarUrl: true } },
+        requester: {
+          select: { id: true, fullName: true, avatarUrl: true },
+        },
+        professional: {
+          select: { id: true, fullName: true, avatarUrl: true },
+        },
         messages: {
           orderBy: { createdAt: "desc" },
           take: 1,
-          select: { id: true, body: true, senderRole: true, createdAt: true },
+          select: {
+            id: true,
+            body: true,
+            senderRole: true,
+            createdAt: true,
+          },
         },
       },
+      orderBy: { lastActivityAt: "desc" },
+      take: 10,
     });
 
     const requests = rows.map((req) => {

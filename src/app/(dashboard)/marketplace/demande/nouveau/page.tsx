@@ -15,7 +15,7 @@ export default async function NewRequestPage({ searchParams }: { searchParams: P
       id: true,
       fullName: true,
       avatarUrl: true,
-      marketplaceProfile: {
+      professionalProfile: {
         select: { headline: true }
       }
     }
@@ -28,7 +28,7 @@ export default async function NewRequestPage({ searchParams }: { searchParams: P
   return <NewRequestClient pro={{
       id: pro.id,
       fullName: pro.fullName,
+      headline: pro.professionalProfile?.headline ?? "",
       avatarUrl: pro.avatarUrl,
-      headline: pro.marketplaceProfile?.headline || ""
   }} />;
 }
