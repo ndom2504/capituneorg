@@ -1,7 +1,7 @@
 
 "use client";
 
-import { User, MarketplaceProfile } from "@prisma/client";
+import { User, ProfessionalProfile } from "@prisma/client";
 import { AvatarBubble } from "@/components/ui/avatar-bubble";
 import { Button } from "@/components/ui/button";
 import { BadgeCheck, Calendar, Mail, MessageSquare, Star, Briefcase, Globe, Award } from "lucide-react";
@@ -10,7 +10,7 @@ import { useState } from "react";
 
 interface PublicProfileViewProps {
   user: User;
-  profile: MarketplaceProfile;
+  profile: ProfessionalProfile;
 }
 
 export function PublicProfileView({ user, profile }: PublicProfileViewProps) {
@@ -64,7 +64,7 @@ export function PublicProfileView({ user, profile }: PublicProfileViewProps) {
               <div className="flex-1 pb-2">
                 <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
                   <h1 className="text-3xl font-bold text-navy">{user.fullName}</h1>
-                  {profile.isVerified && (
+                  {profile.verificationStatus === "VERIFIED" && (
                     <BadgeCheck className="w-6 h-6 text-yellow-500 fill-current" />
                   )}
                 </div>

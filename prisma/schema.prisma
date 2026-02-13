@@ -201,7 +201,7 @@ enum MarketplaceFormat {
   BOTH
 }
 
-enum MarketplaceProfileStatus {
+enum ProfessionalProfileStatus {
   DRAFT
   PUBLISHED
   SUSPENDED
@@ -505,6 +505,7 @@ model User {
   roleLocked    Boolean       @default(true)
   adminRole     AdminRole     @default(ADMIN)
   accountStatus AccountStatus @default(ACTIVE)
+  /// @deprecated Use marketplaceProfile.verificationStatus instead.
   isCertified   Boolean       @default(false)
 
   // Presence / Online status
@@ -547,7 +548,7 @@ model User {
   meetingsAsClient               Meeting[]               @relation("MeetingClient")
   meetingsAsPro                  Meeting[]               @relation("MeetingPro")
 
-  marketplaceProfile          MarketplaceProfile?
+  professionalProfile          ProfessionalProfile?
   marketplaceRequestsSent     MarketplaceRequest[] @relation("MarketplaceRequester")
   marketplaceRequestsReceived MarketplaceRequest[] @relation("MarketplaceProfessional")
 
@@ -555,8 +556,8 @@ model User {
   marketplaceEngagementsAsProfessional MarketplaceEngagement[] @relation("MarketplaceEngagementProfessional")
   marketplaceEngagementsSigned         MarketplaceEngagement[] @relation("MarketplaceEngagementSigner")
 
-  // Vérification de profils marketplace en tant qu'admin
-  verifiedProfiles MarketplaceProfile[] @relation("ProfileVerifier")
+  // Vérification de profils professionnels en tant qu'admin
+  verifiedProfiles ProfessionalProfile[] @relation("ProfileVerifier")
 
   paymentServices       PaymentService[]
   paymentOrdersBought   PaymentOrder[]   @relation("PaymentOrderBuyer")
@@ -934,13 +935,14 @@ model Meeting {
   @@index([startsAt])
 }
 
-model MarketplaceProfile {
+model ProfessionalProfile {
   id String @id @default(cuid())
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  status     MarketplaceProfileStatus @default(DRAFT)
+  status     ProfessionalProfileStatus @default(DRAFT)
+  /// @deprecated Use verificationStatus instead.
   isVerified Boolean                  @default(false) // Gardé pour compatibilité, à déprécier
 
   // Nouveau système de vérification
@@ -1020,7 +1022,7 @@ model MarketplaceRequest {
   professional   User   @relation("MarketplaceProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
 
   profileId String?
-  profile   MarketplaceProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  profile   ProfessionalProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   status             MarketplaceRequestStatus @default(PENDING)
   topic              MarketplaceNeedTopic?

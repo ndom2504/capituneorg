@@ -21,7 +21,7 @@ export async function updateProProfile(formData: FormData) {
     const specialties = (formData.get("specialties") as string)?.split(",").map(s => s.trim()).filter(Boolean) || [];
 
     // Update Profile
-    await prisma.marketplaceProfile.upsert({
+    await prisma.professionalProfile.upsert({
         where: { userId: viewer.id },
         update: {
             headline,

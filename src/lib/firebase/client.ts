@@ -185,37 +185,3 @@ export async function consumeMicrosoftRedirectResult(): Promise<{ idToken: strin
   const idToken = await user.getIdToken();
   return { idToken, user };
 }
-
-// ============================================================================
-// LinkedIn
-// ============================================================================
-
-function getLinkedInProvider() {
-  const provider = new OAuthProvider("oidc.linkedin");
-  return provider;
-}
-
-export async function signInWithLinkedInPopup(): Promise<{ idToken: string; user: User }> {
-  const auth = getFirebaseAuth();
-  const provider = getLinkedInProvider();
-
-  const cred = await signInWithPopup(auth, provider);
-  const user = cred.user;
-  const idToken = await user.getIdToken();
-  return { idToken, user };
-}
-
-export async function startLinkedInRedirect(): Promise<void> {
-  const auth = getFirebaseAuth();
-  const provider = getLinkedInProvider();
-  await signInWithRedirect(auth, provider);
-}
-
-export async function consumeLinkedInRedirectResult(): Promise<{ idToken: string; user: User } | null> {
-  const auth = getFirebaseAuth();
-  const result = await getRedirectResult(auth);
-  if (!result?.user) return null;
-  const user = result.user;
-  const idToken = await user.getIdToken();
-  return { idToken, user };
-}

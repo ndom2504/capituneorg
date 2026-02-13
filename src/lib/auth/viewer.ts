@@ -11,7 +11,7 @@ export type AppViewer = {
   isCertified: boolean;
   avatarUrl: string | null;
   coverUrl: string | null;
-  marketplaceProfile: { id: string } | null;
+  professionalProfile: { id: string; verificationStatus?: "DRAFT" | "PENDING" | "VERIFIED" | "REJECTED" | "SUSPENDED" } | null;
 };
 
 function normalizeMediaUrl(url: string | null): string | null {
@@ -34,15 +34,15 @@ export async function getAppViewer(): Promise<AppViewer | null> {
           accountType: true,
           adminRole: true,
           accountStatus: true,
-          isCertified: true,
           avatarUrl: true,
           coverUrl: true,
-          marketplaceProfile: { select: { id: true } },
+          professionalProfile: { select: { id: true, verificationStatus: true } },
         },
       });
       if (!user) return null;
       return {
         ...user,
+        isCertified: user.professionalProfile?.verificationStatus === "VERIFIED",
         avatarUrl: normalizeMediaUrl(user.avatarUrl),
         coverUrl: normalizeMediaUrl(user.coverUrl),
       };
@@ -59,15 +59,15 @@ export async function getAppViewer(): Promise<AppViewer | null> {
         accountType: true,
         adminRole: true,
         accountStatus: true,
-        isCertified: true,
         avatarUrl: true,
         coverUrl: true,
-        marketplaceProfile: { select: { id: true } },
+        professionalProfile: { select: { id: true, verificationStatus: true } },
       },
     });
     if (!user) return null;
     return {
       ...user,
+      isCertified: user.professionalProfile?.verificationStatus === "VERIFIED",
       avatarUrl: normalizeMediaUrl(user.avatarUrl),
       coverUrl: normalizeMediaUrl(user.coverUrl),
     };

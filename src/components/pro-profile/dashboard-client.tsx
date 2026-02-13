@@ -1,7 +1,7 @@
 
 "use client";
 
-import { User, MarketplaceProfile } from "@prisma/client";
+import { User, ProfessionalProfile } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +13,7 @@ import { Eye } from "lucide-react";
 
 interface Props {
   user: User;
-  initialProfile: MarketplaceProfile | null;
+  initialProfile: ProfessionalProfile | null;
 }
 
 export function ProProfileDashboardClient({ user, initialProfile }: Props) {
@@ -78,7 +78,7 @@ export function ProProfileDashboardClient({ user, initialProfile }: Props) {
                     {initialProfile?.status === 'PUBLISHED' ? 'Publié' : 'Brouillon'}
                 </span>
             </div>
-            {initialProfile?.isVerified && (
+            {initialProfile?.verificationStatus === "VERIFIED" && (
                  <div className="mt-2 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded inline-block">
                      Badge Vérifié Actif
                  </div>

@@ -157,11 +157,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "professionalId requis." }, { status: 400 });
   }
 
-  const profile = await prisma.marketplaceProfile.findFirst({
+  const profile = await prisma.professionalProfile.findFirst({
     where: {
       userId: professionalId,
       status: "PUBLISHED",
-      user: { is: { accountType: "PROFESSIONAL", isCertified: true } },
+      // user: { is: { accountType: "PROFESSIONAL", isCertified: true } }, // Legacy check removed
+      user: { is: { accountType: "PROFESSIONAL" } },
+      verificationStatus: "VERIFIED", // Ensure verified
     },
     select: { id: true, userId: true },
   });

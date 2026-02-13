@@ -20,7 +20,12 @@ export default async function MonDossierPage() {
         review: {
           include: {
             assignedPro: {
-              select: { id: true, fullName: true, accountType: true, isCertified: true },
+              select: {
+                id: true,
+                fullName: true,
+                accountType: true,
+                professionalProfile: { select: { verificationStatus: true } },
+              },
             },
           },
         },
@@ -92,7 +97,7 @@ export default async function MonDossierPage() {
               <div className="text-sm font-semibold text-navy">
                 {assignedPro?.fullName ?? "À assigner"}
               </div>
-              {assignedPro?.isCertified ? (
+              {assignedPro?.professionalProfile?.verificationStatus === "VERIFIED" ? (
                 <StatusPill label="Certifié" intent="success" />
               ) : null}
             </div>

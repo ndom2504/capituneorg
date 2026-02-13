@@ -6,7 +6,7 @@ import {
   MarketplaceFormat,
   MarketplacePricingMode,
   MarketplaceProfession,
-  MarketplaceProfileStatus,
+  ProfessionalProfileStatus,
   EventFormat,
   EventLevel,
   EventTheme,
@@ -107,11 +107,12 @@ async function main() {
   });
 
   // Profils Marketplace (démo)
-  await prisma.marketplaceProfile.upsert({
+  await prisma.professionalProfile.upsert({
     where: { userId: pro.id },
     update: {
-      status: MarketplaceProfileStatus.PUBLISHED,
-      isVerified: true,
+      status: ProfessionalProfileStatus.PUBLISHED,
+      // isVerified: true, // Legacy, removed
+      verificationStatus: "VERIFIED",
       profession: MarketplaceProfession.IMMIGRATION_CONSULTANT,
       headline: "Consultant immigration (démo)",
       organization: "Capitune",
@@ -131,8 +132,9 @@ async function main() {
     },
     create: {
       userId: pro.id,
-      status: MarketplaceProfileStatus.PUBLISHED,
-      isVerified: true,
+      status: ProfessionalProfileStatus.PUBLISHED,
+      // isVerified: true, // Legacy, removed
+      verificationStatus: "VERIFIED",
       profession: MarketplaceProfession.IMMIGRATION_CONSULTANT,
       headline: "Consultant immigration (démo)",
       organization: "Capitune",
@@ -198,11 +200,12 @@ async function main() {
     });
   }
 
-  await prisma.marketplaceProfile.upsert({
+  await prisma.professionalProfile.upsert({
     where: { userId: pro2.id },
     update: {
-      status: MarketplaceProfileStatus.PUBLISHED,
-      isVerified: false,
+      status: ProfessionalProfileStatus.PUBLISHED,
+      // isVerified: false,
+      verificationStatus: "PENDING",
       profession: MarketplaceProfession.EMPLOYMENT_COUNSELOR,
       headline: "Conseiller emploi (démo)",
       organization: "Partenaire",
@@ -224,8 +227,9 @@ async function main() {
     },
     create: {
       userId: pro2.id,
-      status: MarketplaceProfileStatus.PUBLISHED,
-      isVerified: false,
+      status: ProfessionalProfileStatus.PUBLISHED,
+      // isVerified: false,
+      verificationStatus: "PENDING",
       profession: MarketplaceProfession.EMPLOYMENT_COUNSELOR,
       headline: "Conseiller emploi (démo)",
       organization: "Partenaire",

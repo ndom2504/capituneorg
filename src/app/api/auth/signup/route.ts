@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
 
     if (body.accountType === "PROFESSIONAL") {
       // Profil Marketplace en mode privé (DRAFT) / en vérification (isVerified=false)
-      await prisma.marketplaceProfile.upsert({
+      await prisma.professionalProfile.upsert({
         where: { userId: user.id },
         update: {
           status: "DRAFT",

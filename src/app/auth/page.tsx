@@ -21,9 +21,6 @@ import {
   signInWithMicrosoftPopup,
   startMicrosoftRedirect,
   consumeMicrosoftRedirectResult,
-  signInWithLinkedInPopup,
-  startLinkedInRedirect,
-  consumeLinkedInRedirectResult,
 } from "@/lib/firebase/client";
 
 type Mode = "login" | "signup";
@@ -336,36 +333,6 @@ function AuthContent() {
     window.location.assign(target);
   }, [from]);
 
-  const exchangeLinkedInToken = useCallback(async (idToken: string, accountType?: "USER" | "PROFESSIONAL") => {
-    const res = await fetch("/api/auth/linkedin", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ idToken, accountType }),
-    });
-    const data = (await res.json().catch(() => ({}))) as AuthApiResponse;
-    if (!res.ok) {
-      setError(data.error ?? "Connexion LinkedIn impossible.");
-      return;
-    }
-
-    const resolvedAccountType = data.accountType ?? "USER";
-    const isNewUser = data.isNewUser ?? false;
-    const hasMarketplaceProfile = data.hasMarketplaceProfile ?? false;
-    const preRegistrationStatus = data.preRegistrationStatus ?? null;
-
-    let target: string;
-    if (from) {
-      target = from;
-    } else if (isProfessionalAccount(resolvedAccountType)) {
-      target = isNewUser || !hasMarketplaceProfile ? "/clients/marketplace-profil" : "/accueil";
-    } else {
-      target = "/accueil";
-    }
-
-    window.location.assign(target);
-  }, [from]);
-
   useEffect(() => {
     if (handledRedirectRef.current) return;
     handledRedirectRef.current = true;
@@ -412,30 +379,8 @@ function AuthContent() {
     })();
   }, [exchangeMicrosoftToken]);
 
-  useEffect(() => {
-    if (handledRedirectRef.current) return;
-    handledRedirectRef.current = true;
-
-    (async () => {
-      try {
-        const result = await consumeLinkedInRedirectResult();
-        if (!result) return;
-        setError(null);
-        setLoading(true);
-
-        const desired = sessionStorage.getItem("capitune_linkedin_accountType") ?? "";
-        sessionStorage.removeItem("capitune_linkedin_accountType");
-        const accountType = desired === "PROFESSIONAL" || desired === "USER" ? desired : undefined;
-        await exchangeLinkedInToken(result.idToken, accountType);
-      } catch (e) {
-        setError(formatFirebaseAuthError(e));
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [exchangeLinkedInToken]);
-
   async function onGoogle() {
+
     setError(null);
     setLoading(true);
     try {
@@ -475,26 +420,6 @@ function AuthContent() {
     }
   }
 
-  async function onLinkedIn() {
-    setError(null);
-    setLoading(true);
-    try {
-      const desiredAccountType = mode === "signup" ? signup.accountType : undefined;
-      sessionStorage.setItem("capitune_linkedin_accountType", desiredAccountType ?? "");
-
-      const { idToken } = await signInWithLinkedInPopup();
-      await exchangeLinkedInToken(idToken, desiredAccountType);
-    } catch (e) {
-      if (shouldFallbackToRedirect(e)) {
-        await startLinkedInRedirect();
-        return;
-      }
-      setError(formatFirebaseAuthError(e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function onLoginSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -510,7 +435,7 @@ function AuthContent() {
       if (!res.ok) {
         if (data.code === "PASSWORD_NOT_SET") {
           setError(
-            "Ce compte a été créé via Google/LinkedIn : connectez-vous avec Google/LinkedIn (le mot de passe n’est pas défini).",
+            "Ce compte a été créé via Google : connectez-vous avec Google (le mot de passe n’est pas défini).",
           );
           return;
         }
@@ -710,7 +635,7 @@ function AuthContent() {
                   <div className="text-xs text-muted">Format international (E.164) requis: commence par +</div>
                 </div>
 
-                <div ref={recaptchaContainerRef} className="min-h-[78px]" />
+                <div ref={recaptchaContainerRef} className="min-h-19.5" />
 
                 {confirmation ? (
                   <div className="space-y-2">
@@ -760,9 +685,6 @@ function AuthContent() {
                   </Button>
                   <Button variant="outline" className="w-full" onClick={onMicrosoft} disabled={loading}>
                     Continuer avec Microsoft
-                  </Button>
-                  <Button variant="outline" className="w-full" onClick={onLinkedIn} disabled={loading}>
-                    Continuer avec LinkedIn
                   </Button>
                   {mode === "signup" && signup.accountType === "PROFESSIONAL" ? (
                     <div className="text-xs text-muted">

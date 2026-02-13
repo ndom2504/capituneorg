@@ -58,14 +58,20 @@ export async function POST(
 
   const target = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, accountType: true, isCertified: true },
+    select: {
+      id: true,
+      accountType: true,
+      professionalProfile: { select: { verificationStatus: true } },
+    },
   });
 
   if (!target) {
     return Response.json({ error: "Utilisateur introuvable." }, { status: 404 });
   }
 
-  if (target.accountType !== "PROFESSIONAL" || !target.isCertified) {
+  const isTargetCertified = target.professionalProfile?.verificationStatus === "VERIFIED";
+
+  if (target.accountType !== "PROFESSIONAL" || !isTargetCertified) {
     return Response.json(
       { error: "Seuls les professionnels certifiés peuvent être ajoutés." },
       { status: 400 },

@@ -104,8 +104,8 @@ export async function GET() {
       avatarUrl: true,
       accountType: true,
       passwordHash: true,
-      marketplaceProfile: {
-        select: { id: true, status: true, isVerified: true },
+      professionalProfile: {
+        select: { id: true, status: true, verificationStatus: true },
       },
     },
   });
@@ -118,7 +118,7 @@ export async function GET() {
       email: user?.email ?? viewer.email,
       avatarUrl: viewer.avatarUrl,
       hasPassword: !!user?.passwordHash,
-      marketplaceProfile: user?.marketplaceProfile ?? null,
+      professionalProfile: user?.professionalProfile ?? null,
     },
     settings,
   });

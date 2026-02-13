@@ -19,7 +19,7 @@ export async function searchProfessionals(query: string) {
       whereClause.OR = [
         { fullName: { contains: normalizedQuery, mode: "insensitive" } },
         {
-          marketplaceProfile: {
+          professionalProfile: {
             OR: [
               { profession: { equals: normalizedQuery as any } },
               { city: { contains: normalizedQuery, mode: "insensitive" } },
@@ -38,7 +38,7 @@ export async function searchProfessionals(query: string) {
       id: true,
       fullName: true,
       avatarUrl: true,
-      marketplaceProfile: {
+      professionalProfile: {
         select: {
           profession: true,
           city: true,
@@ -171,7 +171,7 @@ export async function getMyNetwork() {
           id: true,
           fullName: true,
           avatarUrl: true,
-          marketplaceProfile: {
+          professionalProfile: {
              select: {
                  profession: true,
                  headline: true
@@ -196,7 +196,7 @@ export async function getMyNetwork() {
           id: true,
           fullName: true,
           avatarUrl: true,
-           marketplaceProfile: {
+           professionalProfile: {
              select: {
                  profession: true,
                  headline: true
@@ -209,7 +209,7 @@ export async function getMyNetwork() {
           id: true,
           fullName: true,
           avatarUrl: true,
-           marketplaceProfile: {
+           professionalProfile: {
              select: {
                  profession: true,
                  headline: true

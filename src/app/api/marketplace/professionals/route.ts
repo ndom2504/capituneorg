@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  type FindManyArgs = NonNullable<Parameters<typeof prisma.marketplaceProfile.findMany>[0]>;
+  type FindManyArgs = NonNullable<Parameters<typeof prisma.professionalProfile.findMany>[0]>;
   const where: FindManyArgs["where"] = {
     status: "PUBLISHED",
     ...(profession
@@ -67,16 +67,16 @@ export async function GET(req: NextRequest) {
     ...(country ? { country } : {}),
     ...(city ? { city } : {}),
     ...(format ? { format: format as never } : {}),
-    ...(verified === "true" ? { isVerified: true } : {}),
-    user: { is: { accountType: "PROFESSIONAL", isCertified: true } },
+    ...(verified === "true" ? { verificationStatus: "VERIFIED" } : {}),
+    user: { is: { accountType: "PROFESSIONAL" } },
   };
 
-  const profiles = await prisma.marketplaceProfile.findMany({
+  const profiles = await prisma.professionalProfile.findMany({
     where,
     include: {
       user: { select: { id: true, fullName: true, avatarUrl: true } },
     },
-    orderBy: [{ isVerified: "desc" }, { updatedAt: "desc" }],
+    orderBy: [{ verificationStatus: "desc" }, { updatedAt: "desc" }],
     take: 200,
   });
 
@@ -115,7 +115,6 @@ export async function GET(req: NextRequest) {
         themes,
         specialties,
         services: servicesRaw,
-        isVerified: p.isVerified, // Legacy
         verificationStatus: p.verificationStatus,
         badges: Array.isArray(p.badgesJson) ? p.badgesJson : null,
         format: p.format,
