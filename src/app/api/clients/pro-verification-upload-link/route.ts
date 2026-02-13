@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
   const auth = await requireProfessionalViewer();
   if (!auth.ok) return auth.response;
 
-  const existing = await prisma.marketplaceProfile.findUnique({
+  const existing = await prisma.professionalProfile.findUnique({
     where: { userId: auth.viewer.id },
     select: { id: true },
   });
