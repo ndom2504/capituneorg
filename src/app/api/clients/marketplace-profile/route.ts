@@ -150,7 +150,7 @@ export async function GET() {
   const auth = await requireProfessionalViewer();
   if (!auth.ok) return auth.response;
 
-  const profile = await prisma.marketplaceProfile.findUnique({
+  const profile = await prisma.professionalProfile.findUnique({
     where: { userId: auth.viewer.id },
     select: {
       id: true,
@@ -345,7 +345,7 @@ export async function POST(req: NextRequest) {
 
   const services = normalizeMarketplaceServices(body.services);
 
-  const existing = await prisma.marketplaceProfile.findUnique({
+  const existing = await prisma.professionalProfile.findUnique({
     where: { userId: auth.viewer.id },
     select: {
       id: true,
@@ -411,7 +411,7 @@ export async function POST(req: NextRequest) {
       }
     : {};
 
-  const profile = await prisma.marketplaceProfile.upsert({
+  const profile = await prisma.professionalProfile.upsert({
     where: { userId: auth.viewer.id },
     update: {
       status,
@@ -497,7 +497,7 @@ export async function DELETE() {
   if (!auth.ok) return auth.response;
 
   try {
-    await prisma.marketplaceProfile.delete({ where: { userId: auth.viewer.id } });
+    await prisma.professionalProfile.delete({ where: { userId: auth.viewer.id } });
   } catch (e) {
     // Profil déjà supprimé : ok (idempotent)
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
