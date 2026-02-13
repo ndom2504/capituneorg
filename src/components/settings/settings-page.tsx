@@ -52,7 +52,7 @@ type ApiGet = {
     email: string;
     avatarUrl: string | null;
     hasPassword: boolean;
-    marketplaceProfile: { id: string; status: string; isVerified: boolean } | null;
+    professionalProfile: { id: string; status: string; verificationStatus?: string; isVerified?: boolean } | null;
   };
   settings: SettingsDto;
 };
@@ -765,7 +765,7 @@ export function SettingsPage({ viewer, presenceEnabled = true }: { viewer: AppVi
                       Modifier votre profil et suivre l’état de vérification.
                     </div>
                     <div className="mt-2 text-xs text-muted">
-                      État: {api.viewer.marketplaceProfile ? `${api.viewer.marketplaceProfile.status}${api.viewer.marketplaceProfile.isVerified ? " · Vérifié ✅" : ""}` : "—"}
+                      État: {api.viewer.professionalProfile ? `${api.viewer.professionalProfile.status}${api.viewer.professionalProfile.verificationStatus === "VERIFIED" ? " · Vérifié ✅" : ""}` : "—"}
                     </div>
                   </div>
                   <Link href="/clients/marketplace-profil">

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdminActionViewer, requireAdminViewer } from "@/app/api/admin/_auth";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
-import { AuditAction, MarketplaceProfileStatus, Prisma, ReportStatus, ReportTargetType, VerificationStatus } from "@prisma/client";
+import { AuditAction, ProfessionalProfileStatus, Prisma, ReportStatus, ReportTargetType, VerificationStatus } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
           return { ok: false as const, error: "Sanction SUSPEND_PROFILE incompatible avec targetType." };
         }
 
-        const profileBefore = await tx.marketplaceProfile.findUnique({
+        const profileBefore = await tx.professionalProfile.findUnique({
           where: { id: targetId },
           select: {
             id: true,
@@ -255,12 +255,12 @@ export async function POST(req: NextRequest) {
             rejectionReason: true,
           },
         });
-        if (!profileBefore) return { ok: false as const, error: "Profil marketplace introuvable." };
+        if (!profileBefore) return { ok: false as const, error: "Profil professionnel introuvable." };
 
-        const profileAfter = await tx.marketplaceProfile.update({
+        const profileAfter = await tx.professionalProfile.update({
           where: { id: targetId },
           data: {
-            status: MarketplaceProfileStatus.SUSPENDED,
+            status: ProfessionalProfileStatus.SUSPENDED,
             verificationStatus: VerificationStatus.SUSPENDED,
             isVerified: false,
             verifiedAt: now,
@@ -283,7 +283,7 @@ export async function POST(req: NextRequest) {
           data: {
             adminId: auth.viewer.id,
             action: AuditAction.SUSPEND_PROFILE,
-            objectType: "MarketplaceProfile",
+            objectType: "ProfessionalProfile",
             objectId: targetId,
             beforeJson: profileBefore,
             afterJson: profileAfter,

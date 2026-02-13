@@ -72,14 +72,14 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const summary = url.searchParams.get("summary") === "1";
   if (summary) {
-    const pendingCount = await prisma.marketplaceProfile.count({
+    const pendingCount = await prisma.professionalProfile.count({
       where: { verificationStatus: "PENDING" },
     });
 
     return NextResponse.json({ pendingCount });
   }
 
-  const items = await prisma.marketplaceProfile.findMany({
+  const items = await prisma.professionalProfile.findMany({
     where: { verificationStatus: "PENDING" },
     orderBy: { updatedAt: "asc" },
     select: {
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const existing = await prisma.marketplaceProfile.findUnique({
+  const existing = await prisma.professionalProfile.findUnique({
     where: { id: body.profileId },
     select: {
       id: true,
@@ -266,7 +266,7 @@ export async function POST(req: Request) {
         data: { isCertified: true },
         select: { id: true, isCertified: true },
       }),
-      prisma.marketplaceProfile.update({
+      prisma.professionalProfile.update({
         where: { id: existing.id },
         data: {
           verificationStatus: "VERIFIED",
@@ -292,7 +292,7 @@ export async function POST(req: Request) {
       data: {
         adminId: auth.viewer.id,
         action: "VERIFY_PRO",
-        objectType: "MarketplaceProfile",
+        objectType: "ProfessionalProfile",
         objectId: updated.id,
         beforeJson: { ...existing, user: { id: existing.userId } },
         afterJson: { ...updated, user: updatedUser },
@@ -335,7 +335,7 @@ export async function POST(req: Request) {
           sessionInvalidBefore: true,
         },
       }),
-      prisma.marketplaceProfile.update({
+      prisma.professionalProfile.update({
         where: { id: existing.id },
         data: {
           status: "SUSPENDED",
@@ -362,7 +362,7 @@ export async function POST(req: Request) {
       data: {
         adminId: auth.viewer.id,
         action: "SUSPEND_USER",
-        objectType: "MarketplaceProfile",
+        objectType: "ProfessionalProfile",
         objectId: updatedProfile.id,
         beforeJson: {
           profile: existing,
@@ -380,7 +380,7 @@ export async function POST(req: Request) {
   }
 
   const reason = (body.reason ?? "").trim();
-  const updated = await prisma.marketplaceProfile.update({
+  const updated = await prisma.professionalProfile.update({
     where: { id: existing.id },
     data: {
       verificationStatus: "REJECTED",
@@ -404,7 +404,7 @@ export async function POST(req: Request) {
     data: {
       adminId: auth.viewer.id,
       action: "REJECT_PRO",
-      objectType: "MarketplaceProfile",
+      objectType: "ProfessionalProfile",
       objectId: updated.id,
       beforeJson: existing,
       afterJson: updated,

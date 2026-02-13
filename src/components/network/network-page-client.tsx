@@ -195,10 +195,10 @@ export function NetworkPageClient({
                                     />
                                     <div>
                                         <h3 className="font-semibold text-lg">{pro.fullName}</h3>
-                                        <p className="text-sm text-primary font-medium">{pro.marketplaceProfile?.profession || "Professionnel"}</p>
-                                        <p className="text-xs text-muted-foreground">{pro.marketplaceProfile?.headline}</p>
-                                        {pro.marketplaceProfile?.city && (
-                                             <p className="text-xs text-muted-foreground mt-1">{pro.marketplaceProfile.city}</p>
+                                        <p className="text-sm text-primary font-medium">{pro.professionalProfile?.profession || "Professionnel"}</p>
+                                        <p className="text-xs text-muted-foreground">{pro.professionalProfile?.headline}</p>
+                                        {pro.professionalProfile?.city && (
+                                             <p className="text-xs text-muted-foreground mt-1">{pro.professionalProfile.city}</p>
                                         )}
                                     </div>
                                     
@@ -256,7 +256,7 @@ export function NetworkPageClient({
                                             />
                                             <div className="overflow-hidden">
                                                 <h4 className="font-semibold truncate">{req.from.fullName}</h4>
-                                                <p className="text-xs text-muted-foreground truncate">{req.from.marketplaceProfile?.profession}</p>
+                                                <p className="text-xs text-muted-foreground truncate">{req.from.professionalProfile?.profession}</p>
                                             </div>
                                          </div>
                                          <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 italic">
@@ -299,7 +299,7 @@ export function NetworkPageClient({
                                         />
                                         <div className="overflow-hidden flex-1">
                                             <h4 className="font-medium text-sm truncate">{partner.fullName}</h4>
-                                            <p className="text-xs text-muted-foreground truncate">{partner.marketplaceProfile?.profession}</p>
+                                            <p className="text-xs text-muted-foreground truncate">{partner.professionalProfile?.profession}</p>
                                         </div>
                                         <Button 
                                             size="icon" 

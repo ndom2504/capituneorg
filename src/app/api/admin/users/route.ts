@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       suspendedAt: true,
       deletedAt: true,
       createdAt: true,
-      marketplaceProfile: {
+      professionalProfile: {
         select: {
           id: true,
           verificationStatus: true,
@@ -78,10 +78,10 @@ export async function GET(req: NextRequest) {
       suspendedAt: u.suspendedAt ? u.suspendedAt.toISOString() : null,
       deletedAt: u.deletedAt ? u.deletedAt.toISOString() : null,
       createdAt: u.createdAt.toISOString(),
-      marketplaceProfile: u.marketplaceProfile
+      professionalProfile: u.professionalProfile
         ? {
-            id: u.marketplaceProfile.id,
-            verificationStatus: u.marketplaceProfile.verificationStatus,
+            id: u.professionalProfile.id,
+            verificationStatus: u.professionalProfile.verificationStatus,
           }
         : null,
     })),

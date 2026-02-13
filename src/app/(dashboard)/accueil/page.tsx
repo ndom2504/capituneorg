@@ -217,7 +217,7 @@ export default async function AccueilPage() {
           <div className="lg:sticky lg:top-[92px]">
             <div className="space-y-4">
               <AboutCard />
-              {viewer && <PerformanceCard userId={viewer.id} isPro={!!viewer.marketplaceProfile} />}
+              {viewer && <PerformanceCard userId={viewer.id} isPro={!!viewer.professionalProfile} />}
               {featureFlags.events ? <EventsSidebarCard /> : null}
               <ConnectionsCard users={connections} viewerAccountType={viewer?.accountType ?? null} />
             </div>

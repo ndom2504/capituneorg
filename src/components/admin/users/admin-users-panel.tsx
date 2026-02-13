@@ -19,7 +19,7 @@ type UserItem = {
   suspendedAt: string | null;
   deletedAt: string | null;
   createdAt: string;
-  marketplaceProfile: { id: string; verificationStatus: string } | null;
+  professionalProfile: { id: string; verificationStatus: string } | null;
 };
 
 type ListResponse = {
@@ -199,8 +199,8 @@ export function AdminUsersPanel({ viewerRole }: Props) {
                       {u.accountType}
                       {u.accountType === "ADMIN" ? ` (${u.adminRole})` : ""}
                       {` · ${u.accountStatus}`}
-                      {u.marketplaceProfile
-                        ? ` · Profil: ${u.marketplaceProfile.verificationStatus}`
+                      {u.professionalProfile
+                        ? ` · Profil: ${u.professionalProfile.verificationStatus}`
                         : ""}
                     </CardDescription>
                   </CardHeader>

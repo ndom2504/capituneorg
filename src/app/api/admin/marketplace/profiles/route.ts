@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminActionViewer, requireAdminViewer } from "@/app/api/admin/_auth";
 import { prisma } from "@/lib/db";
 import { getFeatureFlagsFromDb } from "@/lib/server/feature-flags";
-import { AuditAction, MarketplaceProfileStatus, VerificationStatus } from "@prisma/client";
+import { AuditAction, ProfessionalProfileStatus, VerificationStatus } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   const limitParam = Number(req.nextUrl.searchParams.get("limit") ?? "50");
   const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 200) : 50;
 
-  const items = await prisma.marketplaceProfile.findMany({
+  const items = await prisma.professionalProfile.findMany({
     where: {
       ...(status ? { status: status as any } : {}),
       ...(verificationStatus ? { verificationStatus: verificationStatus as any } : {}),
@@ -156,21 +156,21 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const before = await tx.marketplaceProfile.findUnique({
+    const before = await tx.professionalProfile.findUnique({
       where: { id: profileId },
       include: { user: { select: { id: true, fullName: true, email: true } } },
     });
     if (!before) return { ok: false as const, error: "Profil introuvable." };
 
     if (action === "SUSPEND") {
-      if (before.status === MarketplaceProfileStatus.SUSPENDED) {
+      if (before.status === ProfessionalProfileStatus.SUSPENDED) {
         return { ok: false as const, error: "Profil déjà suspendu." };
       }
 
-      const after = await tx.marketplaceProfile.update({
+      const after = await tx.professionalProfile.update({
         where: { id: profileId },
         data: {
-          status: MarketplaceProfileStatus.SUSPENDED,
+          status: ProfessionalProfileStatus.SUSPENDED,
           verificationStatus: VerificationStatus.SUSPENDED,
           rejectionReason: (body as any)?.reason ? String((body as any).reason).slice(0, 500) : before.rejectionReason,
         },
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
         data: {
           adminId: auth.viewer.id,
           action: AuditAction.SUSPEND_PROFILE,
-          objectType: "MarketplaceProfile",
+          objectType: "ProfessionalProfile",
           objectId: profileId,
           beforeJson: {
             id: before.id,
@@ -205,15 +205,15 @@ export async function POST(req: NextRequest) {
     }
 
     // REACTIVATE
-    if (before.status !== MarketplaceProfileStatus.SUSPENDED) {
+    if (before.status !== ProfessionalProfileStatus.SUSPENDED) {
       return { ok: false as const, error: "Seuls les profils suspendus peuvent être réactivés." };
     }
 
     const shouldRestoreVerified = Boolean(before.verifiedAt) || before.isVerified === true;
-    const nextStatus = MarketplaceProfileStatus.PUBLISHED;
+    const nextStatus = ProfessionalProfileStatus.PUBLISHED;
     const nextVerification = shouldRestoreVerified ? VerificationStatus.VERIFIED : VerificationStatus.DRAFT;
 
-    const after = await tx.marketplaceProfile.update({
+    const after = await tx.professionalProfile.update({
       where: { id: profileId },
       data: {
         status: nextStatus,
@@ -225,7 +225,7 @@ export async function POST(req: NextRequest) {
       data: {
         adminId: auth.viewer.id,
         action: AuditAction.REACTIVATE_PROFILE,
-        objectType: "MarketplaceProfile",
+        objectType: "ProfessionalProfile",
         objectId: profileId,
         beforeJson: {
           id: before.id,

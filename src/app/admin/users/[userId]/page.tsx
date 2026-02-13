@@ -27,7 +27,7 @@ export default async function AdminUserDetailPage(
       accountStatus: true,
       createdAt: true,
       suspendedAt: true,
-      marketplaceProfile: { select: { id: true, verificationStatus: true } },
+      professionalProfile: { select: { id: true, verificationStatus: true } },
     },
   });
 
@@ -62,8 +62,8 @@ export default async function AdminUserDetailPage(
       where: {
         OR: [
           { objectType: "User", objectId: user.id },
-          ...(user.marketplaceProfile?.id
-            ? [{ objectType: "MarketplaceProfile", objectId: user.marketplaceProfile.id }]
+          ...(user.professionalProfile?.id
+            ? [{ objectType: "ProfessionalProfile", objectId: user.professionalProfile.id }]
             : []),
         ],
       },
@@ -106,9 +106,9 @@ export default async function AdminUserDetailPage(
             <span className="text-muted">Statut:</span> {user.accountStatus}
             {user.suspendedAt ? ` · Suspendu le ${user.suspendedAt.toISOString()}` : ""}
           </div>
-          {user.marketplaceProfile ? (
+          {user.professionalProfile ? (
             <div>
-              <span className="text-muted">Profil marketplace:</span> {user.marketplaceProfile.verificationStatus}
+              <span className="text-muted">Profil professionnel:</span> {user.professionalProfile.verificationStatus}
             </div>
           ) : null}
           <div>
