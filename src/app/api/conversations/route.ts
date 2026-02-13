@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       select: {
         id: true,
         accountType: true,
-        marketplaceProfile: { select: { id: true } },
+        professionalProfile: { select: { id: true } },
       },
     });
 
@@ -124,8 +124,8 @@ export async function POST(request: Request) {
     // Règle métier : messages uniquement impliquant au moins un professionnel
     // (Utilisateur <-> Pro) OU (Pro <-> Pro)
     // Les conversations Utilisateur <-> Utilisateur sont interdites.
-    const viewerIsPro = (viewer.accountType === "PROFESSIONAL" && !!viewer.marketplaceProfile) || viewer.accountType === "ADMIN";
-    const otherIsPro = (otherUser.accountType === "PROFESSIONAL" && !!otherUser.marketplaceProfile) || otherUser.accountType === "ADMIN";
+    const viewerIsPro = (viewer.accountType === "PROFESSIONAL" && !!viewer.professionalProfile) || viewer.accountType === "ADMIN";
+    const otherIsPro = (otherUser.accountType === "PROFESSIONAL" && !!otherUser.professionalProfile) || otherUser.accountType === "ADMIN";
 
     // Au moins un des deux doit être pro
     const isValidConversation = viewerIsPro || otherIsPro;
