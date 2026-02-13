@@ -19,12 +19,11 @@ type EventDto = {
 
 function formatStartsAtShort(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleString("fr-CA", {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const day = d.getDate();
+  const month = d.toLocaleDateString("fr-FR", { month: "short" });
+  const hour = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${day} ${month} à ${hour}h${min}`;
 }
 
 export function EventsSidebarCard({ className }: { className?: string }) {
@@ -66,10 +65,9 @@ export function EventsSidebarCard({ className }: { className?: string }) {
 
   return (
     <Card className={className}>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle>Événements & formations</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-end px-4 py-2">
         <Link href="/events" className="text-xs font-semibold text-primary">
-          Voir
+          Voir tout
         </Link>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -98,10 +96,10 @@ export function EventsSidebarCard({ className }: { className?: string }) {
                     </div>
                   ) : null}
                   <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-text">{e.title}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="line-clamp-2 text-sm font-semibold text-text leading-tight">{e.title}</div>
                       {e.startsAt ? (
-                        <div className="mt-0.5 text-xs text-muted">{formatStartsAtShort(e.startsAt)}</div>
+                        <div className="mt-1 text-xs text-muted whitespace-nowrap">{formatStartsAtShort(e.startsAt)}</div>
                       ) : null}
                     </div>
                     <ActionLink href={`/events/${e.slug}`}>Détails</ActionLink>
@@ -131,9 +129,9 @@ export function EventsSidebarCard({ className }: { className?: string }) {
                     </div>
                   ) : null}
                   <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-text">{e.title}</div>
-                      <div className="mt-0.5 text-xs text-muted">Formation disponible</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="line-clamp-2 text-sm font-semibold text-text leading-tight">{e.title}</div>
+                      <div className="mt-1 text-xs text-muted">Formation disponible</div>
                     </div>
                     <ActionLink href={`/events/${e.slug}`}>Détails</ActionLink>
                   </div>
