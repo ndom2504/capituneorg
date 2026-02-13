@@ -25,18 +25,18 @@ export default async function ProProfilePage({ params }: { params: Promise<{ id:
     });
 
     if (profile) {
-        user = await prisma.user.findUnique({
-          where: { id: profile.userId },
-          include: { professionalProfile: true }
-        });
+      user = await prisma.user.findUnique({
+        where: { id: profile.userId },
+        include: { professionalProfile: true },
+      });
     } else {
-        notFound();
+      notFound();
     }
   }
 
   // Double check existence after fallback
-      if (!user || !user.professionalProfile) {
-      notFound();
+  if (!user || !user.professionalProfile) {
+    notFound();
   }
 
   return (
