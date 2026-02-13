@@ -209,57 +209,29 @@ export const icons = {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/accueil", label: "Communauté", icon: icons.home, featureKey: "community" },
   {
-    href: "/evenements-formations",
-    label: "Événements & formations",
-    icon: icons.calendar,
-    featureKey: "events",
-  },
-  {
-    href: "/pro/profile",
-    label: "Mon profil pro",
-    icon: icons.user,
-    professionalOnly: true,
-  },
-  {
-    kind: "group",
-    label: "Marketplace",
-    icon: icons.marketplace,
-    featureKey: "marketplace",
-    children: [
-      {
-        href: "/marketplace/mon-profil-marketplace",
-        label: "Mon profil marketplace",
-        icon: icons.user,
-        professionalOnly: true,
-        featureKey: "marketplace",
-      },
-      {
-        href: "/marketplace",
-        label: "Marketplace",
-        icon: icons.marketplace,
-        hideForProfessionals: true,
-        featureKey: "marketplace",
-      },
-      {
-        href: "/marketplace/mes-demandes",
-        label: "Mes demandes",
-        icon: icons.inbox,
-        hideForProfessionals: true,
-        featureKey: "marketplace",
-      },
-    ],
-  },
-  {
     href: "/clients/demandes",
     label: "Demandes",
     icon: icons.inbox,
     professionalOnly: true,
   },
   {
-    href: "/clients/preinscriptions",
-    label: "Clients",
-    icon: icons.clients,
+    href: "/mon-dossier",
+    label: "Mes dossiers",
+    icon: icons.folder,
+    hideForProfessionals: true,
+  },
+  {
+    href: "/events/manage",
+    label: "Ma Gestion Événements",
+    icon: icons.settings,
     professionalOnly: true,
+    featureKey: "events",
+  },
+  {
+    href: "/events",
+    label: "Catalogue Sessions",
+    icon: icons.calendar,
+    featureKey: "events",
   },
   {
     href: "/reseau-pro",
@@ -268,44 +240,17 @@ export const NAV_ITEMS: NavItem[] = [
     professionalOnly: true,
     featureKey: "proNetwork",
   },
-  // Pôle emploi - Professionnel
   {
-    href: "/emploi/mes-offres",
-    label: "Mes offres d'emploi",
-    icon: icons.briefcase,
-    professionalOnly: true,
-    featureKey: "jobs",
-  },
-  {
-    href: "/emploi/candidatures",
-    label: "Candidatures reçues",
-    icon: icons.inbox,
-    professionalOnly: true,
-    featureKey: "jobs",
-  },
-  // Pôle emploi - Demandeur
-  {
-    href: "/emploi/parcourir",
-    label: "Offres d'emploi",
-    icon: icons.briefcase,
-    hideForProfessionals: true,
-    featureKey: "jobs",
-  },
-  {
-    href: "/emploi/mes-candidatures",
-    label: "Mes candidatures",
-    icon: icons.folder,
-    hideForProfessionals: true,
-    featureKey: "jobs",
-  },
-  {
-    href: "/emploi/mon-profil-emploi",
-    label: "Mon profil emploi",
+    href: "/pro/profile",
+    label: "Mon Profil Pro",
     icon: icons.user,
-    hideForProfessionals: true,
-    featureKey: "jobs",
+    professionalOnly: true
   },
-  { href: "/mon-dossier", label: "Mon dossier", icon: icons.folder },
-  { href: "/profil", label: "Profil", icon: icons.user },
+  {
+    href: "/profil",
+    label: "Profil",
+    icon: icons.user,
+    hideForProfessionals: true
+  },
   { href: "/parametres", label: "Paramètres", icon: icons.settings },
 ];
