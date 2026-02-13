@@ -17,7 +17,7 @@ export default async function DashboardProfilePage() {
 
   const user = await prisma.user.findUnique({
     where: { id: viewer.id },
-    include: { marketplaceProfile: true }
+    include: { professionalProfile: true }
   });
 
   if (!user) redirect("/");
@@ -28,7 +28,7 @@ export default async function DashboardProfilePage() {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold text-navy mb-8">Mon Profil Professionnel</h1>
-      <ProProfileDashboardClient user={user} initialProfile={user.marketplaceProfile} />
+      <ProProfileDashboardClient user={user} initialProfile={user.professionalProfile} />
     </div>
   );
 }

@@ -13,21 +13,21 @@ export default async function ProProfilePage({ params }: { params: Promise<{ id:
   let user = await prisma.user.findUnique({
     where: { id },
     include: {
-      marketplaceProfile: true,
+      professionalProfile: true,
     },
   });
 
-  if (!user || user.accountType !== "PROFESSIONAL" || !user.marketplaceProfile) {
+  if (!user || user.accountType !== "PROFESSIONAL" || !user.professionalProfile) {
     // Fallback search by profile ID
-    const profile = await prisma.marketplaceProfile.findUnique({
+    const profile = await prisma.professionalProfile.findUnique({
       where: { id },
       select: { userId: true }
     });
 
     if (profile) {
         user = await prisma.user.findUnique({
-            where: { id: profile.userId },
-            include: { marketplaceProfile: true }
+          where: { id: profile.userId },
+          include: { professionalProfile: true }
         });
     } else {
         notFound();
@@ -35,13 +35,13 @@ export default async function ProProfilePage({ params }: { params: Promise<{ id:
   }
 
   // Double check existence after fallback
-  if (!user || !user.marketplaceProfile) {
+      if (!user || !user.professionalProfile) {
       notFound();
   }
 
   return (
     <>
-      <PublicProfileView user={user} profile={user.marketplaceProfile} />
+      <PublicProfileView user={user} profile={user.professionalProfile} />
       {viewer && <MessagingManager currentUserId={viewer.id} />}
     </>
   );
