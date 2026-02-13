@@ -209,6 +209,18 @@ export const icons = {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/accueil", label: "Communauté", icon: icons.home, featureKey: "community" },
   {
+    href: "/evenements-formations",
+    label: "Événements & formations",
+    icon: icons.calendar,
+    featureKey: "events",
+  },
+  {
+    href: "/pro/profile",
+    label: "Mon profil pro",
+    icon: icons.user,
+    professionalOnly: true,
+  },
+  {
     kind: "group",
     label: "Marketplace",
     icon: icons.marketplace,
