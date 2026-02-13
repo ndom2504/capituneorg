@@ -95,14 +95,16 @@ export function EventsSidebarCard({ className }: { className?: string }) {
                       />
                     </div>
                   ) : null}
-                  <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="line-clamp-2 text-sm font-semibold text-text leading-tight">{e.title}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="line-clamp-2 text-sm font-semibold text-text leading-tight">{e.title}</div>
+                    <div className="mt-1 flex items-center justify-between gap-2">
                       {e.startsAt ? (
-                        <div className="mt-1 text-xs text-muted whitespace-nowrap">{formatStartsAtShort(e.startsAt)}</div>
-                      ) : null}
+                        <div className="text-xs text-muted whitespace-nowrap">{formatStartsAtShort(e.startsAt)}</div>
+                      ) : (
+                        <span />
+                      )}
+                      <ActionLink href={`/events/${e.slug}`}>Détails</ActionLink>
                     </div>
-                    <ActionLink href={`/events/${e.slug}`}>Détails</ActionLink>
                   </div>
                 </div>
               ))}
@@ -128,12 +130,12 @@ export function EventsSidebarCard({ className }: { className?: string }) {
                       />
                     </div>
                   ) : null}
-                  <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="line-clamp-2 text-sm font-semibold text-text leading-tight">{e.title}</div>
-                      <div className="mt-1 text-xs text-muted">Formation disponible</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="line-clamp-2 text-sm font-semibold text-text leading-tight">{e.title}</div>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <div className="text-xs text-muted">Formation disponible</div>
+                      <ActionLink href={`/events/${e.slug}`}>Détails</ActionLink>
                     </div>
-                    <ActionLink href={`/events/${e.slug}`}>Détails</ActionLink>
                   </div>
                 </div>
               ))}
