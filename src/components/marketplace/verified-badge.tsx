@@ -52,7 +52,7 @@ export function VerifiedBadge({
     return (
       <div className="inline-flex items-center gap-1" title="Pro Certifié (Diplôme vérifié)">
         <span className="text-blue-600">
-           <BadgeCheck className={iconSize} fill="currentColor" className="text-white" />
+           <BadgeCheck className={`text-white ${iconSize}`} fill="currentColor" />
         </span>
         {badges?.includes("EXPERTISED") && (
           <span className="text-purple-600" title="Expert">
