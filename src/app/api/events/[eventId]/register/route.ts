@@ -55,7 +55,7 @@ export async function POST(
         data: {
           eventId,
           userId: viewer.id,
-          status: "CONFIRMED",
+          status: "REGISTERED",
         },
       });
       registeredByViewer = true;
