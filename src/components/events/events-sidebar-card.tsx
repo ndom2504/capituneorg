@@ -13,6 +13,7 @@ type EventDto = {
   format: "LIVE" | "REPLAY";
   type: "LIVE" | "WEBINAIRE" | "ATELIER" | "FORMATION";
   startsAt: string | null;
+  bannerUrl: string | null;
 };
 
 function formatStartsAtShort(iso: string) {
@@ -84,15 +85,26 @@ export function EventsSidebarCard({ className }: { className?: string }) {
               {upcoming.map((e) => (
                 <div
                   key={e.id}
-                  className="flex items-start justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-white/60 px-3 py-2"
+                  className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border bg-white/60 p-2 overflow-hidden"
                 >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-text">{e.title}</div>
-                    {e.startsAt ? (
-                      <div className="mt-0.5 text-xs text-muted">{formatStartsAtShort(e.startsAt)}</div>
-                    ) : null}
+                  {e.bannerUrl ? (
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
+                      <img
+                        src={e.bannerUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-text">{e.title}</div>
+                      {e.startsAt ? (
+                        <div className="mt-0.5 text-xs text-muted">{formatStartsAtShort(e.startsAt)}</div>
+                      ) : null}
+                    </div>
+                    <ActionLink href="/accueil">Détails</ActionLink>
                   </div>
-                  <ActionLink href="/accueil">Détails</ActionLink>
                 </div>
               ))}
             </div>
@@ -106,13 +118,24 @@ export function EventsSidebarCard({ className }: { className?: string }) {
               {trainings.map((e) => (
                 <div
                   key={e.id}
-                  className="flex items-start justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-white/60 px-3 py-2"
+                  className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border bg-white/60 p-2 overflow-hidden"
                 >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-text">{e.title}</div>
-                    <div className="mt-0.5 text-xs text-muted">Formation disponible</div>
+                  {e.bannerUrl ? (
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
+                      <img
+                        src={e.bannerUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-text">{e.title}</div>
+                      <div className="mt-0.5 text-xs text-muted">Formation disponible</div>
+                    </div>
+                    <ActionLink href="/accueil">Détails</ActionLink>
                   </div>
-                  <ActionLink href="/accueil">Détails</ActionLink>
                 </div>
               ))}
             </div>
