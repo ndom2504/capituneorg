@@ -23,7 +23,7 @@ export async function GET(
 
   const { professionalId } = await context.params;
 
-  const profile = await prisma.marketplaceProfile.findFirst({
+  const profile = await prisma.professionalProfile.findFirst({
     where: {
       userId: professionalId,
       status: "PUBLISHED",
