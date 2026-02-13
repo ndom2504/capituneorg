@@ -54,7 +54,7 @@ export function VerifiedBadge({
         <span className="text-blue-600">
            <BadgeCheck className={`text-white ${iconSize}`} fill="currentColor" />
         </span>
-        {badges?.includes("EXPERTISED") && (
+        {badges?.includes("EXPERT" as ProfileBadgeType) && (
           <span className="text-purple-600" title="Expert">
             <Award className={iconSize} />
           </span>
