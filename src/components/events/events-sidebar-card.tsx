@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 
 type EventDto = {
   id: string;
+  slug: string;
   title: string;
   format: "LIVE" | "REPLAY";
   type: "LIVE" | "WEBINAIRE" | "ATELIER" | "FORMATION";
@@ -67,7 +68,7 @@ export function EventsSidebarCard({ className }: { className?: string }) {
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle>Événements & formations</CardTitle>
-        <Link href="/accueil" className="text-xs font-semibold text-primary">
+        <Link href="/events" className="text-xs font-semibold text-primary">
           Voir
         </Link>
       </CardHeader>
@@ -103,7 +104,7 @@ export function EventsSidebarCard({ className }: { className?: string }) {
                         <div className="mt-0.5 text-xs text-muted">{formatStartsAtShort(e.startsAt)}</div>
                       ) : null}
                     </div>
-                    <ActionLink href="/accueil">Détails</ActionLink>
+                    <ActionLink href={`/events/${e.slug}`}>Détails</ActionLink>
                   </div>
                 </div>
               ))}
@@ -134,7 +135,7 @@ export function EventsSidebarCard({ className }: { className?: string }) {
                       <div className="truncate text-sm font-semibold text-text">{e.title}</div>
                       <div className="mt-0.5 text-xs text-muted">Formation disponible</div>
                     </div>
-                    <ActionLink href="/accueil">Détails</ActionLink>
+                    <ActionLink href={`/events/${e.slug}`}>Détails</ActionLink>
                   </div>
                 </div>
               ))}
