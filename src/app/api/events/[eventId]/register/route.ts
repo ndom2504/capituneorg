@@ -41,7 +41,12 @@ export async function POST(
     if (existing) {
       // Un-register
       await prisma.eventRegistration.delete({
-        where: { id: existing.id },
+        where: {
+          eventId_userId: {
+            eventId,
+            userId: viewer.id,
+          },
+        },
       });
       registeredByViewer = false;
     } else {
