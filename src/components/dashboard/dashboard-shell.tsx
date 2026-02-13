@@ -63,6 +63,7 @@ export function DashboardShell({
           mobileOpen={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
           isProfessional={isProfessional}
+          verificationStatus={viewer?.verificationStatus}
           featureFlags={featureFlags}
         />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

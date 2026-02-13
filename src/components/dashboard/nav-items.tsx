@@ -7,6 +7,7 @@ export type NavLinkItem = {
   icon: (props: { className?: string }) => ReactNode;
   professionalOnly?: boolean;
   hideForProfessionals?: boolean;
+  certifiedOnly?: boolean; // New: Requires CERTIFIED status
   featureKey?: "community" | "events" | "jobs" | "marketplace" | "messaging" | "notifications" | "proNetwork";
 };
 
@@ -16,6 +17,7 @@ export type NavGroupItem = {
   icon: (props: { className?: string }) => ReactNode;
   professionalOnly?: boolean;
   hideForProfessionals?: boolean;
+  certifiedOnly?: boolean;
   featureKey?: "community" | "events" | "jobs" | "marketplace" | "messaging" | "notifications" | "proNetwork";
   children: NavLinkItem[];
 };
@@ -209,29 +211,47 @@ export const icons = {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/accueil", label: "Communauté", icon: icons.home, featureKey: "community" },
   {
+    kind: "group",
+    label: "Marketplace",
+    icon: icons.marketplace,
+    featureKey: "marketplace",
+    children: [
+      {
+        href: "/marketplace/mon-profil-marketplace",
+        label: "Mon profil marketplace",
+        icon: icons.user,
+        professionalOnly: true,
+        featureKey: "marketplace",
+      },
+      {
+        href: "/marketplace",
+        label: "Marketplace",
+        icon: icons.marketplace,
+        hideForProfessionals: true,
+        featureKey: "marketplace",
+      },
+      {
+        href: "/marketplace/mes-demandes",
+        label: "Mes demandes",
+        icon: icons.inbox,
+        hideForProfessionals: true,
+        featureKey: "marketplace",
+      },
+    ],
+  },
+  {
     href: "/clients/demandes",
     label: "Demandes",
     icon: icons.inbox,
     professionalOnly: true,
+    certifiedOnly: true,
   },
   {
-    href: "/mon-dossier",
-    label: "Mes dossiers",
-    icon: icons.folder,
-    hideForProfessionals: true,
-  },
-  {
-    href: "/events/manage",
-    label: "Ma Gestion Événements",
-    icon: icons.settings,
+    href: "/clients/preinscriptions",
+    label: "Clients",
+    icon: icons.clients,
     professionalOnly: true,
-    featureKey: "events",
-  },
-  {
-    href: "/events",
-    label: "Catalogue Sessions",
-    icon: icons.calendar,
-    featureKey: "events",
+    certifiedOnly: true,
   },
   {
     href: "/reseau-pro",
@@ -241,16 +261,49 @@ export const NAV_ITEMS: NavItem[] = [
     featureKey: "proNetwork",
   },
   {
-    href: "/pro/profile",
-    label: "Mon Profil Pro",
-    icon: icons.user,
-    professionalOnly: true
+    href: "/mon-parcours",
+    label: "Mon parcours",
+    icon: icons.path,
+    hideForProfessionals: true,
+  },
+  // Pôle emploi - Professionnel
+  {
+    href: "/emploi/mes-offres",
+    label: "Mes offres d'emploi",
+    icon: icons.briefcase,
+    professionalOnly: true,
+    featureKey: "jobs",
   },
   {
-    href: "/profil",
-    label: "Profil",
-    icon: icons.user,
-    hideForProfessionals: true
+    href: "/emploi/candidatures",
+    label: "Candidatures reçues",
+    icon: icons.inbox,
+    professionalOnly: true,
+    featureKey: "jobs",
   },
+  // Pôle emploi - Demandeur
+  {
+    href: "/emploi/parcourir",
+    label: "Offres d'emploi",
+    icon: icons.briefcase,
+    hideForProfessionals: true,
+    featureKey: "jobs",
+  },
+  {
+    href: "/emploi/mes-candidatures",
+    label: "Mes candidatures",
+    icon: icons.folder,
+    hideForProfessionals: true,
+    featureKey: "jobs",
+  },
+  {
+    href: "/emploi/mon-profil-emploi",
+    label: "Mon profil emploi",
+    icon: icons.user,
+    hideForProfessionals: true,
+    featureKey: "jobs",
+  },
+  { href: "/mon-dossier", label: "Mon dossier", icon: icons.folder },
+  { href: "/profil", label: "Profil", icon: icons.user },
   { href: "/parametres", label: "Paramètres", icon: icons.settings },
 ];

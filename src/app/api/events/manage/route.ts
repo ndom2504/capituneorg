@@ -15,6 +15,11 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
+  // Restriction: Vérifié/Certifié uniquement (ou Admin)
+  if (viewer.accountType !== "ADMIN" && viewer.verificationStatus !== "VERIFIED" && viewer.verificationStatus !== "CERTIFIED") {
+    return NextResponse.json({ error: "Accès réservé aux professionnels vérifiés (Identité)." }, { status: 403 });
+  }
+
   const events = await prisma.event.findMany({
     where: { createdBy: viewer.id },
     select: {
@@ -51,6 +56,11 @@ export async function POST(req: NextRequest) {
   const viewer = await getAppViewer();
   if (!viewer || (viewer.accountType !== "PROFESSIONAL" && viewer.accountType !== "ADMIN")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  // Restriction: Vérifié/Certifié uniquement (ou Admin)
+  if (viewer.accountType !== "ADMIN" && viewer.verificationStatus !== "VERIFIED" && viewer.verificationStatus !== "CERTIFIED") {
+    return NextResponse.json({ error: "Publication réservée aux professionnels vérifiés (Identité)." }, { status: 403 });
   }
 
   const body = (await req.json().catch(() => null)) as {

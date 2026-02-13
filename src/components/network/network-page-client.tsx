@@ -327,26 +327,70 @@ export function NetworkPageClient({
 
             {/* Modal Invitation Replacement (Custom manual overlay) */}
             {selectedPro && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
-                        <div className="space-y-2">
-                             <h3 className="text-lg font-bold">Inviter {selectedPro.fullName}</h3>
-                             <p className="text-sm text-muted-foreground">
-                                Personnalisez votre message pour augmenter vos chances d'acceptation.
-                            </p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="bg-slate-50 p-6 border-b flex items-start justify-between">
+                            <div className="flex gap-4">
+                                <AvatarBubble
+                                    name={selectedPro.fullName}
+                                    url={selectedPro.avatarUrl}
+                                    size="lg"
+                                />
+                                <div>
+                                    <h3 className="text-lg font-bold text-navy">{selectedPro.fullName}</h3>
+                                    <p className="text-sm text-primary font-medium">{selectedPro.professionalProfile?.profession || "Professionnel"}</p>
+                                    {selectedPro.professionalProfile?.city && (
+                                        <p className="text-xs text-muted-foreground mt-1">{selectedPro.professionalProfile.city}</p>
+                                    )}
+                                </div>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedPro(null)} className="-mt-2 -mr-2 text-muted-foreground hover:text-navy">
+                                <X className="h-5 w-5" />
+                            </Button>
                         </div>
                         
-                         <Textarea 
-                            value={invitationMessage}
-                            onChange={(e) => setInvitationMessage(e.target.value)}
-                            rows={4}
-                            className="bg-slate-50"
-                        />
+                        {/* Body */}
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-navy">Votre message</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Une invitation personnalisée augmente vos chances d'acceptation.
+                                </p>
+                            </div>
+                            
+                            <Textarea
+                                value={invitationMessage}
+                                onChange={(e) => setInvitationMessage(e.target.value)}
+                                rows={5}
+                                className="bg-white resize-none border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary"
+                                placeholder="Bonjour..."
+                            />
+
+                            <div className="flex items-start gap-2 text-xs text-blue-700 bg-blue-50 p-3 rounded-md border border-blue-100">
+                                <MessageSquare className="h-4 w-4 shrink-0 mt-0.5" />
+                                <div>
+                                    <span className="font-semibold block mb-0.5">Pourquoi se connecter ?</span>
+                                    Échangez sur vos pratiques, partagez des opportunités et élargissez votre impact.
+                                </div>
+                            </div>
+                        </div>
                         
-                        <div className="flex justify-end gap-2 pt-2">
-                             <Button variant="ghost" onClick={() => setSelectedPro(null)}>Annuler</Button>
-                             <Button onClick={handleSendInvite} disabled={isSending}>
-                                {isSending ? "Envoi..." : "Envoyer l'invitation"}
+                        {/* Footer */}
+                        <div className="px-6 py-4 bg-slate-50 border-t flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setSelectedPro(null)}>Annuler</Button>
+                            <Button onClick={handleSendInvite} disabled={isSending} className="min-w-[140px]">
+                                {isSending ? (
+                                    <span className="flex items-center gap-2">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                        Envoi...
+                                    </span>
+                                ) : (
+                                    <>
+                                        <UserPlus className="mr-2 h-4 w-4" />
+                                        Envoyer l'invitation
+                                    </>
+                                )}
                             </Button>
                         </div>
                     </div>

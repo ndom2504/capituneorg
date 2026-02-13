@@ -211,6 +211,7 @@ enum VerificationStatus {
   DRAFT
   PENDING
   VERIFIED
+  CERTIFIED
   REJECTED
   SUSPENDED
 }

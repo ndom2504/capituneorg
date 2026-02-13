@@ -33,8 +33,8 @@ export function VerifiedBadge({
     );
   }
 
-  // Rien à afficher si pas vérifié
-  if (verificationStatus !== "VERIFIED") {
+  // Rien à afficher si pas vérifié/certifié
+  if (verificationStatus !== "VERIFIED" && verificationStatus !== "CERTIFIED") {
     return null;
   }
 
@@ -46,6 +46,22 @@ export function VerifiedBadge({
   };
 
   const iconSize = sizeClasses[size];
+
+  // Cas spécial: CERTIFIÉ
+  if (verificationStatus === "CERTIFIED") {
+    return (
+      <div className="inline-flex items-center gap-1" title="Pro Certifié (Diplôme vérifié)">
+        <span className="text-blue-600">
+           <BadgeCheck className={iconSize} fill="currentColor" className="text-white" />
+        </span>
+        {badges?.includes("EXPERTISED") && (
+          <span className="text-purple-600" title="Expert">
+            <Award className={iconSize} />
+          </span>
+        )}
+      </div>
+    );
+  }
 
   // Badge VERIFIED par défaut
   const hasBadges = badges && badges.length > 0;

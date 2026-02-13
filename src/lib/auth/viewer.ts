@@ -8,10 +8,12 @@ export type AppViewer = {
   accountType: "USER" | "PROFESSIONAL" | "ADMIN";
   adminRole: "ADMIN" | "MODERATOR";
   accountStatus: "ACTIVE" | "SUSPENDED" | "DELETED";
+  /// @deprecated use professionalProfile.verificationStatus
   isCertified: boolean;
+  verificationStatus?: "DRAFT" | "PENDING" | "VERIFIED" | "CERTIFIED" | "REJECTED" | "SUSPENDED"; 
   avatarUrl: string | null;
   coverUrl: string | null;
-  professionalProfile: { id: string } | null;
+  professionalProfile: { id: string; verificationStatus: "DRAFT" | "PENDING" | "VERIFIED" | "CERTIFIED" | "REJECTED" | "SUSPENDED" } | null;
 };
 
 function normalizeMediaUrl(url: string | null): string | null {
@@ -37,12 +39,13 @@ export async function getAppViewer(): Promise<AppViewer | null> {
           isCertified: true,
           avatarUrl: true,
           coverUrl: true,
-          professionalProfile: { select: { id: true } },
+          professionalProfile: { select: { id: true, verificationStatus: true } },
         },
       });
       if (!user) return null;
       return {
         ...user,
+        verificationStatus: user.professionalProfile?.verificationStatus,
         avatarUrl: normalizeMediaUrl(user.avatarUrl),
         coverUrl: normalizeMediaUrl(user.coverUrl),
       };
@@ -62,12 +65,13 @@ export async function getAppViewer(): Promise<AppViewer | null> {
         isCertified: true,
         avatarUrl: true,
         coverUrl: true,
-        professionalProfile: { select: { id: true } },
+        professionalProfile: { select: { id: true, verificationStatus: true } },
       },
     });
     if (!user) return null;
     return {
       ...user,
+      verificationStatus: user.professionalProfile?.verificationStatus,
       avatarUrl: normalizeMediaUrl(user.avatarUrl),
       coverUrl: normalizeMediaUrl(user.coverUrl),
     };

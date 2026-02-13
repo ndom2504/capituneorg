@@ -64,8 +64,12 @@ export function PublicProfileView({ user, profile }: PublicProfileViewProps) {
               <div className="flex-1 pb-2">
                 <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
                   <h1 className="text-3xl font-bold text-navy">{user.fullName}</h1>
-                  {profile.verificationStatus === "VERIFIED" && (
-                    <BadgeCheck className="w-6 h-6 text-yellow-500 fill-current" />
+                  {(profile.verificationStatus === "VERIFIED" || profile.verificationStatus === "CERTIFIED") && (
+                    <BadgeCheck 
+                      className={`w-6 h-6 fill-current ${
+                        profile.verificationStatus === "CERTIFIED" ? "text-blue-600" : "text-gray-400"
+                      }`} 
+                    />
                   )}
                 </div>
                 <p className="text-lg text-gray-600 font-medium mb-2">{profile.headline || profile.profession}</p>

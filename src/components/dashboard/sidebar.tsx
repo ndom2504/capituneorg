@@ -20,25 +20,27 @@ function isLink(item: NavItem): item is NavLinkItem {
 function isVisible(
   item: NavItem,
   isProfessional: boolean,
+  verificationStatus: string | undefined,
   featureFlags: FeatureFlagsSetting,
 ) {
   if (item.professionalOnly && !isProfessional) return false;
   if (isProfessional && item.hideForProfessionals) return false;
+  if (item.certifiedOnly && verificationStatus !== "CERTIFIED") return false;
   if (item.featureKey && featureFlags[item.featureKey] === false) return false;
   return true;
 }
 
-function visibleItems(isProfessional: boolean, featureFlags: FeatureFlagsSetting) {
+function visibleItems(isProfessional: boolean, verificationStatus: string | undefined, featureFlags: FeatureFlagsSetting) {
   return NAV_ITEMS.reduce<NavItem[]>((acc, item) => {
     if (isGroup(item)) {
-      if (!isVisible(item, isProfessional, featureFlags)) return acc;
-      const children = item.children.filter((c) => isVisible(c, isProfessional, featureFlags));
+      if (!isVisible(item, isProfessional, verificationStatus, featureFlags)) return acc;
+      const children = item.children.filter((c) => isVisible(c, isProfessional, verificationStatus, featureFlags));
       if (!children.length) return acc;
       acc.push({ ...item, children });
       return acc;
     }
 
-    if (isVisible(item, isProfessional, featureFlags)) acc.push(item);
+    if (isVisible(item, isProfessional, verificationStatus, featureFlags)) acc.push(item);
     return acc;
   }, []);
 }
@@ -52,19 +54,21 @@ export function Sidebar({
   mobileOpen,
   onCloseMobile,
   isProfessional,
+  verificationStatus,
   featureFlags,
 }: {
   collapsed: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   isProfessional: boolean;
+  verificationStatus?: string;
   featureFlags: FeatureFlagsSetting;
 }) {
   const pathname = usePathname();
 
   const accountLabel = isProfessional ? "Compte pro" : "Compte demandeur";
 
-  const navItems = visibleItems(isProfessional, featureFlags);
+  const navItems = visibleItems(isProfessional, verificationStatus, featureFlags);
 
   const showEventsCard = featureFlags.events !== false;
 

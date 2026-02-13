@@ -8,6 +8,7 @@ export type ViewerAuth = {
   avatarUrl: string | null;
   accountType: "USER" | "PROFESSIONAL" | "ADMIN";
   isCertified: boolean;
+  verificationStatus?: "DRAFT" | "PENDING" | "VERIFIED" | "CERTIFIED" | "REJECTED" | "SUSPENDED";
 };
 
 export async function requireProfessionalViewer(): Promise<
@@ -34,6 +35,17 @@ export async function requireProfessionalViewer(): Promise<
       ok: false,
       response: NextResponse.json(
         { error: "Accès réservé aux professionnels." },
+        { status: 403 },
+      ),
+    };
+  }
+  
+  // Restriction: SEULS les Certified (ou Admin) accèdent aux clients
+  if (viewer.accountType !== "ADMIN" && viewer.verificationStatus !== "CERTIFIED") {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Accès restreint aux professionnels certifiés (Diplôme validé)." },
         { status: 403 },
       ),
     };
