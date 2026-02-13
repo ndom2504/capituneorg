@@ -62,7 +62,7 @@ export async function getAppViewer(): Promise<AppViewer | null> {
         isCertified: true,
         avatarUrl: true,
         coverUrl: true,
-        marketplaceProfile: { select: { id: true } },
+        professionalProfile: { select: { id: true } },
       },
     });
     if (!user) return null;
