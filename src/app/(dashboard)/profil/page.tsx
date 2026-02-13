@@ -32,7 +32,7 @@ export default async function ProfilPage() {
       email: true,
       avatarUrl: true,
       coverUrl: true,
-      marketplaceProfile: {
+      professionalProfile: {
         select: { id: true },
       },
     },
@@ -46,7 +46,7 @@ export default async function ProfilPage() {
       }
     : null;
 
-  const isPro = !!user?.marketplaceProfile;
+  const isPro = !!user?.professionalProfile;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
