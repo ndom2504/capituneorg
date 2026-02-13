@@ -256,12 +256,6 @@ export const NAV_ITEMS: NavItem[] = [
     professionalOnly: true,
     featureKey: "proNetwork",
   },
-  {
-    href: "/mon-parcours",
-    label: "Mon parcours",
-    icon: icons.path,
-    hideForProfessionals: true,
-  },
   // Pôle emploi - Professionnel
   {
     href: "/emploi/mes-offres",

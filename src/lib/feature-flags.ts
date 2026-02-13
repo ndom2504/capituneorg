@@ -13,10 +13,10 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlagsSetting = {
   community: true,
   events: true,
   jobs: true,
-  marketplace: true,
+  marketplace: false,
   messaging: true,
   notifications: true,
-  presence: true,
+  presence: false,
   proNetwork: true,
 };
 

@@ -114,7 +114,6 @@ export function Topbar({
               ) : null}
             </>
           ) : null}
-          <TopbarTab href="/mon-parcours" active={pathname.startsWith("/mon-parcours")}>Mon parcours</TopbarTab>
         </nav>
 
         {/* Spacer pour pousser les actions à droite */}
