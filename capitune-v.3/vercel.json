@@ -1,0 +1,28 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "capitune.com" }],
+      "destination": "https://www.capitune.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "cpaitune.com" }],
+      "destination": "https://www.capitune.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.cpaitune.com" }],
+      "destination": "https://www.capitune.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "https.www.capitune.com" }],
+      "destination": "https://www.capitune.com/:path*",
+      "permanent": true
+    }
+  ]
+}
