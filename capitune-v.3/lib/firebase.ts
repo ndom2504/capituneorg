@@ -22,6 +22,28 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "",
 };
 
+const requiredFirebaseKeys = [
+  "apiKey",
+  "authDomain",
+  "projectId",
+  "appId",
+] as const;
+
+const missingFirebaseKeys = requiredFirebaseKeys.filter(
+  (key) => !firebaseConfig[key],
+);
+
+if (missingFirebaseKeys.length) {
+  // Fail fast with a helpful message instead of Firebase's generic auth/invalid-api-key.
+  // This typically happens in Vercel when env vars are not set for the project.
+  // eslint-disable-next-line no-console
+  console.error(
+    `[Capitune] Configuration Firebase manquante: ${missingFirebaseKeys.join(
+      ", ",
+    )}. Configure les variables VITE_FIREBASE_* sur Vercel (Project Settings → Environment Variables).`,
+  );
+}
+
 // Initialisation unique et sécurisée
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
