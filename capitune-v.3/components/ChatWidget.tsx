@@ -8,12 +8,19 @@ interface ChatWidgetProps {
   currentUser: User;
 }
 
+type ChatOpenDetail = {
+  participantId?: string;
+  participantName?: string;
+  participantAvatar?: string;
+};
+
 const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
   const [messagesMap, setMessagesMap] = useState<Record<string, ChatMessage[]>>(MOCK_MESSAGES);
   const [inputText, setInputText] = useState('');
+  const [participantOverrides, setParticipantOverrides] = useState<Record<string, { name?: string; avatar?: string }>>({});
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -27,8 +34,68 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
     }
   }, [activeConvId, messagesMap]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<ChatOpenDetail>;
+      const participantId = ce.detail?.participantId;
+      if (!participantId) return;
+
+      const participantName = ce.detail?.participantName;
+      const participantAvatar = ce.detail?.participantAvatar;
+
+      if (participantName || participantAvatar) {
+        setParticipantOverrides((prev) => ({
+          ...prev,
+          [participantId]: {
+            name: participantName ?? prev[participantId]?.name,
+            avatar: participantAvatar ?? prev[participantId]?.avatar,
+          },
+        }));
+      }
+
+      setIsOpen(true);
+
+      setConversations((prev) => {
+        const existing = prev.find((c) => c.participantId === participantId);
+        if (existing) {
+          setActiveConvId(existing.id);
+          return prev;
+        }
+
+        const newConv: Conversation = {
+          id: `conv-${Date.now()}`,
+          participantId,
+          updatedAt: new Date().toISOString(),
+          lastMessage: undefined,
+        };
+
+        setActiveConvId(newConv.id);
+        setMessagesMap((prevMessages) => ({
+          ...prevMessages,
+          [newConv.id]: prevMessages[newConv.id] ?? [],
+        }));
+
+        return [newConv, ...prev];
+      });
+    };
+
+    window.addEventListener('capitune:v3:open-chat', handler);
+    return () => window.removeEventListener('capitune:v3:open-chat', handler);
+  }, []);
+
+  const resolveParticipant = (participantId: string | undefined | null) => {
+    if (!participantId) return null;
+    const override = participantOverrides[participantId];
+    const fromMock = MOCK_USERS.find((u) => u.id === participantId);
+    return {
+      id: participantId,
+      name: override?.name || fromMock?.name || 'Participant',
+      avatar: override?.avatar || fromMock?.avatar || '',
+    };
+  };
+
   const activeConv = conversations.find(c => c.id === activeConvId);
-  const participant = activeConv ? MOCK_USERS.find(u => u.id === activeConv.participantId) : null;
+  const participant = activeConv ? resolveParticipant(activeConv.participantId) : null;
   const activeMessages = activeConvId ? messagesMap[activeConvId] || [] : [];
 
   const handleSendMessage = () => {
@@ -71,7 +138,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
       <div className="p-5 bg-purple-600 text-white flex items-center justify-between">
         <div className="flex items-center gap-3">
           {activeConvId ? (
-            <button onClick={() => setActiveConvId(null)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+            <button
+              onClick={() => setActiveConvId(null)}
+              className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+              aria-label="Retour à la liste des conversations"
+              title="Retour"
+            >
               <ChevronLeft className="w-5 h-5" />
             </button>
           ) : (
@@ -84,7 +156,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
           </h3>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+            aria-label="Réduire la messagerie"
+            title="Réduire"
+          >
             <Minus className="w-5 h-5" />
           </button>
         </div>
@@ -100,14 +177,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
               <input type="text" placeholder="Rechercher expert..." className="w-full pl-9 pr-4 py-2 bg-white border border-slate-100 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-200 transition-all" />
             </div>
             {conversations.map(conv => {
-              const p = MOCK_USERS.find(u => u.id === conv.participantId);
+              const p = resolveParticipant(conv.participantId);
               return (
                 <button 
                   key={conv.id}
                   onClick={() => setActiveConvId(conv.id)}
                   className="w-full flex items-center gap-4 p-3 bg-white hover:bg-purple-50 rounded-2xl border border-transparent hover:border-purple-100 transition-all group text-left shadow-sm"
                 >
-                  <img src={p?.avatar} className="w-12 h-12 rounded-xl object-cover shadow-sm ring-2 ring-white" alt="" />
+                  {p?.avatar ? (
+                    <img src={p.avatar} className="w-12 h-12 rounded-xl object-cover shadow-sm ring-2 ring-white" alt="" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 shadow-sm ring-2 ring-white flex items-center justify-center">
+                      <span className="text-slate-500 font-black">
+                        {(p?.name || 'P').slice(0, 1).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <p className="text-sm font-black text-slate-900 group-hover:text-purple-700 transition-colors">{p?.name}</p>
@@ -158,6 +243,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentUser }) => {
                 onClick={handleSendMessage}
                 disabled={!inputText.trim()}
                 className="p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all disabled:opacity-50 disabled:scale-95 shadow-lg shadow-purple-100"
+                aria-label="Envoyer le message"
+                title="Envoyer"
               >
                 <Send className="w-4 h-4" />
               </button>

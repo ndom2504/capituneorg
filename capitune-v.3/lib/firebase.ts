@@ -3,20 +3,23 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   OAuthProvider, 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signInWithPopup, 
   signOut, 
   onAuthStateChanged,
+  updateProfile,
   User as FirebaseUser
 } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBv8f-s3oHSSM2aShFKrVnxUI4tM8UpywI",
-  authDomain: "capituneorg.firebaseapp.com",
-  projectId: "capituneorg",
-  storageBucket: "capituneorg.firebasestorage.app",
-  messagingSenderId: "56121675635",
-  appId: "1:56121675635:web:4cf0978982fb24e9553f06",
-  measurementId: "G-3V7DRP9EYR"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "",
 };
 
 // Initialisation unique et sécurisée
@@ -33,6 +36,9 @@ export {
   auth, 
   googleProvider, 
   microsoftProvider, 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
   signInWithPopup, 
   signOut, 
   onAuthStateChanged 

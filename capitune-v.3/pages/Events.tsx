@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MOCK_EVENTS, MOCK_USERS } from '../constants';
 import { UserRole, EventStatus, Event as EventType, User } from '../types';
 import { GoogleGenAI } from "@google/genai";
+import { auth } from '../lib/firebase';
 import { 
   Calendar, Video, PlayCircle, Users, Clock, Search, Filter, 
   CheckCircle, Plus, Info, X, Layout, Settings, PieChart, 
@@ -34,6 +35,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [showTicketModal, setShowTicketModal] = useState<EventType | null>(null);
   const [showLegalPolicy, setShowLegalPolicy] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+   const [paymentError, setPaymentError] = useState<string | null>(null);
   
   const [isAiLoading, setIsAiLoading] = useState<{title?: boolean, desc?: boolean}>({});
   const [aiError, setAiError] = useState<string | null>(null);
@@ -46,6 +48,29 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const COMMISSION_RATE = 0.10; // 10% pour Capitune
   const TAX_RATE = 0.14975; // TPS/TVQ (QC)
 
+   const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() || '';
+
+   useEffect(() => {
+      if (typeof window === 'undefined') return;
+
+      const params = new URLSearchParams(window.location.search);
+      const payment = params.get('payment');
+      const eventId = params.get('eventId');
+
+      if ((payment === 'success' || payment === 'canceled') && eventId) {
+         if (payment === 'success') {
+            confirmRegistration(eventId);
+         }
+
+         // Nettoie l'URL après traitement (préserve le hash)
+         params.delete('payment');
+         params.delete('eventId');
+         const nextSearch = params.toString();
+         const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+         window.history.replaceState(null, '', nextUrl);
+      }
+   }, []);
+
   const handleRegistration = (event: EventType) => {
     if (registeredIds.has(event.id)) {
       setShowTicketModal(event);
@@ -56,36 +81,69 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       setActivePaymentEvent(event);
       setPaymentStep('summary');
       setAcceptTerms(false);
+         setPaymentError(null);
     } else {
       confirmRegistration(event.id);
     }
   };
 
+   const startStripeCheckout = async () => {
+      if (!acceptTerms) return;
+      if (!activePaymentEvent) return;
+
+      setPaymentError(null);
+      setPaymentStep('processing');
+      setProcessingSubStep(1);
+
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+         setPaymentError('Vous devez être connecté pour effectuer un paiement.');
+         setPaymentStep('summary');
+         return;
+      }
+
+      let idToken: string;
+      try {
+         idToken = await firebaseUser.getIdToken();
+      } catch {
+         setPaymentError('Impossible de récupérer le jeton de connexion.');
+         setPaymentStep('summary');
+         return;
+      }
+
+      try {
+         setProcessingSubStep(2);
+         const res = await fetch(`${apiBaseUrl}/api/v3/checkout/event`, {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+               idToken,
+               eventId: activePaymentEvent.id,
+            }),
+         });
+
+         const data = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
+         if (!res.ok) {
+            throw new Error(data?.error || 'Erreur de paiement');
+         }
+         if (!data?.url) {
+            throw new Error('URL de paiement indisponible');
+         }
+
+         setProcessingSubStep(3);
+         window.location.assign(data.url);
+      } catch (e) {
+         const message = e instanceof Error ? e.message : 'Erreur lors du paiement';
+         setPaymentError(message);
+         setPaymentStep('summary');
+      }
+   };
+
   const startPaymentProcessing = () => {
-    if (!acceptTerms) return;
-    setPaymentStep('processing');
-    setProcessingSubStep(0);
-    
-    const steps = [
-      "Connexion sécurisée à Export Monde Prestige Inc...", 
-      "Calcul des répartitions (Expert 90% / Capitune 10%)...", 
-      "Finalisation de la transaction institutionnelle..."
-    ];
-    
-    steps.forEach((_, index) => {
-      setTimeout(() => {
-        setProcessingSubStep(index + 1);
-        if (index === steps.length - 1) {
-          setTimeout(() => {
-            setPaymentStep('success');
-            if (activePaymentEvent) {
-              setRegisteredIds(prev => new Set(prev).add(activePaymentEvent.id));
-              setEvents(prev => prev.map(e => e.id === activePaymentEvent.id ? { ...e, registeredCount: e.registeredCount + 1 } : e));
-            }
-          }, 800);
-        }
-      }, (index + 1) * 1000);
-    });
+      // Paiement réel via Stripe (backend Next)
+      void startStripeCheckout();
   };
 
   const confirmRegistration = (eventId: string) => {
@@ -346,6 +404,12 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                        >
                          Confirmer le paiement {( (activePaymentEvent.price || 0) * (1 + TAX_RATE) ).toFixed(2)}$
                        </button>
+
+                                  {paymentError && (
+                                     <div className="p-3 bg-red-50 border border-red-100 rounded-2xl text-[10px] text-red-700 font-bold">
+                                        {paymentError}
+                                     </div>
+                                  )}
                     </div>
                  )}
                  {paymentStep === 'processing' && (

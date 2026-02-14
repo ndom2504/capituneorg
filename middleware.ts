@@ -17,6 +17,14 @@ function isPublicFile(pathname: string) {
   );
 }
 
+function shouldRedirectToV3(pathname: string) {
+  // Keep Next.js internals + API working (this project is also used as a backend).
+  if (pathname.startsWith("/_next")) return false;
+  if (pathname.startsWith("/api/")) return false;
+  if (isPublicFile(pathname)) return false;
+  return true;
+}
+
 function shouldSkipMaintenance(pathname: string) {
   if (pathname.startsWith("/_next")) return true;
   if (isPublicFile(pathname)) return true;
@@ -38,6 +46,17 @@ function shouldSkipMaintenance(pathname: string) {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Redirect all non-API traffic to the new V3 site.
+  if (shouldRedirectToV3(pathname)) {
+    const targetOrigin =
+      process.env.NEXT_PUBLIC_V3_ORIGIN ?? "https://www.capitune.com";
+    const targetUrl = new URL(
+      `${req.nextUrl.pathname}${req.nextUrl.search}`,
+      targetOrigin,
+    );
+    return NextResponse.redirect(targetUrl, 308);
+  }
 
   if (shouldSkipMaintenance(pathname)) {
     return NextResponse.next();

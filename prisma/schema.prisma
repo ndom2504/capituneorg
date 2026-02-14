@@ -1650,6 +1650,12 @@ enum CaseStatus {
   DONE
 }
 
+enum CaseDocumentStatus {
+  PENDING
+  VALIDATED
+  REJECTED
+}
+
 model Case {
   id             String     @id @default(cuid())
   requesterId    String
@@ -1696,11 +1702,17 @@ model CaseDocument {
   caseId    String
   name      String
   url       String
+  mimeType  String?
+  sizeBytes Int?
+  slot      String?
+  status    CaseDocumentStatus @default(PENDING)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
+  @@unique([caseId, slot])
 }
 
 model JobPosting {

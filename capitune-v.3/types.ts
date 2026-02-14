@@ -101,9 +101,11 @@ export interface ProfessionalNetwork {
 export interface Document {
   id: string;
   name: string;
-  status: 'PENDING' | 'VALIDATED' | 'REJECTED';
+  status: 'MISSING' | 'PENDING' | 'VALIDATED' | 'REJECTED';
   type: string;
   updatedAt: string;
+  url?: string;
+  slot?: string | null;
 }
 
 export interface ServiceRequest {

@@ -18,3 +18,9 @@ View your app in AI Studio: https://ai.studio/apps/drive/1EnBhxgPTTTXNP0s9jM74QH
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Logo
+
+Dépose le fichier du logo ici : `public/brand-mark.png`
+
+Il sera utilisé automatiquement sur l'écran d'auth (Login), dans la barre latérale, et comme favicon.
