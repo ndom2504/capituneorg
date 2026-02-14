@@ -18,23 +18,23 @@ import {
   LogOut,
   Loader2
 } from 'lucide-react';
-import { User, UserRole, Notification, VerificationStatus } from './types.ts';
-import { MOCK_USERS, MOCK_NOTIFICATIONS } from './constants.tsx';
-import { auth, onAuthStateChanged, signOut } from './lib/firebase.ts';
+import { User, UserRole, Notification, VerificationStatus } from './types';
+import { MOCK_USERS, MOCK_NOTIFICATIONS } from './constants';
+import { auth, onAuthStateChanged, signOut } from './lib/firebase';
 
 // Components
-import ChatWidget from './components/ChatWidget.tsx';
-import Login from './pages/Login.tsx';
+import ChatWidget from './components/ChatWidget';
+import Login from './pages/Login';
 
 // Pages
-import Dashboard from './pages/Dashboard.tsx';
-import Directory from './pages/Directory.tsx';
-import Marketplace from './pages/Marketplace.tsx';
-import Events from './pages/Events.tsx';
-import Community from './pages/Community.tsx';
-import Admin from './pages/Admin.tsx';
-import Profile from './pages/Profile.tsx';
-import ProNetwork from './pages/ProNetwork.tsx';
+import Dashboard from './pages/Dashboard';
+import Directory from './pages/Directory';
+import Marketplace from './pages/Marketplace';
+import Events from './pages/Events';
+import Community from './pages/Community';
+import Admin from './pages/Admin';
+import Profile from './pages/Profile';
+import ProNetwork from './pages/ProNetwork';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');

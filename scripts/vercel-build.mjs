@@ -6,6 +6,21 @@ function log(msg) {
   console.log(`[vercel-build] ${msg}`);
 }
 
+function removeDirIfExists(dirPath) {
+  try {
+    if (!fs.existsSync(dirPath)) return;
+    fs.rmSync(dirPath, { recursive: true, force: true });
+  } catch {
+    // best-effort cleanup
+  }
+}
+
+function cleanNextTypeArtifacts() {
+  const nextDir = path.join(process.cwd(), ".next");
+  removeDirIfExists(path.join(nextDir, "types"));
+  removeDirIfExists(path.join(nextDir, "dev", "types"));
+}
+
 function run(cmd, args, options = {}) {
   const result = spawnSync(cmd, args, {
     stdio: "inherit",
@@ -363,5 +378,9 @@ if (isVercel) {
 
 log("Running prisma generate.");
 runBin("prisma", ["generate"]);
+
+// Vercel restores build cache between deployments; make sure Next's generated
+// type validators don't remain stale when API routes are added/removed.
+cleanNextTypeArtifacts();
 
 runBin("next", ["build"]);
