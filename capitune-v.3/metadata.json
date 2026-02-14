@@ -1,0 +1,8 @@
+{
+  "name": "Capitune V.3",
+  "description": "An institutional digital platform dedicated to professional and community ecosystem structuring, featuring directories, marketplace, training events, and governance dashboards.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
